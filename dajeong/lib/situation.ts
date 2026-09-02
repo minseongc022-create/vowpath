@@ -1,4 +1,4 @@
-import type { AgeBand, ExperienceMood, Occasion, ParsedSituation, PlanCategory, PlanRequest, PlanScope, SituationUnderstanding, TransportMode } from "./types";
+import type { AgeBand, ExperienceMood, Occasion, ParsedSituation, PlanCategory, PlanRequest, PlanScope, ScheduleDensity, SituationUnderstanding, TemporaryCondition, TransportMode } from "./types";
 
 const REGIONS = [
   "강남", "성수", "홍대", "연남", "여의도", "잠실", "광화문", "종로", "용산", "이태원",
@@ -179,7 +179,32 @@ function deriveRequestKind(text: string, scope: PlanScope, category?: PlanCatego
   return scope === "single" ? "place_search" : "day_plan";
 }
 
-function deriveTimes(text: string): { startTime: string; preferredTime: string } {
+function normalizeClock(period: string | undefined, hourText: string, minuteText = "00", assumeAfternoon = false): string {
+  let hour = Number(hourText);
+  if ((period === "오후" || period === "저녁" || (!period && assumeAfternoon && hour <= 11)) && hour < 12) hour += 12;
+  if (period === "오전" && hour === 12) hour = 0;
+  return `${String(Math.min(23, Math.max(0, hour))).padStart(2, "0")}:${minuteText}`;
+}
+
+function deriveAvailability(text: string, input: PlanRequest): { startTime: string; endTime?: string } {
+  if (input.availabilityStartTime) return { startTime: input.availabilityStartTime, endTime: input.availabilityEndTime };
+  const range = text.match(/(?:(오전|오후|저녁)s*)?(\d{1,2})(?::(\d{2}))?\s*시?\s*부터\s*(?:(오전|오후|저녁)\s*)?(\d{1,2})(?::(\d{2}))?\s*시?\s*(?:까지|쯤|정도)?/);
+  if (range) {
+    const assumeAfternoon = !range[1] && Number(range[2]) <= 7;
+    const startTime = normalizeClock(range[1], range[2], range[3] ?? "00", assumeAfternoon);
+    const startHour = Number(startTime.slice(0, 2));
+    const endTime = normalizeClock(range[4], range[5], range[6] ?? "00", !range[4] && (startHour >= 12 || Number(range[5]) <= Number(range[2])));
+    return { startTime, endTime };
+  }
+  const duration = text.match(/(\d{1,2})(?:\s*~\s*\d{1,2})?\s*시간\s*(?:정도|쯤)?/);
+  const explicitStart = text.match(/(?:(오전|오후|저녁)\s*)?(\d{1,2})(?::(\d{2}))?\s*시?\s*(?:부터|시작|에\s*만나)/);
+  const startTime = explicitStart
+    ? normalizeClock(explicitStart[1], explicitStart[2], explicitStart[3] ?? "00", /오늘\s*저녁|저녁|놀/.test(text))
+    : /오늘\s*저녁|저녁에/.test(text) ? "18:00" : "14:00";
+  return { startTime, endTime: input.availabilityEndTime ?? (duration ? normalizeClock(undefined, String((Number(startTime.slice(0, 2)) + Number(duration[1])) % 24), startTime.slice(3)) : undefined) };
+}
+
+function deriveTimes(text: string, input: PlanRequest): { startTime: string; preferredTime: string; availabilityEndTime?: string } {
   const start = text.match(/(?:(오전|오후|저녁)\s*)?(\d{1,2})(?::(\d{2}))?\s*시?(?:부터|시작)/);
   const meal = text.match(/(?:저녁|식사)[^\d]{0,6}(?:(오전|오후)\s*)?(\d{1,2})(?::(\d{2}))?\s*시?/);
   const normalize = (match: RegExpMatchArray | null, fallback: string) => {
@@ -188,14 +213,38 @@ function deriveTimes(text: string): { startTime: string; preferredTime: string }
     if ((match[1] === "오후" || match[1] === "저녁") && hour < 12) hour += 12;
     return `${String(Math.min(22, Math.max(9, hour))).padStart(2, "0")}:${match[3] ?? "00"}`;
   };
-  return { startTime: normalize(start, "14:00"), preferredTime: normalize(meal, "18:30") };
+  const availability = deriveAvailability(text, input);
+  return { startTime: availability.startTime ?? normalize(start, "14:00"), preferredTime: normalize(meal, "18:30"), availabilityEndTime: availability.endTime };
+}
+
+function deriveDensity(text: string, input: PlanRequest): { scheduleDensity: ScheduleDensity; densitySpecified: boolean } {
+  if (input.scheduleDensity) return { scheduleDensity: input.scheduleDensity, densitySpecified: input.densitySpecified ?? true };
+  if (/알차게|여기저기|다양하게|꽉\s*차게/.test(text)) return { scheduleDensity: "compact", densitySpecified: true };
+  if (/여유롭게|널널|천천히|쉬엄|느긋/.test(text)) return { scheduleDensity: "relaxed", densitySpecified: true };
+  return { scheduleDensity: "balanced", densitySpecified: false };
+}
+
+function deriveHomeByTime(text: string, explicit?: string): string | undefined {
+  if (explicit) return explicit;
+  const match = text.match(/(?:(오전|오후|저녁)\s*)?(\d{1,2})(?::(\d{2}))?\s*시?\s*까지\s*(?:집|귀가|들어가)/);
+  return match ? normalizeClock(match[1], match[2], match[3] ?? "00", !match[1] && Number(match[2]) <= 11) : undefined;
+}
+
+function deriveTemporaryCondition(text: string, current?: TemporaryCondition): TemporaryCondition {
+  const notes = Array.from(new Set([...(current?.notes ?? []), /피곤|컨디션.{0,5}(안|별로|나쁘)/.test(text) ? "오늘 피곤함" : null, /발.{0,5}(아프|다쳤)|다리.{0,5}(아프|불편)/.test(text) ? "동행자의 발·다리 불편" : null].filter((value): value is string => Boolean(value))));
+  return {
+    energy: /피곤|컨디션.{0,5}(안|별로|나쁘)/.test(text) ? "low" : current?.energy ?? "normal",
+    walkingLimited: /발.{0,5}(아프|다쳤)|다리.{0,5}(아프|불편)|오늘.{0,8}많이.{0,3}못\s*걸/.test(text) || current?.walkingLimited === true,
+    notes,
+  };
 }
 
 export function parseSituation(input: PlanRequest): ParsedSituation {
   const text = input.request.trim();
   const { occasion, occasionLabel } = deriveOccasion(text);
   const { targetDate, urgency } = deriveDate(text, input.targetDate);
-  const rawTimes = deriveTimes(text);
+  const rawTimes = deriveTimes(text, input);
+  const density = deriveDensity(text, input);
   const region = input.region?.trim() || REGIONS.find((candidate) => text.includes(candidate)) || "서울";
   const transport = deriveTransport(text, input.transport);
   const singleCategory = input.singleCategory ?? deriveSingleCategory(text);
@@ -294,6 +343,13 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
     personMemoryUpdate: input.personMemoryUpdate,
     limitedEventPriority: /오늘|이번|주말|이번 주|이번주|기간 한정|팝업|축제|야간개장|시즌/.test(text),
     personProfile: input.personProfile,
+    availabilityEndTime: rawTimes.availabilityEndTime,
+    scheduleDensity: density.scheduleDensity,
+    densitySpecified: density.densitySpecified,
+    homeByTime: deriveHomeByTime(text, input.homeByTime),
+    homeTravelMinutes: input.homeTravelMinutes,
+    temporaryCondition: deriveTemporaryCondition(text, input.temporaryCondition),
+    budgetUsage: input.budgetUsage ?? (/예산.{0,8}(꽉|다\s*써)|\d+\s*만\s*원.{0,8}(꽉|다\s*써)/.test(text) ? "full" : "reserve"),
   };
 }
 
@@ -312,6 +368,9 @@ export function analyzeSituation(input: PlanRequest): SituationUnderstanding {
     hasRegion ? { label: "지역", value: situation.region } : null,
     hasBudget ? { label: "예산", value: `${Math.round(situation.budget / 10_000)}만원` } : null,
     situation.transport !== "unknown" ? { label: "이동", value: situation.transport === "car" ? "차량" : situation.transport === "walking" ? "도보" : "대중교통" } : null,
+    situation.availabilityEndTime ? { label: "가용시간", value: `${situation.startTime}~${situation.availabilityEndTime}` } : null,
+    situation.densitySpecified ? { label: "일정 밀도", value: situation.scheduleDensity === "compact" ? "알차게" : situation.scheduleDensity === "relaxed" ? "여유롭게" : "균형 있게" } : null,
+    situation.homeByTime ? { label: "귀가", value: `${situation.homeByTime}까지` } : null,
     situation.partySize !== 2 || /\d+\s*명/.test(text) ? { label: "인원", value: `${situation.partySize}명` } : null,
     situation.ageBand !== "미상" ? { label: "나이대", value: situation.ageBand } : null,
     situation.desiredMoods.length ? { label: "느낌", value: situation.desiredMoods.map((mood) => ({ romantic: "로맨틱", mysterious: "신비롭게", trendy: "트렌디", calm: "편안하게", luxurious: "고급스럽게", playful: "재밌게", warm: "따뜻하게", nature: "자연 속", artistic: "예술적으로", hidden: "숨은 명소" }[mood])).slice(0, 3).join(" · ") } : null,

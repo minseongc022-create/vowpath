@@ -8,6 +8,7 @@ import { chainNameFor, haversineKm, rankRealPlaceCandidates } from "../../dajeon
 import { handleExecutionInstruction } from "../../dajeong/lib/execution-conversation.ts";
 import { applyProviderQuote, approvePayment, prepareReservationOrder, recordProviderExecutionResult, requestPaymentReview } from "../../dajeong/lib/reservation-engine.ts";
 import { isIsolatedProductPath } from "../../lib/shell-route.ts";
+import { clockToMinutes, lockPlanItem, scheduleDajeongPlan, setItemDuration } from "../../dajeong/lib/schedule-engine.ts";
 
 test("상황 문장에서 대상·지역·예산·제약을 읽는다", () => {
   const situation = parseSituation({
@@ -551,4 +552,101 @@ test("현실 실행 10: 여러 실행 중 하나가 실패하면 성공과 실�
   assert.equal(order.status, "partially_completed");
   assert.ok(order.tasks.some((task) => ["booked", "purchased"].includes(task.status)));
   assert.ok(order.tasks.some((task) => task.status === "alternative_required"));
+});
+
+test("현실 일정 A: 토요일 14시부터 22시를 기억하고 시간과 지역을 다시 묻지 않는다", () => {
+  const draft = applyDeterministicConversation([{ role: "user", text: "토요일 2시부터 10시까지 성수에서 여친이랑 놀 거야." }], {});
+  assert.equal(draft.region, "성수");
+  assert.equal(draft.availabilityStartTime, "14:00");
+  assert.equal(draft.availabilityEndTime, "22:00");
+  const missing = missingPlanningQuestions(draft);
+  assert.equal(missing.includes("region"), false);
+  assert.equal(missing.includes("date"), false);
+  assert.equal(missing.includes("availabilityTime"), false);
+  const withoutTime = applyDeterministicConversation([{ role: "user", text: "토요일 여친이랑 성수에서 놀려고." }], {});
+  assert.equal(missingPlanningQuestions(withoutTime).includes("availabilityTime"), true);
+});
+
+test("현실 일정 B: 알찬 일정도 최소 체류시간 아래로 줄이거나 장소를 과하게 넣지 않는다", () => {
+  const plan = createDajeongPlan({ request: "토요일 2시부터 10시까지 성수에서 여자친구랑 알차게 놀 거야", region: "성수", budget: 250_000, scheduleDensity: "compact", densitySpecified: true });
+  assert.ok(plan.items.length <= 5);
+  assert.ok(plan.items.every((item) => item.durationMinutes >= item.durationRange.minimumMinutes));
+  assert.ok(clockToMinutes(plan.schedule.estimatedEndTime) <= clockToMinutes("22:00"));
+});
+
+test("현실 일정 C: 여유로운 일정은 장소 수와 이동을 줄이고 체류·완충시간을 늘린다", () => {
+  const base = { region: "성수", budget: 250_000, availabilityStartTime: "14:00", availabilityEndTime: "22:00", densitySpecified: true };
+  const compact = createDajeongPlan({ ...base, request: "성수에서 알차게 데이트", scheduleDensity: "compact" });
+  const relaxed = createDajeongPlan({ ...base, request: "성수에서 여유롭게 데이트", scheduleDensity: "relaxed" });
+  assert.ok(relaxed.items.length <= compact.items.length);
+  assert.ok(relaxed.items.every((item) => item.durationMinutes >= item.durationRange.recommendedMinutes));
+  assert.ok(relaxed.items.slice(0, -1).every((item) => item.bufferAfterMinutes >= 25));
+});
+
+test("현실 일정 D: 선택한 식당 체류시간을 늘리면 앞 일정은 보존하고 뒤 시간만 연쇄 조정한다", () => {
+  const plan = createDajeongPlan({ request: "토요일 2시부터 10시까지 성수 데이트", region: "성수", budget: 250_000, availabilityStartTime: "14:00", availabilityEndTime: "22:00" });
+  const meal = plan.items.find((item) => item.category === "meal");
+  const beforeMeal = plan.items.filter((item) => clockToMinutes(item.time) < clockToMinutes(meal.time)).map((item) => ({ id: item.id, time: item.time }));
+  const after = plan.items.find((item) => clockToMinutes(item.time) > clockToMinutes(meal.time));
+  const changed = setItemDuration(plan, meal.id, meal.durationMinutes + 30);
+  assert.equal(changed.items.find((item) => item.id === meal.id).durationMinutes, meal.durationMinutes + 30);
+  assert.deepEqual(changed.items.filter((item) => beforeMeal.some((before) => before.id === item.id)).map((item) => ({ id: item.id, time: item.time })), beforeMeal);
+  if (after) assert.ok(clockToMinutes(changed.items.find((item) => item.id === after.id).time) >= clockToMinutes(after.time));
+});
+
+test("현실 일정 E: 카페 2시간과 마지막 야경 고정을 동시에 만족한다", () => {
+  let plan = createDajeongPlan({ request: "토요일 2시부터 10시까지 성수 데이트", region: "성수", budget: 250_000, availabilityStartTime: "14:00", availabilityEndTime: "22:00" });
+  const cafe = plan.items.find((item) => item.category === "cafe");
+  const view = plan.items.find((item) => item.category === "view");
+  plan = setItemDuration(plan, cafe.id, 120);
+  plan = lockPlanItem(plan, view.id, "place", "마지막 야경은 꼭 유지");
+  assert.equal(plan.items.find((item) => item.id === cafe.id).durationMinutes, 120);
+  assert.equal(plan.items.find((item) => item.id === view.id).placeLocked, true);
+  assert.ok(plan.items.some((item) => item.id === view.id));
+});
+
+test("현실 일정 F: 오늘 피곤함은 이번 일정 밀도만 낮추고 사람 프로필을 바꾸지 않는다", () => {
+  const profile = { id: "p", name: "여자친구", relation: "여자친구", ageBand: "20대", preferences: ["전시"], constraints: [], likedFoods: [], dislikedFoods: [], hobbies: [], moodPreferences: [], visitedPlaceIds: [], likedPlaceIds: [], dislikedPlaceIds: [], notes: [], updatedAt: new Date().toISOString() };
+  const plan = createDajeongPlan({ request: "오늘 서울에서 여자친구와 데이트", region: "서울", budget: 200_000, personProfile: profile });
+  const tired = scheduleDajeongPlan({ ...plan, situation: { ...plan.situation, temporaryCondition: { energy: "low", walkingLimited: false, notes: ["오늘 피곤함"] } } });
+  assert.equal(tired.schedule.density, "relaxed");
+  assert.deepEqual(tired.situation.personProfile, profile);
+  assert.deepEqual(tired.situation.personMemoryUpdate, plan.situation.personMemoryUpdate);
+});
+
+test("현실 일정 G: 23시 귀가는 마지막 장소가 아니라 예상 귀가시간으로 역산한다", () => {
+  const plan = createDajeongPlan({ request: "토요일 성수에서 여자친구랑 놀고 11시까지 집에 가야 돼", region: "성수", budget: 250_000, homeTravelMinutes: 45 });
+  assert.equal(plan.situation.homeByTime, "23:00");
+  assert.ok(clockToMinutes(plan.schedule.estimatedHomeArrival) <= clockToMinutes("23:00"));
+  assert.equal(plan.schedule.dayWindows[0].endTime, "22:15");
+});
+
+test("현실 일정 H: 비 예보는 실내 여부뿐 아니라 도보 노출과 이동 피로도에 반영한다", () => {
+  const plan = createDajeongPlan({ request: "오늘 서울에서 여자친구와 걸어서 데이트", region: "서울", budget: 200_000, transport: "walking", targetDate: "2026-09-02" });
+  const positioned = plan.items.map((item, index) => ({ ...item, reality: { ...item.reality, latitude: 37.5 + index * .025, longitude: 127 + index * .025 } }));
+  const weather = { status: "verified", sourceLabel: "테스트 예보", checkedAt: new Date().toISOString(), days: [{ date: "2026-09-02", hours: [], precipitationProbabilityMax: 90, precipitationMm: 12, windKphMax: 20, impact: "high" }], message: "강한 비 예보 확인" };
+  const scheduled = scheduleDajeongPlan({ ...plan, items: positioned, schedule: { ...plan.schedule, weather } });
+  assert.ok(scheduled.items.slice(1).some((item) => item.travelFromPrevious.weatherExposure === "high"));
+  assert.ok(scheduled.items.slice(1).some((item) => item.travelFromPrevious.fatigue === "high"));
+});
+
+test("현실 일정 I: 제주 여행의 나쁜 날씨 날짜만 실내외 일정을 서로 재배치한다", () => {
+  const plan = createDajeongPlan({ request: "제주 2박3일 여행", planScope: "trip", tripDays: 3, tripNights: 2, region: "제주", budget: 900_000, targetDate: "2026-09-09", arrivalTime: "11:00", returnDepartureTime: "18:00" });
+  const outdoor = plan.items.find((item) => item.dayNumber === 1 && item.category === "activity");
+  const indoor = plan.items.find((item) => item.dayNumber === 2 && item.category === "activity");
+  const items = plan.items.map((item) => item.id === outdoor.id ? { ...item, venueType: "outdoor" } : item.id === indoor.id ? { ...item, venueType: "indoor" } : item);
+  const weather = { status: "verified", sourceLabel: "테스트 예보", checkedAt: new Date().toISOString(), days: [{ date: "2026-09-09", hours: [], impact: "high" }, { date: "2026-09-10", hours: [], impact: "low" }, { date: "2026-09-11", hours: [], impact: "medium" }], message: "날짜별 예보" };
+  const scheduled = scheduleDajeongPlan({ ...plan, items, schedule: { ...plan.schedule, weather } });
+  assert.equal(scheduled.items.find((item) => item.id === outdoor.id).dayNumber, 2);
+  assert.equal(scheduled.items.find((item) => item.id === indoor.id).dayNumber, 1);
+  assert.equal(scheduled.logistics.find((item) => item.kind === "departure").time, plan.logistics.find((item) => item.kind === "departure").time);
+});
+
+test("현실 일정 J: 사용자가 꼭 간다고 고정한 장소는 일반 재추천에서 삭제하거나 교체하지 않는다", () => {
+  const plan = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  const activity = plan.items.find((item) => item.category === "activity");
+  const locked = lockPlanItem(plan, activity.id, "place", "여긴 꼭 갈 거야");
+  const revised = reviseDajeongPlan(locked, "너무 평범한데 더 특별하게 바꿔줘").plan;
+  assert.equal(revised.items.find((item) => item.id === activity.id).title, activity.title);
+  assert.equal(revised.items.find((item) => item.id === activity.id).placeLocked, true);
 });

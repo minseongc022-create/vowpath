@@ -120,7 +120,8 @@ export function rankRealPlaceCandidates(
           artistic: /전시|예술|미술|건축|공연/,
           hidden: /숨은|로컬|독립|이색|개조/,
         })[mood].test(experienceText)).length ?? 0;
-        const specialBoost = specialHits * 1.65 + desiredMoodHits * 1.15;
+        const wantsSpecial = situation?.preferences.some((value) => /특별|이색|흔하지|신비/.test(value)) || situation?.desiredMoods.some((mood) => ["mysterious", "hidden", "luxurious"].includes(mood));
+        const specialBoost = specialHits * (wantsSpecial ? 1.65 : 0.25) + desiredMoodHits * 1.15;
         return rating * 1.45 + reviewTrust + localBoost + photoBoost + openBoost + specialBoost + (candidate.dataQuality ?? 0) * 0.75 - budgetPenalty - distancePenalty;
       };
       return score(b) - score(a);

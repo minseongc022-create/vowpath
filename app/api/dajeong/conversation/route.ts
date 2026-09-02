@@ -9,7 +9,7 @@ const schema = z.object({
     text: z.string().trim().min(1).max(600),
   })).min(1).max(40),
   draft: z.record(z.string(), z.unknown()).optional(),
-  currentQuestion: z.enum(["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave"]).nullable().optional(),
+  currentQuestion: z.enum(["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave", "availabilityTime", "density"]).nullable().optional(),
 });
 
 export async function POST(request: Request) {

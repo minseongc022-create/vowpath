@@ -350,6 +350,15 @@
 .dj-trip-logistics span { color: var(--dj-coral-dark); font-size: 11px; font-weight: 800; }
 .dj-trip-logistics p { min-width: 0; margin: 0; color: #756b64; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
 .dj-trip-logistics p b { display: block; color: #403a35; font-size: 12px; }
+.dj-travel-row em { padding: 4px 7px; border-radius: 999px; background: #f3eee8; color: #74695f; font-size: 9px; font-style: normal; font-weight: 750; }
+.dj-fixed-chip { background: #eef5f0 !important; color: var(--dj-sage) !important; font-weight: 800; }
+.dj-weather-banner, .dj-schedule-warnings { margin: 0 0 18px; padding: 14px 17px; border: 1px solid #dce8df; border-radius: 15px; background: #f6faf7; overflow-wrap: anywhere; }
+.dj-weather-banner strong, .dj-schedule-warnings strong { display: block; color: var(--dj-sage); font-size: 12px; }
+.dj-weather-banner p, .dj-schedule-warnings p { margin: 4px 0 0; color: var(--dj-muted); font-size: 11px; line-height: 1.55; }
+.dj-weather-user_report { border-color: #ead7b4; background: #fffaf0; }
+.dj-weather-unavailable, .dj-weather-outside_forecast { border-color: #e5ddd5; background: #faf8f5; }
+.dj-schedule-warnings { border-color: #ead7b4; background: #fffaf0; }
+.dj-fact-row small { display: block; margin-top: 3px; color: var(--dj-muted); font-size: 10px; }
 
 @media (max-width: 600px) {
   .dj-plan-hero,
@@ -360,4 +369,6 @@
   .dj-flow-story { line-height: 1.55; }
   .dj-experience-traits { gap: 6px; }
   .dj-trip-logistics > div { grid-template-columns: 82px minmax(0,1fr); gap: 9px; }
+  .dj-weather-banner, .dj-schedule-warnings { padding: 13px; }
+  .dj-travel-row { flex-wrap: wrap; }
 }

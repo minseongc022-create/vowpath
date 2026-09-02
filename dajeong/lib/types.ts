@@ -10,6 +10,44 @@ export type PlanScope = "single" | "day" | "trip";
 
 export type RequestKind = "day_plan" | "trip_plan" | "place_search" | "reservation" | "product_search";
 
+export type ScheduleDensity = "compact" | "balanced" | "relaxed";
+
+export type TemporaryCondition = {
+  energy: "low" | "normal";
+  walkingLimited: boolean;
+  notes: string[];
+};
+
+export type WeatherHour = {
+  time: string;
+  precipitationProbability?: number;
+  precipitationMm?: number;
+  temperatureC?: number;
+  apparentTemperatureC?: number;
+  windKph?: number;
+  snowfallCm?: number;
+};
+
+export type WeatherDay = {
+  date: string;
+  hours: WeatherHour[];
+  precipitationProbabilityMax?: number;
+  precipitationMm?: number;
+  windKphMax?: number;
+  temperatureMinC?: number;
+  temperatureMaxC?: number;
+  impact: "low" | "medium" | "high";
+};
+
+export type WeatherContext = {
+  status: "verified" | "user_report" | "outside_forecast" | "unavailable";
+  sourceLabel: string;
+  checkedAt?: string;
+  sourceUrl?: string;
+  days: WeatherDay[];
+  message: string;
+};
+
 export type JourneyRole = "opening" | "discovery" | "play" | "pause" | "centerpiece" | "highlight" | "keepsake";
 
 export type PersonProfile = {
@@ -243,6 +281,14 @@ export type PlanRequest = {
   intakeConversation?: PlanningChatMessage[];
   personProfile?: PersonProfile;
   desiredMoods?: ExperienceMood[];
+  availabilityStartTime?: string;
+  availabilityEndTime?: string;
+  scheduleDensity?: ScheduleDensity;
+  densitySpecified?: boolean;
+  homeByTime?: string;
+  homeTravelMinutes?: number;
+  temporaryCondition?: TemporaryCondition;
+  budgetUsage?: "reserve" | "full";
 };
 
 export type TransportMode = "public_transit" | "car" | "walking" | "unknown";
@@ -284,9 +330,16 @@ export type ParsedSituation = {
   personMemoryUpdate?: PersonMemoryUpdate;
   limitedEventPriority: boolean;
   personProfile?: PersonProfile;
+  availabilityEndTime?: string;
+  scheduleDensity: ScheduleDensity;
+  densitySpecified: boolean;
+  homeByTime?: string;
+  homeTravelMinutes?: number;
+  temporaryCondition: TemporaryCondition;
+  budgetUsage: "reserve" | "full";
 };
 
-export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave";
+export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave" | "availabilityTime" | "density";
 
 export type PlanningQuestionKey = MissingSituationField | null;
 
@@ -347,7 +400,22 @@ export type PlanItem = PlanOption & {
     minutes: number;
     mode: "도보" | "대중교통" | "차량";
     note: string;
+    walkingMinutes?: number;
+    transfers?: number;
+    fatigue?: "low" | "medium" | "high";
+    weatherExposure?: "low" | "medium" | "high" | "unknown";
   };
+  durationRange?: {
+    minimumMinutes: number;
+    recommendedMinutes: number;
+    leisurelyMinutes: number;
+    source: "category" | "place" | "user";
+  };
+  bufferAfterMinutes?: number;
+  endTime?: string;
+  placeLocked?: boolean;
+  timeLocked?: boolean;
+  lockReason?: string;
 };
 
 export type PlanRevision = {
@@ -384,6 +452,7 @@ export type PlanVersion = {
   budgetRemaining: number;
   experienceFlow?: DajeongPlan["experienceFlow"];
   discovery?: DajeongPlan["discovery"];
+  schedule?: DajeongPlan["schedule"];
 };
 
 export type DajeongPlan = {
@@ -418,6 +487,16 @@ export type DajeongPlan = {
     checkedAt: string;
     realPlaceCount: number;
     message: string;
+  };
+  schedule?: {
+    density: ScheduleDensity;
+    dayWindows: Array<{ dayNumber: number; startTime: string; endTime: string; source: "availability" | "travel" | "default" }>;
+    estimatedEndTime: string;
+    estimatedHomeArrival?: string;
+    homeTravelMinutes?: number;
+    reserveRatio: number;
+    warnings: string[];
+    weather: WeatherContext;
   };
 };
 

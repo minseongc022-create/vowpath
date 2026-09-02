@@ -9,9 +9,11 @@ import { parseSituation } from "./situation";
 import { buildExperienceFlow } from "./experience";
 import { handleExecutionInstruction } from "./execution-conversation";
 import { reconcileReservationOrder } from "./reservation-engine";
+import { scheduleDajeongPlan, setItemDuration, weatherContextFromUser } from "./schedule-engine";
+import { enrichPlanWithWeather } from "./weather";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
 
-type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "explain" | "execute" | "payment_review";
+type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "reschedule" | "explain" | "execute" | "payment_review";
 
 export type ConciergeIntent = {
   action: ConciergeAction;
@@ -25,6 +27,15 @@ export type ConciergeIntent = {
     targetDate?: string;
     transport?: DajeongPlan["situation"]["transport"];
     recipient?: string;
+    scheduleDensity?: "compact" | "balanced" | "relaxed";
+    availabilityStartTime?: string;
+    availabilityEndTime?: string;
+    homeByTime?: string;
+    durationMinutes?: number;
+    bufferAfterMinutes?: number;
+    lockPlace?: boolean;
+    lockTime?: boolean;
+    temporaryCondition?: "tired" | "walking_limited";
   };
 };
 
@@ -41,12 +52,12 @@ const CATEGORY_LABEL: Record<PlanCategory, string> = {
 };
 
 const VALID_CATEGORIES = new Set<PlanCategory>(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"]);
-const VALID_ACTIONS = new Set<ConciergeAction>(["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain", "execute", "payment_review"]);
+const VALID_ACTIONS = new Set<ConciergeAction>(["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "reschedule", "explain", "execute", "payment_review"]);
 
 const CONCIERGE_INTENT_SCHEMA: OpenAiJsonSchema = {
   type: "object",
   properties: {
-    action: { type: "string", enum: ["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain", "execute", "payment_review"] },
+    action: { type: "string", enum: ["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "reschedule", "explain", "execute", "payment_review"] },
     targetCategory: { anyOf: [{ type: "string", enum: ["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"] }, { type: "null" }] },
     searchQuery: { type: "string" },
     preferences: { type: "array", items: { type: "string" } },
@@ -59,8 +70,17 @@ const CONCIERGE_INTENT_SCHEMA: OpenAiJsonSchema = {
         targetDate: { anyOf: [{ type: "string" }, { type: "null" }] },
         transport: { anyOf: [{ type: "string", enum: ["public_transit", "car", "walking", "unknown"] }, { type: "null" }] },
         recipient: { anyOf: [{ type: "string" }, { type: "null" }] },
+        scheduleDensity: { anyOf: [{ type: "string", enum: ["compact", "balanced", "relaxed"] }, { type: "null" }] },
+        availabilityStartTime: { anyOf: [{ type: "string" }, { type: "null" }] },
+        availabilityEndTime: { anyOf: [{ type: "string" }, { type: "null" }] },
+        homeByTime: { anyOf: [{ type: "string" }, { type: "null" }] },
+        durationMinutes: { anyOf: [{ type: "number" }, { type: "null" }] },
+        bufferAfterMinutes: { anyOf: [{ type: "number" }, { type: "null" }] },
+        lockPlace: { anyOf: [{ type: "boolean" }, { type: "null" }] },
+        lockTime: { anyOf: [{ type: "boolean" }, { type: "null" }] },
+        temporaryCondition: { anyOf: [{ type: "string", enum: ["tired", "walking_limited"] }, { type: "null" }] },
       },
-      required: ["budget", "region", "targetDate", "transport", "recipient"],
+      required: ["budget", "region", "targetDate", "transport", "recipient", "scheduleDensity", "availabilityStartTime", "availabilityEndTime", "homeByTime", "durationMinutes", "bufferAfterMinutes", "lockPlace", "lockTime", "temporaryCondition"],
       additionalProperties: false,
     },
   },
@@ -110,7 +130,8 @@ function categoryFromConversation(plan: DajeongPlan, instruction: string, reques
 
 function fallbackIntent(plan: DajeongPlan, instruction: string, requestedCategory?: PlanCategory): ConciergeIntent {
   const category = categoryFromConversation(plan, instruction, requestedCategory);
-  const action: ConciergeAction = /(?:결제|구매).{0,8}(?:해|하자|진행|할게)/.test(instruction) ? "payment_review"
+  const action: ConciergeAction = /시간.{0,8}(짧|길|늘|널널)|오래\s*(있|머물)|알차게|여유롭게|피곤|까지\s*(집|귀가)|꼭\s*(가|유지)/.test(instruction) ? "reschedule"
+    : /(?:결제|구매).{0,8}(?:해|하자|진행|할게)/.test(instruction) ? "payment_review"
     : /예약.{0,10}(?:해|부탁|진행|잡|원해)|예매.{0,10}(?:해|부탁|진행|원해)|주문.{0,10}(?:해|부탁|진행|원해)/.test(instruction) ? "execute"
       : /왜|이유|설명|어떤 곳|뭐가 좋|어때|어디|주소|위치|얼마|몇 시|언제|평점|리뷰|(?:가격|비용|예산).{0,6}(확실|맞|알려|어떻|남)|시간.{0,5}(알려|어떻)|예약.{0,5}(돼|가능|필요|알려)|영업.{0,5}(해|시간)/.test(instruction) ? "explain"
     : /빼|제외|없애|삭제/.test(instruction) ? "remove"
@@ -169,6 +190,12 @@ function fallbackIntent(plan: DajeongPlan, instruction: string, requestedCategor
       targetDate: dateMentioned ? parseSituation({ request: instruction }).targetDate : undefined,
       transport,
       recipient,
+      scheduleDensity: /여유|널널|천천히|쉬엄/.test(instruction) ? "relaxed" : /알차게|여기저기|꽉\s*차게/.test(instruction) ? "compact" : undefined,
+      durationMinutes: durationMinutesInInstruction(instruction),
+      bufferAfterMinutes: /바로\s*(다음|이동|가)|다음.{0,8}(쉬|휴식)/.test(instruction) ? 30 : undefined,
+      lockPlace: /꼭\s*(가|유지)|무조건/.test(instruction) || undefined,
+      lockTime: /시간.{0,8}(유지|꼭)/.test(instruction) || undefined,
+      temporaryCondition: /발.{0,5}아프/.test(instruction) ? "walking_limited" : /피곤|컨디션.{0,5}(별로|안\s*좋)/.test(instruction) ? "tired" : undefined,
     },
   };
 }
@@ -189,7 +216,7 @@ export async function interpretConciergeInstruction(
       messages: [
         {
           role: "system",
-          content: "너는 실행형 개인 컨시어지의 대화 이해 엔진이다. 사용자가 정해진 명령어를 쓰지 않아도 문장 전체의 의미, 대명사, 부정 표현, 상대 취향, 유지할 조건과 바꿀 범위를 이해한다. 기존 대화와 일정이 문맥이다. 사용자가 요청하지 않은 일정은 보존한다. 감성 표현도 구체적인 탐색 조건으로 번역한다. 질문에는 일정을 바꾸지 말고 근거만 답한다. 장소명·가격·영업·예약 사실은 만들지 않는다. 특정 현재 후보를 실제로 예약·예매·주문해 달라는 요청은 execute, 결제해 달라는 요청은 payment_review다. 단순히 예약 가능 여부를 묻는 질문은 explain이다. 숙소를 찾아달라면 targetCategory=lodging, action=add다. updates에는 사용자가 이번 문장에서 바꾸라고 한 값만 넣고 나머지는 null로 둔다.",
+          content: "너는 실행형 개인 컨시어지의 대화 이해 엔진이다. 사용자가 정해진 명령어를 쓰지 않아도 문장 전체의 의미, 대명사, 부정 표현, 상대 취향, 유지할 조건과 바꿀 범위를 이해한다. 기존 대화와 일정이 문맥이다. 사용자가 요청하지 않은 일정은 보존한다. 체류시간·완충시간·일정 밀도·귀가시간·오늘 컨디션·고정 장소/시간 수정은 reschedule로 분류하고 정확한 updates를 채운다. 오늘 피곤하다는 말은 장기 취향이 아니라 temporaryCondition이다. 질문에는 일정을 바꾸지 말고 근거만 답한다. 장소명·가격·영업·예약 사실은 만들지 않는다. 특정 현재 후보를 실제로 예약·예매·주문해 달라는 요청은 execute, 결제해 달라는 요청은 payment_review다. 단순히 예약 가능 여부를 묻는 질문은 explain이다. 숙소를 찾아달라면 targetCategory=lodging, action=add다. updates에는 사용자가 이번 문장에서 바꾸라고 한 값만 넣고 나머지는 null로 둔다.",
         },
         {
           role: "user",
@@ -210,7 +237,12 @@ export async function interpretConciergeInstruction(
     const region = typeof rawUpdates.region === "string" && rawUpdates.region.trim() ? rawUpdates.region.trim().slice(0, 40) : fallback.updates.region;
     const targetDate = typeof rawUpdates.targetDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawUpdates.targetDate) ? rawUpdates.targetDate : undefined;
     const recipient = typeof rawUpdates.recipient === "string" && rawUpdates.recipient.trim() ? rawUpdates.recipient.trim().slice(0, 30) : undefined;
-    return { action, targetCategory: requestedCategory ?? category, searchQuery, preferences, constraints, updates: { budget, region, targetDate, transport, recipient } };
+    const safeClock = (value: unknown) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : undefined;
+    const scheduleDensity = typeof rawUpdates.scheduleDensity === "string" && ["compact", "balanced", "relaxed"].includes(rawUpdates.scheduleDensity) ? rawUpdates.scheduleDensity as "compact" | "balanced" | "relaxed" : fallback.updates.scheduleDensity;
+    const durationMinutes = typeof rawUpdates.durationMinutes === "number" && rawUpdates.durationMinutes >= 10 && rawUpdates.durationMinutes <= 240 ? Math.round(rawUpdates.durationMinutes) : fallback.updates.durationMinutes;
+    const bufferAfterMinutes = typeof rawUpdates.bufferAfterMinutes === "number" && rawUpdates.bufferAfterMinutes >= 0 && rawUpdates.bufferAfterMinutes <= 120 ? Math.round(rawUpdates.bufferAfterMinutes) : fallback.updates.bufferAfterMinutes;
+    const temporaryCondition = rawUpdates.temporaryCondition === "tired" || rawUpdates.temporaryCondition === "walking_limited" ? rawUpdates.temporaryCondition : fallback.updates.temporaryCondition;
+    return { action, targetCategory: requestedCategory ?? category, searchQuery, preferences, constraints, updates: { budget, region, targetDate, transport, recipient, scheduleDensity, availabilityStartTime: safeClock(rawUpdates.availabilityStartTime), availabilityEndTime: safeClock(rawUpdates.availabilityEndTime), homeByTime: safeClock(rawUpdates.homeByTime), durationMinutes, bufferAfterMinutes, lockPlace: typeof rawUpdates.lockPlace === "boolean" ? rawUpdates.lockPlace : fallback.updates.lockPlace, lockTime: typeof rawUpdates.lockTime === "boolean" ? rawUpdates.lockTime : fallback.updates.lockTime, temporaryCondition } };
   } catch {
     return fallback;
   }
@@ -254,7 +286,7 @@ function withTimesAndTravel(plan: DajeongPlan, ordered: PlanItem[], timeSlots?: 
     };
   });
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  return {
+  return scheduleDajeongPlan({
     ...plan,
     items,
     logistics: buildPlanLogistics(plan.situation),
@@ -264,7 +296,7 @@ function withTimesAndTravel(plan: DajeongPlan, ordered: PlanItem[], timeSlots?: 
     budgetRemaining: plan.budget - total,
     status: "draft",
     experienceFlow: buildExperienceFlow(items),
-  };
+  });
 }
 
 function bestRouteForMovableItem(items: PlanItem[], movableIndex: number): { items: PlanItem[]; index: number; improvement: number } {
@@ -410,6 +442,108 @@ function dayNumberInInstruction(instruction: string): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
+function durationMinutesInInstruction(instruction: string): number | undefined {
+  if (/두\s*시간|2\s*시간/.test(instruction)) return 120;
+  if (/한\s*시간\s*반|1\s*시간\s*반/.test(instruction)) return 90;
+  const hours = instruction.match(/(\d{1,2})(?:\.5)?\s*시간/);
+  if (hours) return Math.min(240, Number(hours[1]) * 60 + (/\.5/.test(hours[0]) ? 30 : 0));
+  const minutes = instruction.match(/(\d{2,3})\s*분/);
+  return minutes ? Math.min(240, Number(minutes[1])) : undefined;
+}
+
+function scheduleTarget(plan: DajeongPlan, instruction: string, requestedItemId?: string): PlanItem | undefined {
+  if (requestedItemId) return plan.items.find((item) => item.id === requestedItemId);
+  const category = explicitCategory(instruction);
+  if (category) return plan.items.find((item) => item.category === category && (!dayNumberInInstruction(instruction) || item.dayNumber === dayNumberInInstruction(instruction)));
+  if (/마지막|맨\s*끝/.test(instruction)) return plan.items.at(-1);
+  const compact = instruction.replace(/\s+/g, "");
+  return plan.items.find((item) => compact.includes(item.title.replace(/\s+/g, "")));
+}
+
+async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, requestedItemId?: string, updates?: ConciergeIntent["updates"]): Promise<{ plan: DajeongPlan; message: string; categories: PlanCategory[] } | null> {
+  const asksDuration = updates?.durationMinutes != null || /시간.{0,8}(짧|늘|길|널널)|오래\s*(있|보고|머물)|빨리\s*(봐|보고)|\d{2,3}\s*분|\d(?:\.5)?\s*시간|두\s*시간|한\s*시간\s*반/.test(instruction);
+  const asksBuffer = updates?.bufferAfterMinutes != null || /바로\s*(다음|이동|가)|다음.{0,8}(쉬|휴식)|밥\s*먹고.{0,12}(바로|쉬)/.test(instruction);
+  const asksLock = updates?.lockPlace === true || updates?.lockTime === true || /꼭\s*(가|유지|지켜|넣)|무조건|이\s*시간.{0,6}(유지|꼭)|여기.{0,6}꼭/.test(instruction);
+  const asksUnlock = /고정.{0,8}해제|꼭.{0,6}(안\s*가|해제)|유지.{0,6}안\s*해도/.test(instruction);
+  const asksDensity = updates?.scheduleDensity != null || /알차게|여유롭게|널널하게|천천히|쉬엄/.test(instruction);
+  const asksCondition = updates?.temporaryCondition != null || /오늘.{0,8}피곤|여친.{0,8}발.{0,5}아프|남친.{0,8}발.{0,5}아프|발.{0,5}아프|컨디션.{0,6}(별로|안\s*좋)/.test(instruction);
+  const asksHome = updates?.homeByTime != null || /\d{1,2}(?::\d{2})?\s*시?\s*까지\s*(?:집|귀가|들어가)/.test(instruction);
+  const asksAvailability = updates?.availabilityStartTime != null || updates?.availabilityEndTime != null;
+  const asksWeather = /비\s*(?:온|와|오|예보)|눈\s*(?:온|와|예보)|강풍|날씨.{0,8}(괜찮|안\s*좋|나쁘)/.test(instruction);
+  if (!asksDuration && !asksBuffer && !asksLock && !asksUnlock && !asksDensity && !asksCondition && !asksHome && !asksAvailability && !asksWeather) return null;
+
+  let next = plan;
+  const changed = new Set<PlanCategory>();
+  const details: string[] = [];
+  const target = scheduleTarget(plan, instruction, requestedItemId);
+  if (asksUnlock && target) {
+    next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === target.id ? { ...item, placeLocked: false, timeLocked: false, lockReason: undefined } : item) });
+    changed.add(target.category);
+    details.push(`${target.title}의 사용자 고정을 해제했어요.`);
+  }
+  if (asksDuration && target) {
+    const explicit = updates?.durationMinutes ?? durationMinutesInInstruction(instruction);
+    const range = target.durationRange;
+    const duration = explicit ?? (/빨리\s*(봐|보고)|짧게/.test(instruction) ? range?.minimumMinutes ?? Math.max(20, target.durationMinutes - 20) : range?.leisurelyMinutes ?? target.durationMinutes + 30);
+    next = setItemDuration(next, target.id, duration);
+    changed.add(target.category);
+    details.push(`${target.title} 체류시간을 ${duration}분으로 맞추고 뒤 일정을 연쇄 조정했어요.`);
+  }
+  if (asksBuffer) {
+    const bufferTarget = target ?? next.items.find((item) => item.category === "meal");
+    if (bufferTarget) {
+      const buffer = updates?.bufferAfterMinutes ?? 30;
+      next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === bufferTarget.id ? { ...item, bufferAfterMinutes: Math.max(item.bufferAfterMinutes ?? 0, buffer) } : item) });
+      changed.add(bufferTarget.category);
+      details.push(`${bufferTarget.title} 다음에 최소 30분의 숨 돌릴 여유를 뒀어요.`);
+    }
+  }
+  if (asksLock) {
+    const lockTarget = /마지막/.test(instruction) ? next.items.at(-1) : target;
+    if (lockTarget) {
+      const lockTime = updates?.lockTime === true || /시간.{0,8}(유지|꼭)/.test(instruction);
+      next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === lockTarget.id ? { ...item, placeLocked: true, timeLocked: lockTime || item.timeLocked, lockReason: instruction.slice(0, 120) } : item) });
+      changed.add(lockTarget.category);
+      details.push(`${lockTarget.title}은 사용자가 해제하기 전까지 유지하는 강한 조건으로 고정했어요.`);
+    }
+  }
+  if (asksDensity) {
+    const density = updates?.scheduleDensity ?? (/여유|널널|천천히|쉬엄/.test(instruction) ? "relaxed" as const : "compact" as const);
+    next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, scheduleDensity: density, densitySpecified: true } });
+    next.items.forEach((item) => changed.add(item.category));
+    details.push(density === "compact" ? "최소 체류시간을 침범하지 않는 선에서 공백과 이동을 줄였어요." : "장소 수와 이동 부담을 줄이고 체류·완충시간을 늘렸어요.");
+  }
+  if (asksCondition) {
+    const walkingLimited = updates?.temporaryCondition === "walking_limited" || /발.{0,5}아프/.test(instruction);
+    next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, temporaryCondition: { energy: "low", walkingLimited: walkingLimited || next.situation.temporaryCondition.walkingLimited, notes: [...new Set([...next.situation.temporaryCondition.notes, instruction.slice(0, 100)])] } } });
+    next.items.forEach((item) => changed.add(item.category));
+    details.push("오늘 컨디션에만 적용해 이동 강도를 낮추고 휴식 여유를 늘렸어요. 장기 취향에는 저장하지 않았어요.");
+  }
+  if (asksHome) {
+    const parsed = parseSituation({ request: instruction, homeTravelMinutes: next.situation.homeTravelMinutes });
+    const homeByTime = updates?.homeByTime ?? parsed.homeByTime;
+    if (homeByTime) {
+      next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, homeByTime } });
+      next.items.forEach((item) => changed.add(item.category));
+      details.push(`${homeByTime} 장소 종료가 아니라 예상 귀가 기준으로 마지막 일정을 역산했어요.`);
+    }
+  }
+  if (asksAvailability) {
+    next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, startTime: updates?.availabilityStartTime ?? next.situation.startTime, availabilityEndTime: updates?.availabilityEndTime ?? next.situation.availabilityEndTime } });
+    next.items.forEach((item) => changed.add(item.category));
+    details.push(`${next.situation.startTime}${next.situation.availabilityEndTime ? `~${next.situation.availabilityEndTime}` : "부터"} 가용시간 안으로 다시 맞췄어요.`);
+  }
+  if (asksWeather) {
+    const checked = await enrichPlanWithWeather(next);
+    next = checked.schedule?.weather.status === "verified"
+      ? checked
+      : scheduleDajeongPlan({ ...checked, schedule: { ...checked.schedule!, weather: weatherContextFromUser(instruction) } });
+    next.items.forEach((item) => changed.add(item.category));
+    details.push(next.schedule?.weather.status === "verified" ? "시간대별 실제 예보와 도보 노출을 확인해 영향받는 일정만 다시 배치했어요." : "말해준 날씨를 이번 일정 조건으로 반영했지만, 외부 예보로 확인된 사실처럼 표시하지 않았어요.");
+  }
+  return { plan: next, message: details.join(" "), categories: [...changed] };
+}
+
 function shiftClock(value: string, minutes: number): string {
   const [hour, minute] = value.split(":").map(Number);
   const total = Math.max(0, Math.min(23 * 60 + 59, hour * 60 + minute + minutes));
@@ -490,6 +624,11 @@ export async function reviseDajeongPlanWithDiscovery(
       return { plan: addRevision(restoredCandidate.plan, normalizedInstruction, message, [restoredCandidate.category]), message, changedCategories: [restoredCandidate.category] };
     }
   }
+  const scheduleChange = await applyScheduleInstruction(plan, normalizedInstruction, requestedItemId);
+  if (scheduleChange) {
+    const revised = addRevision(scheduleChange.plan, normalizedInstruction, scheduleChange.message, scheduleChange.categories);
+    return { plan: revised, message: scheduleChange.message, changedCategories: scheduleChange.categories };
+  }
   const shiftedDay = dayNumberInInstruction(normalizedInstruction);
   if (shiftedDay && /늦게\s*시작|시작.{0,5}늦|천천히\s*시작/.test(normalizedInstruction)) {
     const affected = plan.items.filter((item) => (item.dayNumber ?? 1) === shiftedDay);
@@ -502,6 +641,14 @@ export async function reviseDajeongPlanWithDiscovery(
     }
   }
   const intent = await interpretConciergeInstruction(plan, instruction, requestedCategory);
+  if (intent.action === "reschedule") {
+    const targetItemId = requestedItemId ?? (intent.targetCategory ? plan.items.find((item) => item.category === intent.targetCategory)?.id : undefined);
+    const structuredSchedule = await applyScheduleInstruction(plan, normalizedInstruction, targetItemId, intent.updates);
+    if (structuredSchedule) {
+      const revised = addRevision(structuredSchedule.plan, normalizedInstruction, structuredSchedule.message, structuredSchedule.categories);
+      return { plan: revised, message: structuredSchedule.message, changedCategories: structuredSchedule.categories };
+    }
+  }
   if (intent.action === "execute" || intent.action === "payment_review") {
     const targetItemId = requestedItemId ?? (intent.targetCategory ? plan.items.find((item) => item.category === intent.targetCategory)?.id : undefined);
     const execution = handleExecutionInstruction(plan, intent.action === "execute" ? "이거 예약해줘" : "이걸로 결제해", targetItemId);
@@ -599,6 +746,10 @@ export async function reviseDajeongPlanWithDiscovery(
     ? contextualPlan.items.findIndex((item) => item.id === requestedItemId)
     : contextualPlan.items.findIndex((item) => item.category === target && (!requestedDay || item.dayNumber === requestedDay));
   const existing = existingIndex >= 0 ? contextualPlan.items[existingIndex] : undefined;
+  if (existing?.placeLocked && !/고정.{0,8}해제|꼭.{0,6}(안\s*가|해제)|바꿔도\s*돼/.test(normalizedInstruction)) {
+    const message = `‘${existing.title}’은 꼭 유지할 장소로 고정되어 있어요. 바꾸려면 “이 장소 고정 해제해줘”라고 말해 주세요.`;
+    return { plan: appendPlanConversation(contextualPlan, normalizedInstruction, message), message, changedCategories: [], profileUpdate };
+  }
   const base = existing ?? getOptions(target, contextualPlan.situation)[0];
   if (!base) return { ...reviseDajeongPlan(contextualPlan, instruction), profileUpdate };
   const previous = existingIndex > 0 ? contextualPlan.items[existingIndex - 1] : contextualPlan.items.at(-1);

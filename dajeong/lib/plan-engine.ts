@@ -3,6 +3,7 @@ import { buildExperienceFlow, journeyRoleFor, MOOD_LABEL } from "./experience";
 import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
 import { reconcileReservationOrder } from "./reservation-engine";
+import { clockToMinutes, scheduleDajeongPlan } from "./schedule-engine";
 import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
@@ -67,6 +68,7 @@ function copyItems(items: PlanItem[]): PlanItem[] {
     ...item,
     alternatives: item.alternatives.map((option) => ({ ...option })),
     travelFromPrevious: item.travelFromPrevious ? { ...item.travelFromPrevious } : undefined,
+    durationRange: item.durationRange ? { ...item.durationRange } : undefined,
   }));
 }
 
@@ -88,6 +90,12 @@ function planVersion(plan: DajeongPlan, instruction: string, summary: string): P
     budgetRemaining: plan.budgetRemaining,
     experienceFlow: plan.experienceFlow ? { ...plan.experienceFlow, labels: [...plan.experienceFlow.labels] } : undefined,
     discovery: plan.discovery ? { ...plan.discovery } : undefined,
+    schedule: plan.schedule ? {
+      ...plan.schedule,
+      dayWindows: plan.schedule.dayWindows.map((window) => ({ ...window })),
+      warnings: [...plan.schedule.warnings],
+      weather: { ...plan.schedule.weather, days: plan.schedule.weather.days.map((day) => ({ ...day, hours: day.hours.map((hour) => ({ ...hour })) })) },
+    } : undefined,
   };
 }
 
@@ -117,6 +125,12 @@ export function restorePlanVersion(plan: DajeongPlan, version: PlanVersion, inst
     budgetRemaining: version.budgetRemaining,
     experienceFlow: version.experienceFlow ? { ...version.experienceFlow, labels: [...version.experienceFlow.labels] } : undefined,
     discovery: version.discovery ? { ...version.discovery } : undefined,
+    schedule: version.schedule ? {
+      ...version.schedule,
+      dayWindows: version.schedule.dayWindows.map((window) => ({ ...window })),
+      warnings: [...version.schedule.warnings],
+      weather: { ...version.schedule.weather, days: version.schedule.weather.days.map((day) => ({ ...day, hours: day.hours.map((hour) => ({ ...hour })) })) },
+    } : undefined,
     execution: undefined,
     status: "draft",
   };
@@ -199,9 +213,10 @@ function selectWithinBudget(options: PlanOption[], remaining: number, situation:
     const score = (option: PlanOption) => {
       const experience = option.experience;
       const moodFit = experience?.moods.filter((mood) => situation.desiredMoods.includes(mood)).length ?? 0;
-      return (experience?.specialnessScore ?? 50) * 0.42
-        + (experience?.qualityScore ?? 60) * 0.25
-        + (experience?.rarityScore ?? 45) * 0.2
+      const wantsSpecial = situation.preferences.some((value) => /특별|이색|흔하지|신비/.test(value)) || situation.desiredMoods.some((mood) => ["mysterious", "hidden", "luxurious"].includes(mood));
+      return (experience?.specialnessScore ?? 50) * (wantsSpecial ? 0.42 : 0.15)
+        + (experience?.qualityScore ?? 60) * (wantsSpecial ? 0.25 : 0.42)
+        + (experience?.rarityScore ?? 45) * (wantsSpecial ? 0.2 : 0.08)
         + moodFit * 8
         + (option.price <= remaining ? 7 : -20);
     };
@@ -260,6 +275,14 @@ function categorySet(situation: ParsedSituation): PlanSlot[] {
     }
     return slots.filter((slot) => !situation.excludedCategories.includes(slot.category));
   }
+  const availableMinutes = situation.availabilityEndTime ? Math.max(0, clockToMinutes(situation.availabilityEndTime) - clockToMinutes(situation.startTime)) : undefined;
+  if (availableMinutes != null && availableMinutes <= 210) {
+    const categories: PlanCategory[] = /밥|식사|저녁/.test(situation.preferences.join(" ")) || situation.preferredTime === situation.startTime ? ["meal", "view"] : ["cafe", "meal"];
+    return categories.filter((category) => !situation.excludedCategories.includes(category)).map((category, index) => ({ category, dayNumber: 1, offset: index * 90 }));
+  }
+  if ((availableMinutes != null && availableMinutes <= 330) || situation.scheduleDensity === "relaxed" || situation.temporaryCondition.energy === "low") {
+    return (["activity", "meal", "view"] as PlanCategory[]).filter((category) => !situation.excludedCategories.includes(category)).map((category, index) => ({ category, dayNumber: 1, offset: index * 120 }));
+  }
   const categories: PlanCategory[] = ["activity"];
   if (situation.budget >= 100_000) categories.push("cafe");
   categories.push("meal");
@@ -296,7 +319,7 @@ function planItem(category: PlanCategory, selected: PlanOption, options: PlanOpt
 
 function buildItems(input: PlanRequest): { items: PlanItem[]; budget: number } {
   const situation = parseSituation(input);
-  const spendable = Math.floor(situation.budget * 0.9);
+  const spendable = Math.floor(situation.budget * (situation.budgetUsage === "full" ? 1 : 0.9));
   const shares: Record<PlanCategory, number> = {
     activity: 0.30,
     cafe: 0.11,
@@ -376,7 +399,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
         } : item.reality,
       };
     });
-  return reconcileReservationOrder({
+  return reconcileReservationOrder(scheduleDajeongPlan({
     ...plan,
     situation,
     items: ordered,
@@ -386,7 +409,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
     reserve: Math.max(0, plan.budget - total),
     budgetRemaining: plan.budget - total,
     experienceFlow: buildExperienceFlow(ordered),
-  });
+  }));
 }
 
 export function createDajeongPlan(input: PlanRequest): DajeongPlan {
@@ -398,19 +421,19 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
   const transportText = situation.transport === "car" ? "주차 가능한 동선으로" : situation.transport === "walking" ? "걸어서 이어지도록" : "환승을 줄인 동선으로";
   const id = `dj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
-  const mood = situation.desiredMoods[0] ? MOOD_LABEL[situation.desiredMoods[0]] : "특별한";
+  const mood = situation.desiredMoods[0] ? MOOD_LABEL[situation.desiredMoods[0]] : "자연스러운";
   const scopeTitle = situation.planScope === "single"
     ? `${situation.recipient}에게 딱 맞는 ${items[0]?.categoryLabel ?? "경험"}`
     : situation.planScope === "trip"
       ? `${situation.recipient}와 기억할 ${situation.tripDays ?? 2}일의 여행`
-      : `${situation.recipient}와 오래 기억할 ${situation.occasionLabel}`;
+      : `${situation.recipient}와 보내는 ${situation.occasionLabel}`;
   const createdPlan: DajeongPlan = {
     id,
     createdAt: new Date().toISOString(),
     sourceRequest: input.request.trim(),
     situation,
     title: scopeTitle,
-    summary: `${urgencyText} ${situation.region}에서 ${transportText}, ${mood} 장면이 하나는 또렷하게 남도록 구성했어요.`,
+    summary: `${urgencyText} ${situation.region}에서 ${transportText}, ${situation.startTime}${situation.availabilityEndTime ? `~${situation.availabilityEndTime}` : "부터"} 실제로 따라갈 수 있는 ${mood} 흐름으로 구성했어요.`,
     items,
     subtotal,
     reserve,
@@ -424,7 +447,8 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),
   };
-  return initializePlanVersion(appendPlanConversation(createdPlan, input.request.trim(), "말씀하신 조건을 기억하고 실제 장소와 이동 흐름을 함께 살펴 계획을 준비했어요."));
+  const scheduled = scheduleDajeongPlan(createdPlan);
+  return initializePlanVersion(appendPlanConversation(scheduled, input.request.trim(), "말씀하신 조건을 기억하고 체류시간·이동·완충시간까지 함께 살펴 계획을 준비했어요."));
 }
 
 export function replacePlanItem(plan: DajeongPlan, category: PlanCategory, optionId: string, itemId?: string): DajeongPlan {
@@ -473,7 +497,7 @@ function targetCategory(instruction: string): PlanCategory | null {
 
 function replaceBy(plan: DajeongPlan, category: PlanCategory, mode: "cheaper" | "premium" | "different" | "indoor"): DajeongPlan {
   const item = plan.items.find((entry) => entry.category === category);
-  if (!item || item.alternatives.length === 0) return plan;
+  if (!item || item.placeLocked || item.alternatives.length === 0) return plan;
   let choices = item.alternatives;
   if (mode === "indoor") {
     const indoor = choices.filter((option) => option.venueType === "indoor");
@@ -503,7 +527,7 @@ function changedCategories(before: DajeongPlan, after: DajeongPlan): PlanCategor
   all.forEach((category) => {
     const previous = before.items.find((item) => item.category === category);
     const next = after.items.find((item) => item.category === category);
-    if (!previous || !next || previous.id !== next.id || previous.time !== next.time) categories.add(category);
+    if (!previous || !next || previous.id !== next.id || previous.durationMinutes !== next.durationMinutes) categories.add(category);
   });
   return [...categories];
 }
@@ -519,8 +543,9 @@ export function reviseDajeongPlan(
   let message = "요청을 이해했지만 안전하게 바꿀 수 있는 항목을 찾지 못했어요. 식당·카페·야경처럼 바꿀 대상을 함께 말해 주세요.";
 
   if (target && /빼|제외|없애|삭제/.test(instruction)) {
-    next = recalculate(plan, plan.items.filter((item) => item.category !== target));
-    message = `${CATEGORY_LABEL[target]} 일정을 빼고 남은 동선과 예산을 다시 계산했어요.`;
+    const locked = plan.items.some((item) => item.category === target && item.placeLocked);
+    next = locked ? plan : recalculate(plan, plan.items.filter((item) => item.category !== target));
+    message = locked ? `${CATEGORY_LABEL[target]}은 사용자가 꼭 유지해 달라고 고정한 일정이에요. 먼저 고정을 해제해 주세요.` : `${CATEGORY_LABEL[target]} 일정을 빼고 남은 동선과 예산을 다시 계산했어요.`;
   } else if (target && /넣|추가|더해/.test(instruction) && !plan.items.some((item) => item.category === target)) {
     next = addCategory(plan, target);
     message = next === plan ? `남은 예산 안에서는 ${CATEGORY_LABEL[target]}을 추가하기 어려워요. 예산을 늘리거나 다른 항목을 가볍게 해주세요.` : `${CATEGORY_LABEL[target]}을 기존 흐름에 자연스럽게 추가했어요.`;

@@ -12,12 +12,13 @@ import type {
   PlanScope,
   RequestKind,
   TransportMode,
+  ScheduleDensity,
 } from "./types";
 
 const REGIONS = ["성수", "강남", "홍대", "연남", "여의도", "잠실", "광화문", "종로", "용산", "이태원", "서울", "인천", "수원", "성남", "분당", "가평", "춘천", "강릉", "속초", "전주", "여수", "경주", "부산", "대구", "대전", "광주", "제주"];
 const MOODS: ExperienceMood[] = ["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"];
 const CATEGORIES: PlanCategory[] = ["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"];
-const QUESTION_KEYS: Exclude<PlanningQuestionKey, null>[] = ["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave"];
+const QUESTION_KEYS: Exclude<PlanningQuestionKey, null>[] = ["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave", "availabilityTime", "density"];
 
 type StructuredConversationDecision = {
   requestKind: RequestKind;
@@ -39,6 +40,11 @@ type StructuredConversationDecision = {
   returnDepartureTime: string | null;
   lodgingPreference: string | null;
   lodgingIncludedInBudget: boolean | null;
+  availabilityStartTime: string | null;
+  availabilityEndTime: string | null;
+  scheduleDensity: ScheduleDensity | null;
+  homeByTime: string | null;
+  homeTravelMinutes: number | null;
   preferences: string[];
   constraints: string[];
   desiredMoods: ExperienceMood[];
@@ -77,6 +83,11 @@ const DECISION_SCHEMA: OpenAiJsonSchema = {
     returnDepartureTime: nullable({ type: "string" }),
     lodgingPreference: nullable({ type: "string" }),
     lodgingIncludedInBudget: nullable({ type: "boolean" }),
+    availabilityStartTime: nullable({ type: "string" }),
+    availabilityEndTime: nullable({ type: "string" }),
+    scheduleDensity: nullable({ type: "string", enum: ["compact", "balanced", "relaxed"] }),
+    homeByTime: nullable({ type: "string" }),
+    homeTravelMinutes: nullable({ type: "number" }),
     preferences: stringArray,
     constraints: stringArray,
     desiredMoods: enumArray(MOODS),
@@ -106,7 +117,7 @@ const DECISION_SCHEMA: OpenAiJsonSchema = {
     nextQuestionKey: nullable({ type: "string", enum: QUESTION_KEYS }),
     reply: { type: "string" },
   },
-  required: ["requestKind", "planScope", "singleCategory", "recipient", "region", "departureRegion", "budget", "targetDate", "partySize", "transport", "ageBand", "tripDays", "tripNights", "checkInTime", "checkOutTime", "arrivalTime", "returnDepartureTime", "lodgingPreference", "lodgingIncludedInBudget", "preferences", "constraints", "desiredMoods", "requestedCategories", "excludedCategories", "explicitUnknowns", "personMemoryUpdate", "enoughInformation", "nextQuestionKey", "reply"],
+  required: ["requestKind", "planScope", "singleCategory", "recipient", "region", "departureRegion", "budget", "targetDate", "partySize", "transport", "ageBand", "tripDays", "tripNights", "checkInTime", "checkOutTime", "arrivalTime", "returnDepartureTime", "lodgingPreference", "lodgingIncludedInBudget", "availabilityStartTime", "availabilityEndTime", "scheduleDensity", "homeByTime", "homeTravelMinutes", "preferences", "constraints", "desiredMoods", "requestedCategories", "excludedCategories", "explicitUnknowns", "personMemoryUpdate", "enoughInformation", "nextQuestionKey", "reply"],
   additionalProperties: false,
 };
 
@@ -332,6 +343,14 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     explicitUnknowns,
     personMemoryUpdate: memory,
     intakeConversation: messages,
+    availabilityStartTime: /(?:부터|시작|에\s*만나)/.test(latest) ? parsedLatest.startTime : previous.availabilityStartTime ?? parsedAll.startTime,
+    availabilityEndTime: /부터.{0,30}(?:까지|쯤|정도)|\d{1,2}\s*시간/.test(latest) ? parsedLatest.availabilityEndTime : previous.availabilityEndTime,
+    scheduleDensity: /알차게|여기저기|다양하게|꽉\s*차게|여유롭게|널널|천천히|쉬엄|느긋/.test(latest) ? parsedLatest.scheduleDensity : previous.scheduleDensity,
+    densitySpecified: /알차게|여기저기|다양하게|꽉\s*차게|여유롭게|널널|천천히|쉬엄|느긋/.test(latest) || previous.densitySpecified,
+    homeByTime: /까지\s*(?:집|귀가|들어가)/.test(latest) ? parsedLatest.homeByTime : previous.homeByTime,
+    homeTravelMinutes: previous.homeTravelMinutes,
+    temporaryCondition: /피곤|컨디션|발.{0,5}(아프|다쳤)|다리.{0,5}(아프|불편)/.test(latest) ? parsedLatest.temporaryCondition : previous.temporaryCondition,
+    budgetUsage: /예산.{0,8}(꽉|다\s*써)|\d+\s*만\s*원.{0,8}(꽉|다\s*써)/.test(latest) ? "full" : previous.budgetUsage,
   };
 
   if (currentQuestion && isUndecided(latest)) {
@@ -348,7 +367,10 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     if (currentQuestion === "arrivalTime") draft.arrivalTime = "12:00";
     if (currentQuestion === "returnTime") draft.returnDepartureTime = "18:00";
     if (currentQuestion === "mustHave") draft.explicitUnknowns = unique([...(draft.explicitUnknowns ?? []), "mustHave"]);
+    if (currentQuestion === "availabilityTime") Object.assign(draft, { availabilityStartTime: "14:00", availabilityEndTime: "22:00" });
+    if (currentQuestion === "density") Object.assign(draft, { scheduleDensity: "balanced", densitySpecified: true });
   }
+  if (currentQuestion === "density" && /적당|균형|보통/.test(latest)) Object.assign(draft, { scheduleDensity: "balanced", densitySpecified: true });
   return draft;
 }
 
@@ -363,7 +385,7 @@ async function structuredDecision(messages: PlanningChatMessage[], draft: PlanRe
       messages: [
         {
           role: "system",
-          content: `너는 하루온의 대화 이해 엔진이다. 오늘은 ${localDate(new Date())}다. 전체 멀티턴 대화와 현재 구조화 상태를 함께 읽어라. 사용자가 이미 말한 값은 유지하고 최신 명시적 수정만 덮어쓴다. 사용자가 말하지 않은 취향·사실·장소는 만들지 않는다. 단일 식당/카페/꽃/전시/예약 요청을 하루 코스로 확대하지 않는다. session 값과 장기 사람 취향을 구분하고, personMemoryUpdate에는 특정 동반자에 대해 명시한 안정적인 취향만 넣는다. '딱히 꼭 하고 싶은 건 없어'는 explicitUnknowns에 mustHave를 넣는 유효한 답이다. 도착 시간과 돌아가는 출발 시간을 구분한다. 정보가 부족하면 결과를 가장 크게 바꾸는 질문 하나만 선택하고 자연스러운 한국어 한 문장으로 묻는다. 이미 말한 정보는 다시 묻지 않는다. reply에는 확인되지 않은 예약·가격·영업 사실을 쓰지 않는다.`,
+          content: `너는 하루온의 대화 이해 엔진이다. 오늘은 ${localDate(new Date())}다. 전체 멀티턴 대화와 현재 구조화 상태를 함께 읽어라. 사용자가 이미 말한 값은 유지하고 최신 명시적 수정만 덮어쓴다. 사용자가 말하지 않은 취향·사실·장소는 만들지 않는다. 단일 식당/카페/꽃/전시/예약 요청을 하루 코스로 확대하지 않는다. availabilityStartTime/endTime은 실제로 함께 놀 수 있는 범위, homeByTime은 장소 종료가 아닌 귀가 마감이다. 알차게는 compact, 여유롭게는 relaxed, 적당히는 balanced다. 피곤함과 발 통증은 이번 일정에만 쓰고 personMemoryUpdate에 넣지 않는다. session 값과 장기 사람 취향을 구분하고, personMemoryUpdate에는 특정 동반자에 대해 명시한 안정적인 취향만 넣는다. '딱히 꼭 하고 싶은 건 없어'는 explicitUnknowns에 mustHave를 넣는 유효한 답이다. 도착 시간과 돌아가는 출발 시간을 구분한다. 정보가 부족하면 결과를 가장 크게 바꾸는 질문 하나만 선택하고 자연스러운 한국어 한 문장으로 묻는다. 이미 말한 정보는 다시 묻지 않는다. reply에는 확인되지 않은 예약·가격·영업 사실을 쓰지 않는다.`,
         },
         {
           role: "user",
@@ -405,6 +427,12 @@ function mergeStructuredDecision(draft: PlanRequest, decision: StructuredConvers
     returnDepartureTime: safeTime(decision.returnDepartureTime) ?? draft.returnDepartureTime,
     lodgingPreference: decision.lodgingPreference?.trim().slice(0, 120) || draft.lodgingPreference,
     lodgingIncludedInBudget: decision.lodgingIncludedInBudget ?? draft.lodgingIncludedInBudget,
+    availabilityStartTime: safeTime(decision.availabilityStartTime) ?? draft.availabilityStartTime,
+    availabilityEndTime: safeTime(decision.availabilityEndTime) ?? draft.availabilityEndTime,
+    scheduleDensity: decision.scheduleDensity ?? draft.scheduleDensity,
+    densitySpecified: decision.scheduleDensity ? true : draft.densitySpecified,
+    homeByTime: safeTime(decision.homeByTime) ?? draft.homeByTime,
+    homeTravelMinutes: decision.homeTravelMinutes != null && decision.homeTravelMinutes >= 0 && decision.homeTravelMinutes <= 300 ? Math.round(decision.homeTravelMinutes) : draft.homeTravelMinutes,
     preferences: unique([...(draft.preferences ?? []), ...decision.preferences, ...memory.preferences]),
     constraints: unique([...(draft.constraints ?? []), ...decision.constraints, ...memory.constraints]),
     desiredMoods: Array.from(new Set([...(draft.desiredMoods ?? []), ...decision.desiredMoods.filter((mood) => MOODS.includes(mood))])),
@@ -456,13 +484,16 @@ export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQu
       !draft.returnDepartureTime ? "returnTime" : null,
     ].filter((value): value is Exclude<PlanningQuestionKey, null> => Boolean(value));
   }
+  const needsAvailabilityWindow = /놀\s*(거야|려고|예정)|데이트.{0,8}(거야|예정)|하루\s*종일|반나절/.test(draft.request) && !draft.availabilityEndTime;
   return [
     !draft.recipient ? "recipient" : null,
     !draft.targetDate ? "date" : null,
     !draft.region ? "region" : null,
+    needsAvailabilityWindow ? "availabilityTime" : null,
     !draft.budget ? "budget" : null,
     !draft.transport ? "transport" : null,
     !substantivePreference(draft) ? "preference" : null,
+    draft.availabilityEndTime && !draft.densitySpecified ? "density" : null,
   ].filter((value): value is Exclude<PlanningQuestionKey, null> => Boolean(value));
 }
 
@@ -480,6 +511,8 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
   if (key === "arrivalTime") return { reply: "첫날 도착은 몇 시쯤이야? 도착 직후부터 무리 없게 짤게.", quickReplies: ["오전 11시", "오후 3시", "아직 몰라"] };
   if (key === "returnTime") return { reply: "마지막 날 돌아가는 비행기나 기차는 몇 시쯤이야? 공항·역 이동 시간도 비워둘게.", quickReplies: ["오후 3시", "오후 6시", "아직 몰라"] };
   if (key === "mustHave") return { reply: "이번 여행에서 꼭 넣고 싶은 게 하나라도 있어? 없다면 없다고 말해도 좋아.", quickReplies: ["딱히 꼭 하고 싶은 건 없어", "바다는 꼭 보고 싶어", "맛있는 식사는 꼭"] };
+  if (key === "availabilityTime") return { reply: "몇 시부터 몇 시 정도 함께 놀 수 있어? 실제 귀가 이동까지 그 안에 맞출게.", quickReplies: ["오후 2시부터 10시", "저녁 5시부터 10시", "3시간 정도"] };
+  if (key === "density") return { reply: "좋아. 여기저기 알차게 다닐까, 아니면 중간중간 여유 있게 놀까?", quickReplies: ["알차게", "여유롭게", "적당히 균형 있게"] };
   return { reply: "이동은 어떻게 할 생각이야? 차가 없다면 대중교통과 도보가 자연스럽게 이어지게 맞출게.", quickReplies: ["차 없어요", "렌터카", "대중교통 위주"] };
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-engine";
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
+import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
 
 const ageBandSchema = z.enum(["10대", "20대", "30대", "40대", "50대", "60대 이상", "미상"]);
 const moodSchema = z.enum(["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"]);
@@ -77,6 +78,14 @@ const requestSchema = z.object({
   intakeConversation: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(600) })).max(40).optional(),
   personProfile: personProfileSchema.optional(),
   desiredMoods: z.array(moodSchema).max(10).optional(),
+  availabilityStartTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  availabilityEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  scheduleDensity: z.enum(["compact", "balanced", "relaxed"]).optional(),
+  densitySpecified: z.boolean().optional(),
+  homeByTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  homeTravelMinutes: z.number().int().min(0).max(300).optional(),
+  temporaryCondition: z.object({ energy: z.enum(["low", "normal"]), walkingLimited: z.boolean(), notes: z.array(z.string().max(120)).max(10) }).optional(),
+  budgetUsage: z.enum(["reserve", "full"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -93,6 +102,6 @@ export async function POST(request: Request) {
   }
 
   const discovered = await enrichDajeongPlanWithRealPlaces(createDajeongPlan(parsed.data));
-  const plan = initializePlanVersion(await personalizePlanSummary(discovered));
+  const plan = initializePlanVersion(await personalizePlanSummary(await enrichPlanWithWeather(discovered)));
   return NextResponse.json({ plan });
 }

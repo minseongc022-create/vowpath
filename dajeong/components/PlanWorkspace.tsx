@@ -113,8 +113,9 @@ function TimelineItem({
     <>
       {item.travelFromPrevious ? (
         <div className="dj-travel-row">
-          <span>{item.travelFromPrevious.mode} {item.travelFromPrevious.minutes}분</span>
+          <span>{item.travelFromPrevious.mode} {item.travelFromPrevious.minutes}분{item.travelFromPrevious.walkingMinutes != null ? ` · 도보 약 ${item.travelFromPrevious.walkingMinutes}분` : ""}</span>
           <p>{item.travelFromPrevious.note}</p>
+          {item.travelFromPrevious.fatigue ? <em>이동 피로 {item.travelFromPrevious.fatigue === "high" ? "높음" : item.travelFromPrevious.fatigue === "medium" ? "보통" : "낮음"}</em> : null}
         </div>
       ) : null}
       <article className={`dj-timeline-row ${changed ? "dj-plan-changed" : ""} ${highlight ? "dj-plan-highlight" : ""}`}>
@@ -143,6 +144,9 @@ function TimelineItem({
             {item.experience?.traits.length ? <div className="dj-experience-traits">{item.experience.traits.slice(0, 4).map((trait) => <span key={trait}>{trait}</span>)}{item.experience.limited ? <span className="dj-limited-candidate">기간 확인 중</span> : null}</div> : null}
             <div className="dj-experience-facts">
               <span><ClockIcon size={14} /> 약 {item.durationMinutes}분</span>
+              {item.endTime ? <span><ClockIcon size={14} /> {item.endTime} 종료</span> : null}
+              {item.bufferAfterMinutes ? <span>다음 일정 전 여유 {item.bufferAfterMinutes}분</span> : null}
+              {item.placeLocked || item.timeLocked ? <span className="dj-fixed-chip"><ShieldIcon size={14} /> 사용자 고정</span> : null}
               {item.category === "lodging" ? <span><ClockIcon size={14} /> 체크인 {item.time}</span> : null}
               <span><ShieldIcon size={14} /> {reservationLabel}</span>
               {item.reality?.distanceFromPreviousKm != null ? <span><MapPinIcon size={14} /> 앞 일정에서 약 {item.reality.distanceFromPreviousKm.toFixed(1)}km</span> : null}
@@ -347,7 +351,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   const overBudget = plan.budgetRemaining < 0;
   const spendPercent = Math.min(100, Math.round((plan.total / plan.budget) * 100));
   const start = plan.items[0]?.time ?? plan.situation.startTime ?? "14:00";
-  const end = plan.items.at(-1)?.time ?? plan.situation.preferredTime;
+  const end = plan.schedule?.estimatedEndTime ?? plan.items.at(-1)?.endTime ?? plan.items.at(-1)?.time ?? plan.situation.preferredTime;
   const tripLabel = plan.situation.planScope === "trip" ? ` · ${plan.situation.tripNights ?? 0}박 ${plan.situation.tripDays ?? 1}일` : "";
   const constraints = plan.situation.constraints ?? [];
 
@@ -371,8 +375,16 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         </div>
       ) : null}
 
+      {plan.schedule?.weather ? (
+        <div className={`dj-weather-banner dj-weather-${plan.schedule.weather.status}`}>
+          <div><strong>{plan.schedule.weather.status === "verified" ? "실제 예보를 일정에 반영했어요" : plan.schedule.weather.status === "user_report" ? "말해준 날씨를 임시 조건으로 반영했어요" : "날씨는 아직 확정하지 않았어요"}</strong><p>{plan.schedule.weather.message}{plan.schedule.weather.checkedAt ? ` · ${checkedLabel(plan.schedule.weather.checkedAt)}` : ""}</p></div>
+        </div>
+      ) : null}
+
+      {plan.schedule?.warnings.length ? <div className="dj-schedule-warnings"><strong>출발 전 확인할 현실 조건</strong>{plan.schedule.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
+
       <div className="dj-fact-row">
-        <div><ClockIcon size={19} /><span>날짜·전체 시간</span><strong>{displayDate(plan.situation.targetDate)}{tripLabel} · {start} 시작</strong></div>
+        <div><ClockIcon size={19} /><span>날짜·전체 시간</span><strong>{displayDate(plan.situation.targetDate)}{tripLabel} · {start}~{end}</strong>{plan.schedule?.estimatedHomeArrival ? <small>예상 귀가 {plan.schedule.estimatedHomeArrival}</small> : null}</div>
         <div><MapPinIcon size={19} /><span>활동 지역</span><strong>{plan.situation.region}</strong></div>
         <div><WalletIcon size={19} /><span>총 예상 비용</span><strong>{money(plan.total)}</strong></div>
         <div><ShieldIcon size={19} /><span>예약 확인</span><strong>{plan.items.filter((item) => item.reservationRequired).length}곳 필요</strong></div>
@@ -404,7 +416,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
 
       <div className="dj-plan-layout">
         <section className="dj-plan-main">
-          <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>시간보다 장면이 기억되는 하루</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {start} 시작</p></div>
+          <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>실제로 따라갈 수 있는 시간표</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {plan.schedule?.density === "compact" ? "알차게" : plan.schedule?.density === "relaxed" ? "여유롭게" : "균형 있게"}</p></div>
           {plan.logistics?.length ? <div className="dj-trip-logistics"><strong>현실 이동 기준</strong>{plan.logistics.map((item) => <div key={item.id}><span>{item.dayNumber}일차 · {item.time}</span><p><b>{item.title}</b>{item.note}</p></div>)}</div> : null}
           <div className="dj-timeline">
             {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} /></Fragment>)}

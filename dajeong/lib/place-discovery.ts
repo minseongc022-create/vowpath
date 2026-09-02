@@ -2,6 +2,7 @@ import "server-only";
 
 import { attachCuratedReality, chainNameFor, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
 import { buildExperienceFlow } from "./experience";
+import { scheduleDajeongPlan } from "./schedule-engine";
 import type { DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption } from "./types";
 
 type GoogleNewPlace = {
@@ -574,7 +575,7 @@ function travelMode(situation: ParsedSituation): NonNullable<PlanItem["travelFro
 
 function recalculate(plan: DajeongPlan, items: PlanItem[]): DajeongPlan {
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  return { ...plan, items, subtotal: total, total, reserve: Math.max(0, plan.budget - total), budgetRemaining: plan.budget - total, experienceFlow: buildExperienceFlow(items) };
+  return scheduleDajeongPlan({ ...plan, items, subtotal: total, total, reserve: Math.max(0, plan.budget - total), budgetRemaining: plan.budget - total, experienceFlow: buildExperienceFlow(items) });
 }
 
 export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promise<DajeongPlan> {
