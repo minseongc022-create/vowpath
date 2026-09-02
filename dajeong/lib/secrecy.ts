@@ -123,6 +123,14 @@ export function redactPlanForViewer(plan: DajeongPlan, viewerId: string | null |
 
   const secretItems = plan.items.filter(isSecretItem);
   const hiddenItemIds = new Set(secretItems.filter((item) => (item.secretDisclosure ?? "hidden") === "hidden").map((item) => item.id));
+  // The execution view is a separate, more detailed surface than the timeline: even a "time_only"
+  // or "label_only" secret item — which still shows a blank slot on the timeline — must not leak
+  // its real venue/address/phone/price through the reservation task tied to it. So every secret
+  // item's task is hidden here regardless of disclosure level, alongside every non-shared prep item.
+  const executionHiddenItemIds = new Set([
+    ...secretItems.map((item) => item.id),
+    ...(plan.prep ?? []).filter((item) => item.visibility !== "shared").map((item) => item.id),
+  ]);
   const terms = secretTerms(plan);
   const items = plan.items
     .filter((item) => !hiddenItemIds.has(item.id))
@@ -145,7 +153,7 @@ export function redactPlanForViewer(plan: DajeongPlan, viewerId: string | null |
     total: subtotal,
     budgetRemaining: plan.budget - subtotal,
     conversation,
-    execution: redactExecution(plan.execution, hiddenItemIds),
+    execution: redactExecution(plan.execution, executionHiddenItemIds),
     experienceFlow: buildExperienceFlow(items.filter((item) => !isSecretItem(item))),
     changeLog: (plan.changeLog ?? []).map((entry) => ({ ...entry, summary: scrub(entry.summary, terms) })),
     schedule: plan.schedule

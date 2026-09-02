@@ -22,6 +22,7 @@ import {
 } from "../../dajeong/lib/secrecy-actions.ts";
 import { hasSecretContent, planAccessRole, redactPlanForViewer, sanitizeMessageForViewer } from "../../dajeong/lib/secrecy.ts";
 import { applySegmentTransport } from "../../dajeong/lib/live-engine.ts";
+import { prepareReservationOrder, syncPrepReservations } from "../../dajeong/lib/reservation-engine.ts";
 
 function birthdayPlan() {
   return createDajeongPlan({ request: "다음 주 여자친구 생일 데이트 짜고 싶어", budget: 250_000 });
@@ -286,4 +287,79 @@ test("hasSecretContent가 prep의 personal/secret도 함께 감지한다", () =>
   const gift = plan.prep.find((item) => item.category === "gift");
   plan = setPrepVisibility(plan, gift.id, "personal");
   assert.equal(hasSecretContent(plan), true);
+});
+
+// ── 준비물 예약 자동화 (TEST 18~21) ──────────────────────────────────────────
+
+test("[TEST 18] 준비물 예약: 꽃/케이크 준비물도 실행 항목에 포함된다", () => {
+  let plan = birthdayPlan();
+  plan = applyPrepInstruction(plan, "꽃이랑 케이크 준비해줘").plan;
+  const order = prepareReservationOrder(plan);
+  const prepIds = new Set(plan.prep.map((item) => item.id));
+  const prepTasks = order.tasks.filter((task) => prepIds.has(task.itemId));
+  assert.equal(prepTasks.length, 2);
+  assert.ok(prepTasks.every((task) => task.kind === "purchase"));
+  assert.ok(order.requestedItemIds.some((id) => prepIds.has(id)));
+});
+
+test("[TEST 19] 준비물 예약: 직접 준비(self_prepared)로 바꾸면 실행 항목에서 빠진다", () => {
+  let plan = birthdayPlan();
+  plan = applyPrepInstruction(plan, "선물 준비해줘").plan;
+  const gift = plan.prep.find((item) => item.category === "gift");
+  plan = { ...plan, prep: plan.prep.map((item) => item.id === gift.id ? { ...item, handling: "self_prepared" } : item) };
+  const order = prepareReservationOrder(plan);
+  assert.equal(order.tasks.some((task) => task.itemId === gift.id), false);
+});
+
+test("[TEST 20] syncPrepReservations: 준비물만 있어도 자동으로 실행 계획을 만든다 (사전 실행 요청 없이도)", () => {
+  let plan = birthdayPlan();
+  assert.equal(plan.execution, undefined);
+  plan = applyPrepInstruction(plan, "꽃 준비해줘").plan;
+  const flower = plan.prep.find((item) => item.category === "flower");
+  const synced = syncPrepReservations(plan);
+  assert.ok(synced.execution);
+  assert.ok(synced.execution.tasks.some((task) => task.itemId === flower.id));
+  // 최종 결제·확정은 여전히 사용자 승인이 필요한 상태를 벗어나지 않는다.
+  assert.equal(synced.execution.tasks.some((task) => task.status === "booked" || task.status === "purchased"), false);
+});
+
+test("[TEST 21] syncPrepReservations: 이미 특정 항목으로 좁혀진 실행 계획의 범위는 유지하면서 준비물만 추가한다", () => {
+  let plan = birthdayPlan();
+  const meal = plan.items.find((item) => item.category === "meal");
+  plan = { ...plan, execution: prepareReservationOrder(plan, { targetItemIds: [meal.id], includeTravel: false }) };
+  assert.deepEqual(plan.execution.requestedItemIds, [meal.id]);
+  plan = applyPrepInstruction(plan, "케이크 준비해줘").plan;
+  const cake = plan.prep.find((item) => item.category === "cake");
+  const synced = syncPrepReservations(plan);
+  assert.ok(synced.execution.requestedItemIds.includes(meal.id));
+  assert.ok(synced.execution.requestedItemIds.includes(cake.id));
+  const otherMainItems = plan.items.filter((item) => item.id !== meal.id && item.reservationRequired);
+  assert.ok(otherMainItems.every((item) => !synced.execution.requestedItemIds.includes(item.id)), "명시적으로 선택하지 않은 다른 메인 항목까지 끌려오면 안 된다");
+});
+
+// ── 실행 화면 유출 방지 (TEST 22) ────────────────────────────────────────────
+
+test("[TEST 22] 실행 화면 유출 방지: time_only/label_only로 공개된 시크릿 항목도 실행 작업 자체는 동반자에게 숨긴다", () => {
+  let plan = sharedPlan();
+  const secretTarget = plan.items[0];
+  plan = setItemVisibility(plan, secretTarget.id, "secret");
+  plan = setItemDisclosure(plan, secretTarget.id, "time_only");
+  plan = { ...plan, execution: prepareReservationOrder(plan, { includeTravel: false }) };
+  assert.ok(plan.execution.tasks.some((task) => task.itemId === secretTarget.id), "테스트 전제: 원본 실행 계획에는 시크릿 항목의 작업이 있어야 한다");
+
+  const companionView = redactPlanForViewer(plan, "person_B");
+  assert.equal(companionView.execution.tasks.some((task) => task.itemId === secretTarget.id), false, "time_only여도 실행 작업(실제 장소·전화번호·가격)까지 보이면 안 된다");
+});
+
+test("[TEST 23] 실행 화면 유출 방지: 공개되지 않은 준비물(personal/secret)의 예약 작업도 동반자에게 숨긴다", () => {
+  let plan = sharedPlan();
+  plan = applyPrepInstruction(plan, "케이크 준비해줘").plan;
+  const cake = plan.prep.find((item) => item.category === "cake");
+  plan = setPrepVisibility(plan, cake.id, "secret");
+  plan = syncPrepReservations(plan);
+  assert.ok(plan.execution?.tasks.some((task) => task.itemId === cake.id), "테스트 전제: 원본 실행 계획에는 준비물 작업이 있어야 한다");
+
+  const companionView = redactPlanForViewer(plan, "person_B");
+  assert.equal(companionView.prep.some((item) => item.id === cake.id), false);
+  assert.equal(companionView.execution?.tasks.some((task) => task.itemId === cake.id), false, "비공개 준비물의 예약 작업(실제 업체·가격)이 실행 화면을 통해 유출되면 안 된다");
 });

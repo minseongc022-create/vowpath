@@ -2,13 +2,13 @@ import "server-only";
 
 import { openAiStructuredCompletion, type OpenAiJsonSchema } from "@/lib/openai-chat";
 import { getOptions } from "./catalog";
-import { discoverOptionsForItem, enrichDajeongPlanWithRealPlaces } from "./place-discovery";
+import { discoverOptionsForItem, discoverPrepPlace, enrichDajeongPlanWithRealPlaces } from "./place-discovery";
 import { attachCuratedReality, haversineKm, travelMinutes } from "./place-utils";
 import { appendPlanConversation, appendPlanVersion, buildPlanLogistics, restorePlanVersion, restoreReferencedCandidate, reviseDajeongPlan } from "./plan-engine";
 import { parseSituation } from "./situation";
 import { buildExperienceFlow } from "./experience";
 import { handleExecutionInstruction } from "./execution-conversation";
-import { reconcileReservationOrder } from "./reservation-engine";
+import { reconcileReservationOrder, syncPrepReservations } from "./reservation-engine";
 import { scheduleDajeongPlan, setItemDuration, weatherContextFromUser } from "./schedule-engine";
 import { enrichPlanWithWeather } from "./weather";
 import { applyDelayReport, applyLeaveEarly, applySegmentTransport, applySkipNext, applyStayLonger, DELAY_PATTERN, LEAVE_EARLY_PATTERN, SEGMENT_TRANSPORT_PATTERN, SKIP_NEXT_PATTERN, STAY_LONGER_PATTERN } from "./live-engine";
@@ -395,7 +395,7 @@ function explainSelection(plan: DajeongPlan, category: PlanCategory | null, inst
 }
 
 function addRevision(plan: DajeongPlan, instruction: string, message: string, categories: PlanCategory[]): DajeongPlan {
-  const synchronized = reconcileReservationOrder(plan);
+  const synchronized = syncPrepReservations(reconcileReservationOrder(plan));
   const revised: DajeongPlan = {
     ...synchronized,
     revisions: [{
@@ -597,6 +597,21 @@ function categoriesOf(plan: DajeongPlan, ids: string[]): PlanCategory[] {
   return [...new Set(plan.items.filter((item) => ids.includes(item.id)).map((item) => item.category))];
 }
 
+/**
+ * A prep item (flower/cake/gift/event venue) gets a real candidate and a prepared reservation
+ * task automatically, without waiting for an explicit "예약해줘" — that's the whole point of
+ * "자동으로 찾고 예약 알아서" for prep items. It still only ever reaches "ready"/"user_action"
+ * style statuses; nothing here pays, confirms, or contacts a provider without later approval.
+ */
+async function autoPreparePrepItems(plan: DajeongPlan, prepItemIds: string[]): Promise<DajeongPlan> {
+  const targets = (plan.prep ?? []).filter((item) => prepItemIds.includes(item.id) && !item.reality && item.status !== "cancelled" && item.handling !== "self_prepared");
+  if (!targets.length) return syncPrepReservations(plan);
+  const discovered = await Promise.all(targets.map((item) => discoverPrepPlace(plan, item)));
+  const byId = new Map(discovered.map((item) => [item.id, item]));
+  const nextPrep = (plan.prep ?? []).map((item) => byId.get(item.id) ?? item);
+  return syncPrepReservations({ ...plan, prep: nextPrep });
+}
+
 export async function reviseDajeongPlanWithDiscovery(
   plan: DajeongPlan,
   instruction: string,
@@ -627,7 +642,8 @@ async function reviseDajeongPlanWithDiscoveryCore(
   // phrasing from "add this to today's timeline" that it's checked before the generic add flow.
   const prepResult = applyPrepInstruction(plan, normalizedInstruction, requestedItemId);
   if (prepResult.handled) {
-    return { plan: prepResult.plan, message: prepResult.message, changedCategories: [] };
+    const next = await autoPreparePrepItems(prepResult.plan, prepResult.prepItemIds);
+    return { plan: next, message: prepResult.message, changedCategories: [] };
   }
 
   // Day-of instructions ("우리 아직 밥 먹고 있어", "여기 더 있고 싶어", "집에 좀 일찍 갈래", "다음 거 빼자")

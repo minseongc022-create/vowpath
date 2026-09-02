@@ -193,6 +193,8 @@ export type PrepItem = {
   secretLabel?: string;
   secretDisclosure?: SecretDisclosure;
   reservationTaskId?: string;
+  /** Real candidate found by automatic place discovery (flower/cake/gift shop, event venue). Undefined until discovery runs. */
+  reality?: PlaceReality;
   createdAt: string;
   updatedAt: string;
 };

@@ -3,7 +3,7 @@ import "server-only";
 import { attachCuratedReality, chainNameFor, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
 import { buildExperienceFlow } from "./experience";
 import { scheduleDajeongPlan } from "./schedule-engine";
-import type { DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption } from "./types";
+import type { DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption, PrepCategory, PrepItem } from "./types";
 
 type GoogleNewPlace = {
   id?: string;
@@ -662,6 +662,66 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
           : `실제로 등록된 장소 ${realPlaceCount}곳을 동선에 맞췄어요. 평점·리뷰·사진은 지도에서 바로 확인할 수 있어요.`
         : "실시간 장소 탐색을 사용할 수 없어 기본 후보를 표시했어요.",
     },
+  };
+}
+
+const PREP_CATEGORY_TO_PLAN: Partial<Record<PrepCategory, PlanCategory>> = {
+  flower: "flower",
+  cake: "cake",
+  gift: "gift",
+  event_booking: "activity",
+};
+
+const PREP_FALLBACK_PRICE: Record<PrepCategory, number> = {
+  flower: 45_000,
+  cake: 40_000,
+  gift: 40_000,
+  event_booking: 200_000,
+  custom: 30_000,
+};
+
+/**
+ * Auto-discovery for prep items (flower/cake/gift shops, event venues) — the same real-place
+ * pipeline used for main itinerary items, so "꽃 준비해줘" attaches an actual nearby florist
+ * candidate instead of leaving the prep item as a bare label. `custom` prep items have no
+ * reliable category to search, so they're left untouched.
+ */
+export async function discoverPrepPlace(plan: DajeongPlan, prepItem: PrepItem): Promise<PrepItem> {
+  const category = PREP_CATEGORY_TO_PLAN[prepItem.category];
+  if (!category) return prepItem;
+  const previous = [...plan.items].reverse().map(itemCoordinates).find((coordinates): coordinates is Coordinates => Boolean(coordinates));
+  const query = [prepItem.title, prepItem.notes].map((value) => value?.trim()).filter(Boolean).join(" ");
+  const fallbackPrice = prepItem.price ?? PREP_FALLBACK_PRICE[prepItem.category];
+  const candidates = await searchRealPlaces({ region: plan.situation.region, category, query, near: previous });
+  if (!candidates.length) return prepItem;
+  const ranked = rankRealPlaceCandidates(candidates, previous, category, Math.max(fallbackPrice * 1.5, plan.budgetRemaining + fallbackPrice), fallbackPrice, plan.situation, query);
+  const best = ranked[0];
+  if (!best) return prepItem;
+  const base: PlanOption = {
+    id: prepItem.id,
+    title: prepItem.title,
+    subtitle: "",
+    price: fallbackPrice,
+    durationMinutes: 20,
+    provider: "",
+    handoffKind: "search",
+    href: "",
+    notes: [],
+    location: "",
+    imageUrl: "",
+    imageAlt: "",
+    reason: "",
+    venueType: "indoor",
+    reservationRequired: true,
+  };
+  const option = placeToPlanOption({ place: best, base, category, situation: plan.situation, previous });
+  const priceConfidence = option.reality?.priceConfidence === "provider" ? "provider_quote" as const : option.reality?.priceConfidence === "unknown" ? "unknown" as const : "estimate" as const;
+  return {
+    ...prepItem,
+    reality: option.reality,
+    price: prepItem.price ?? option.price,
+    priceConfidence,
+    updatedAt: new Date().toISOString(),
   };
 }
 

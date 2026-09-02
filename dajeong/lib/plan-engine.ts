@@ -2,7 +2,7 @@ import { getOptions } from "./catalog";
 import { buildExperienceFlow, journeyRoleFor, MOOD_LABEL } from "./experience";
 import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
-import { reconcileReservationOrder } from "./reservation-engine";
+import { reconcileReservationOrder, syncPrepReservations } from "./reservation-engine";
 import { clockToMinutes, scheduleDajeongPlan } from "./schedule-engine";
 import { createPrepOfferMessage, shouldOfferPrepCheck } from "./prep-engine";
 import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
@@ -405,7 +405,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
         } : item.reality,
       };
     });
-  return reconcileReservationOrder(scheduleDajeongPlan({
+  return syncPrepReservations(reconcileReservationOrder(scheduleDajeongPlan({
     ...plan,
     situation,
     items: ordered,
@@ -415,7 +415,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
     reserve: Math.max(0, plan.budget - total),
     budgetRemaining: plan.budget - total,
     experienceFlow: buildExperienceFlow(ordered),
-  }));
+  })));
 }
 
 export function createDajeongPlan(input: PlanRequest): DajeongPlan {

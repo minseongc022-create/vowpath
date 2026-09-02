@@ -52,6 +52,7 @@
 .dj-execution-badges span, .dj-execution-badges b, .dj-execution-badges em { padding: 5px 7px; border-radius: 999px; background: #f4f0ea; color: var(--dj-muted); font-size: 10px; font-style: normal; line-height: 1; }
 .dj-execution-badges b { background: var(--dj-coral-soft); color: var(--dj-coral-dark); }
 .dj-execution-badges em { background: var(--dj-sage-soft); color: var(--dj-sage); }
+.dj-prep-badge { padding: 5px 7px; border-radius: 999px; background: var(--dj-coral-dark); color: #fff; font-size: 10px; line-height: 1; }
 .dj-execution-task h3 { margin: 11px 0 6px; font-size: 18px; letter-spacing: -.025em; }
 .dj-execution-task-main > p { margin: 0; color: var(--dj-muted); font-size: 12px; line-height: 1.6; }
 .dj-execution-facts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }

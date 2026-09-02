@@ -4,6 +4,7 @@ import type {
   ExecutionApproval,
   ExecutionTaskKind,
   PlanItem,
+  PrepItem,
   ReservationOrder,
   ReservationTask,
   ReservationTaskStatus,
@@ -154,6 +155,79 @@ function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask)
   };
 }
 
+function bookingMethodForPrep(item: PrepItem): BookingMethod {
+  if (item.handling === "self_prepared" || item.status === "cancelled") return "no_reservation";
+  const reservationUrl = item.reality?.reservationUrl;
+  if (reservationUrl) return PLATFORM_PATTERN.test(reservationUrl) ? "external_platform" : "external_online";
+  const website = item.reality?.websiteUrl;
+  if (website) return PLATFORM_PATTERN.test(website) ? "external_platform" : "external_online";
+  if (item.reality?.phoneNumber) return "phone_only";
+  return "unsupported";
+}
+
+function prepFingerprint(item: PrepItem, method: BookingMethod): string {
+  return [item.id, item.title, item.date, item.time ?? "", item.price ?? 0, method, item.reality?.placeId ?? ""].join("|");
+}
+
+function prepPhoneScript(item: PrepItem): string {
+  const when = item.time ? `${item.date} ${item.time}쯤` : `${item.date}쯤`;
+  return `안녕하세요. ${when} ${item.title} 준비(주문/예약)가 가능한지 문의드립니다. 가능하다면 정확한 가격, 픽업·배송 조건과 준비할 정보를 알려주세요.`;
+}
+
+function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask): ReservationTask {
+  const method = bookingMethodForPrep(item);
+  const itemFingerprint = prepFingerprint(item, method);
+  if (previous?.itemFingerprint === itemFingerprint) return previous;
+  const confidence = item.priceConfidence === "provider_quote" ? "range" as const : "estimate" as const;
+  return {
+    id: `execute_${plan.id}_prep_${item.id}`,
+    itemId: item.id,
+    title: item.title,
+    time: item.time ?? "미정",
+    kind: "purchase",
+    bookingMethod: method,
+    capability: "assisted",
+    status: initialStatus(method),
+    providerLabel: methodLabel(method),
+    bookingUrl: item.reality?.reservationUrl || item.reality?.websiteUrl || item.reality?.detailsUrl || "",
+    explanation: explanation(method),
+    availability: item.reality ? "unknown" : "unknown",
+    price: { currency: "KRW", estimatedAmount: item.price ?? 0, onsiteAmount: item.price ?? 0, confidence },
+    privacy: {
+      requiredFields: method === "no_reservation" ? [] : ["name", "phone"],
+      approvedFields: [],
+      purpose: `${item.title} 준비(주문·예약)에 필요한 최소 정보 전달`,
+    },
+    phoneNumber: item.reality?.phoneNumber,
+    phoneHours: item.reality?.phoneHours,
+    phoneScript: method === "phone_only" ? prepPhoneScript(item) : undefined,
+    itemFingerprint,
+  };
+}
+
+/**
+ * Ensures the execution order reflects the plan's current prep items (flower/cake/gift/venue),
+ * without disturbing whatever scope the main-item order already has. Additive-only: when there
+ * are no active prep items and no existing order, this is a no-op, so it never changes behavior
+ * for plans that don't use prep at all.
+ */
+export function syncPrepReservations(plan: DajeongPlan): DajeongPlan {
+  const activePrep = (plan.prep ?? []).filter((item) => item.status !== "cancelled" && item.handling !== "self_prepared");
+  const previous = plan.execution;
+  if (!previous) {
+    if (!activePrep.length) return plan;
+    return { ...plan, execution: prepareReservationOrder(plan, { targetItemIds: activePrep.map((item) => item.id), includeTravel: false }) };
+  }
+  const scope = previous.requestedScope;
+  const targetItemIds = scope === "selection"
+    ? [...new Set([...previous.requestedItemIds, ...activePrep.map((item) => item.id)])]
+    : undefined;
+  return {
+    ...plan,
+    execution: prepareReservationOrder(plan, { previous, targetItemIds, includeTravel: scope === "whole_plan" }),
+  };
+}
+
 function logisticsTask(plan: DajeongPlan, kind: "arrival" | "rental_pickup" | "checkout" | "luggage" | "rental_return" | "departure", values: { time: string; dayNumber: number; title: string; explanation: string; dependsOn?: string[] }): ReservationTask {
   const taskId = `travel_${plan.id}_${kind}`;
   const reservable = ["arrival", "rental_pickup", "rental_return", "departure"].includes(kind);
@@ -256,11 +330,14 @@ function totals(plan: DajeongPlan, tasks: ReservationTask[]) {
   const confirmedOnsite = tasks.reduce((sum, task) => sum + (task.price.onsiteAmount ?? 0), 0);
   const selectedItemIds = new Set(tasks.map((task) => task.itemId));
   const selectedItems = plan.items.filter((item) => selectedItemIds.has(item.id));
+  const selectedPrep = (plan.prep ?? []).filter((item) => selectedItemIds.has(item.id));
   const selectedEstimate = selectedItems.reduce((sum, item) => sum + item.price, 0);
-  const estimatedTotal = selectedItems.length === plan.items.length ? plan.total : selectedEstimate;
+  const prepEstimate = selectedPrep.reduce((sum, item) => sum + (item.price ?? 0), 0);
+  const estimatedTotal = (selectedItems.length === plan.items.length ? plan.total : selectedEstimate) + prepEstimate;
   return {
     payableNow,
     estimatedTotal,
+    prepEstimate,
     onsiteEstimated: confirmedOnsite || Math.max(0, estimatedTotal - payableNow),
     unconfirmedPriceTaskIds: tasks.filter((task) => ["reservation", "ticket", "purchase", "lodging", "rental_car", "transport"].includes(task.kind) && task.price.confidence !== "provider_quote").map((task) => task.id),
   };
@@ -277,14 +354,18 @@ function messageFor(tasks: ReservationTask[]): string {
 export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptions = {}): ReservationOrder {
   const requested = new Set(options.targetItemIds ?? []);
   const selectedItems = plan.items.filter((item) => item.reservationRequired && (!requested.size || requested.has(item.id)));
+  const selectedPrep = (plan.prep ?? []).filter((item) => item.status !== "cancelled" && item.handling !== "self_prepared" && (!requested.size || requested.has(item.id)));
   const previousByItem = new Map(options.previous?.tasks.map((task) => [task.itemId, task]) ?? []);
-  const tasks = selectedItems.map((item) => itemTask(plan, item, previousByItem.get(item.id)));
+  const tasks = [
+    ...selectedItems.map((item) => itemTask(plan, item, previousByItem.get(item.id))),
+    ...selectedPrep.map((item) => prepTask(plan, item, previousByItem.get(item.id))),
+  ];
   if ((options.includeTravel ?? !requested.size) && plan.situation.planScope === "trip") tasks.push(...travelTasks(plan, options.previous));
   const scopedCosts = totals(plan, tasks);
   const costs = requested.size ? scopedCosts : {
     ...scopedCosts,
-    estimatedTotal: plan.total,
-    onsiteEstimated: Math.max(0, plan.total - scopedCosts.payableNow),
+    estimatedTotal: plan.total + scopedCosts.prepEstimate,
+    onsiteEstimated: Math.max(0, plan.total + scopedCosts.prepEstimate - scopedCosts.payableNow),
   };
   const approval = options.previous?.approval && options.previous.approval.taskIds.every((taskId) => tasks.some((task) => task.id === taskId))
     ? options.previous.approval
@@ -302,7 +383,7 @@ export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptio
     payableNow: costs.payableNow,
     onsiteEstimated: costs.onsiteEstimated,
     unconfirmedPriceTaskIds: costs.unconfirmedPriceTaskIds,
-    requestedItemIds: selectedItems.map((item) => item.id),
+    requestedItemIds: [...selectedItems.map((item) => item.id), ...selectedPrep.map((item) => item.id)],
     requestedScope: requested.size ? "selection" : "whole_plan",
     approval,
     message: messageFor(tasks),
