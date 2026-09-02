@@ -112,6 +112,51 @@ export type ExperienceProfile = {
   limited?: LimitedExperience;
 };
 
+export type CompanionRelationLabel = "연인" | "친구" | "가족" | "동료" | "기타";
+
+export type CompanionLink = {
+  id: string;
+  memberIds: [string, string];
+  memberNames: [string, string];
+  relationLabel: CompanionRelationLabel;
+  createdAt: string;
+};
+
+export type CompanionInvite = {
+  code: string;
+  fromId: string;
+  fromName: string;
+  relationLabel: CompanionRelationLabel;
+  note?: string;
+  createdAt: string;
+  expiresAt: string;
+  status: "pending" | "accepted" | "revoked";
+  acceptedBy?: string;
+};
+
+export type PaceFeedbackScope = "session" | "profile";
+
+export type PacePreference = {
+  personId: string;
+  companionKey: string;
+  density?: ScheduleDensity;
+  placesPerDay?: number;
+  notes: string[];
+  updatedAt: string;
+};
+
+export type PlanChangeLogEntry = {
+  id: string;
+  actorId: string;
+  actorLabel: string;
+  summary: string;
+  createdAt: string;
+};
+
+export type ItemVisibility = "shared" | "secret";
+export type PlanKind = "solo" | "shared";
+export type LiveItemState = "upcoming" | "current" | "done" | "skipped";
+
 export type HandoffKind = "search" | "gift" | "call" | "self";
 
 export type PlanItemStatus = "proposed" | "confirmed" | "done";
@@ -416,6 +461,10 @@ export type PlanItem = PlanOption & {
   placeLocked?: boolean;
   timeLocked?: boolean;
   lockReason?: string;
+  visibility?: ItemVisibility;
+  secretLabel?: string;
+  liveState?: LiveItemState;
+  actualStartTime?: string;
 };
 
 export type PlanRevision = {
@@ -498,6 +547,14 @@ export type DajeongPlan = {
     warnings: string[];
     weather: WeatherContext;
   };
+  ownerId?: string;
+  ownerName?: string;
+  planKind?: PlanKind;
+  companionId?: string;
+  companionName?: string;
+  sharedVersion?: number;
+  lastEditedBy?: string;
+  changeLog?: PlanChangeLogEntry[];
 };
 
 export type ConciergeMessage = {
@@ -506,6 +563,11 @@ export type ConciergeMessage = {
   text: string;
   status: "done" | "searching" | "proposal" | "error";
   createdAt: string;
+  visibility?: ItemVisibility;
+  phase?: "planning" | "live";
+  relatedItemId?: string;
+  authorId?: string;
+  authorLabel?: string;
 };
 
 export type PlanChangeProposal = {
@@ -515,6 +577,13 @@ export type PlanChangeProposal = {
   plan: DajeongPlan;
 };
 
+export type PaceUpdate = {
+  scope: PaceFeedbackScope;
+  density?: ScheduleDensity;
+  placesPerDay?: number;
+  note: string;
+};
+
 export type PlanRevisionResult = {
   plan: DajeongPlan;
   message: string;
@@ -522,4 +591,5 @@ export type PlanRevisionResult = {
   proposal?: PlanChangeProposal;
   searchedRealPlaces?: number;
   profileUpdate?: PersonMemoryUpdate;
+  paceUpdate?: PaceUpdate;
 };

@@ -11,6 +11,9 @@ import { handleExecutionInstruction } from "./execution-conversation";
 import { reconcileReservationOrder } from "./reservation-engine";
 import { scheduleDajeongPlan, setItemDuration, weatherContextFromUser } from "./schedule-engine";
 import { enrichPlanWithWeather } from "./weather";
+import { applyDelayReport, applyLeaveEarly, applySkipNext, applyStayLonger, DELAY_PATTERN, LEAVE_EARLY_PATTERN, SKIP_NEXT_PATTERN, STAY_LONGER_PATTERN } from "./live-engine";
+import { applySecrecyInstruction } from "./secrecy-actions";
+import { classifyPaceFeedback } from "./pace";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
 
 type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "reschedule" | "explain" | "execute" | "payment_review";
@@ -166,7 +169,7 @@ function fallbackIntent(plan: DajeongPlan, instruction: string, requestedCategor
   const budgetMatch = instruction.match(/(\d{1,3})\s*만\s*원?/);
   const region = ["강남", "성수", "홍대", "연남", "여의도", "잠실", "광화문", "종로", "용산", "이태원", "서울", "인천", "수원", "성남", "분당", "부산", "대구", "대전", "광주", "제주"].find((value) => instruction.includes(value));
   const transport = /(?:차|자차)(?:는|가)?\s*(?:없|없이)|운전(?:은|을)?\s*(?:못|안)|뚜벅|대중교통/.test(instruction) ? "public_transit" as const
-    : /자차|운전|차로/.test(instruction) ? "car" as const
+    : /자차|운전|차로|택시/.test(instruction) ? "car" as const
       : /걸어서|도보/.test(instruction) ? "walking" as const
         : undefined;
   const dateMentioned = /오늘|내일|모레|(?:이번|다음|다다음) ?주|주말|(?:이번|다음|다다음)?\s*(?:주\s*)?(?:월|화|수|목|금|토|일)요일|\d{1,2}[.\-/월]\s*\d{1,2}일?/.test(instruction);
@@ -469,7 +472,7 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
   const asksCondition = updates?.temporaryCondition != null || /오늘.{0,8}피곤|여친.{0,8}발.{0,5}아프|남친.{0,8}발.{0,5}아프|발.{0,5}아프|컨디션.{0,6}(별로|안\s*좋)/.test(instruction);
   const asksHome = updates?.homeByTime != null || /\d{1,2}(?::\d{2})?\s*시?\s*까지\s*(?:집|귀가|들어가)/.test(instruction);
   const asksAvailability = updates?.availabilityStartTime != null || updates?.availabilityEndTime != null;
-  const asksWeather = /비\s*(?:온|와|오|예보)|눈\s*(?:온|와|예보)|강풍|날씨.{0,8}(괜찮|안\s*좋|나쁘)/.test(instruction);
+  const asksWeather = /비.{0,6}(?:온|와|오|예보)|눈.{0,6}(?:온|와|예보)|강풍|날씨.{0,8}(괜찮|안\s*좋|나쁘)/.test(instruction);
   if (!asksDuration && !asksBuffer && !asksLock && !asksUnlock && !asksDensity && !asksCondition && !asksHome && !asksAvailability && !asksWeather) return null;
 
   let next = plan;
@@ -588,7 +591,22 @@ function memoryUpdateForInstruction(instruction: string, intent: ConciergeIntent
   };
 }
 
+function categoriesOf(plan: DajeongPlan, ids: string[]): PlanCategory[] {
+  return [...new Set(plan.items.filter((item) => ids.includes(item.id)).map((item) => item.category))];
+}
+
 export async function reviseDajeongPlanWithDiscovery(
+  plan: DajeongPlan,
+  instruction: string,
+  requestedCategory?: PlanCategory,
+  requestedItemId?: string,
+): Promise<PlanRevisionResult> {
+  const result = await reviseDajeongPlanWithDiscoveryCore(plan, instruction, requestedCategory, requestedItemId);
+  const paceUpdate = classifyPaceFeedback(instruction);
+  return paceUpdate ? { ...result, paceUpdate } : result;
+}
+
+async function reviseDajeongPlanWithDiscoveryCore(
   plan: DajeongPlan,
   instruction: string,
   requestedCategory?: PlanCategory,
@@ -600,6 +618,41 @@ export async function reviseDajeongPlanWithDiscovery(
     const next = appendPlanConversation(executionResult.plan, normalizedInstruction, executionResult.message);
     return { plan: next, message: executionResult.message, changedCategories: [] };
   }
+
+  // Day-of instructions ("우리 아직 밥 먹고 있어", "여기 더 있고 싶어", "집에 좀 일찍 갈래", "다음 거 빼자")
+  // stay in this same conversation instead of a separate live-tracking feature — they reuse the
+  // existing cascading scheduler, just anchored on the real current item instead of the whole day.
+  if (STAY_LONGER_PATTERN.test(normalizedInstruction)) {
+    const extraMatch = normalizedInstruction.match(/(\d{1,3})\s*분\s*더|(\d)\s*시간\s*더/);
+    const extraMinutes = extraMatch ? (extraMatch[1] ? Number(extraMatch[1]) : Number(extraMatch[2]) * 60) : undefined;
+    const live = applyStayLonger(plan, { itemId: requestedItemId, extraMinutes, reason: normalizedInstruction });
+    const next = live.changedItemIds.length ? addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(live.plan, live.changedItemIds)) : appendPlanConversation(live.plan, normalizedInstruction, live.message);
+    return { plan: next, message: live.message, changedCategories: [] };
+  }
+  if (DELAY_PATTERN.test(normalizedInstruction)) {
+    const minutesMatch = normalizedInstruction.match(/(\d{1,3})\s*분\s*(정도\s*)?늦/);
+    const live = applyDelayReport(plan, { itemId: requestedItemId, extraMinutes: minutesMatch ? Number(minutesMatch[1]) : undefined, reason: normalizedInstruction });
+    const next = live.changedItemIds.length ? addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(live.plan, live.changedItemIds)) : appendPlanConversation(live.plan, normalizedInstruction, live.message);
+    return { plan: next, message: live.message, changedCategories: [] };
+  }
+  if (LEAVE_EARLY_PATTERN.test(normalizedInstruction) && !/\d{1,2}(:\d{2})?\s*시?\s*까지/.test(normalizedInstruction)) {
+    const live = applyLeaveEarly(plan, { reason: normalizedInstruction });
+    const next = addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(live.plan, live.changedItemIds));
+    return { plan: next, message: live.message, changedCategories: [] };
+  }
+  if (SKIP_NEXT_PATTERN.test(normalizedInstruction)) {
+    const live = applySkipNext(plan, { itemId: requestedItemId, reason: normalizedInstruction });
+    const next = live.changedItemIds.length ? addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(plan, live.changedItemIds)) : appendPlanConversation(live.plan, normalizedInstruction, live.message);
+    return { plan: next, message: live.message, changedCategories: [] };
+  }
+
+  // Secrecy commands ("이거 비밀로 해줘", "이제 공개해도 돼") mutate the same items/messages a UI
+  // toggle would, so natural language and buttons can never land the plan in different states.
+  const secrecy = applySecrecyInstruction(plan, normalizedInstruction, requestedItemId);
+  if (secrecy.handled) {
+    return { plan: secrecy.plan, message: secrecy.message, changedCategories: [] };
+  }
+
   if (/처음.{0,8}(걸|계획|상태).{0,8}(돌아|복원)|처음으로\s*돌아/.test(normalizedInstruction)) {
     const initial = plan.versions?.[0];
     if (initial) {

@@ -1,0 +1,23 @@
+.dj-companions-page { display: grid; gap: 18px; }
+.dj-companion-name-form { display: grid; gap: 8px; padding: 18px 20px; }
+.dj-companion-name-form label { color: var(--dj-faint); font-size: 10px; font-weight: 800; }
+.dj-companion-name-form > div { display: flex; gap: 8px; }
+.dj-companion-name-form input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--dj-border); border-radius: 11px; font: inherit; font-size: 13px; }
+.dj-companion-invite, .dj-companion-accept { padding: 20px 22px; }
+.dj-companion-invite h2, .dj-companion-accept h2 { margin: 0 0 12px; font-family: inherit; font-size: 16px; letter-spacing: -.02em; }
+.dj-companion-invite-row, .dj-companion-accept form { display: flex; flex-wrap: wrap; gap: 8px; }
+.dj-companion-invite-row select,
+.dj-companion-invite-row input,
+.dj-companion-accept input { height: 42px; padding: 0 12px; border: 1px solid var(--dj-border); border-radius: 11px; font: inherit; font-size: 13px; }
+.dj-companion-invite-row input { flex: 1; min-width: 140px; }
+.dj-companion-accept input { flex: 1; min-width: 160px; text-transform: uppercase; letter-spacing: .08em; }
+.dj-invite-code-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; padding: 14px 16px; border: 1px dashed var(--dj-coral); border-radius: 14px; background: var(--dj-coral-soft); }
+.dj-invite-code-box span { color: var(--dj-coral-dark); font-size: 10px; font-weight: 800; }
+.dj-invite-code-box strong { font-size: 20px; letter-spacing: .12em; }
+.dj-invite-code-box p { flex-basis: 100%; margin: 4px 0 0; color: var(--dj-muted); font-size: 11px; line-height: 1.55; }
+.dj-companion-status { padding: 10px 14px; border-radius: 12px; background: var(--dj-sage-soft); color: var(--dj-sage); font-size: 12px; font-weight: 700; }
+.dj-companion-empty { color: var(--dj-faint); font-size: 12px; }
+.dj-companion-list { display: grid; gap: 8px; }
+.dj-companion-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; }
+.dj-companion-row strong { display: block; font-size: 14px; }
+.dj-companion-row span { color: var(--dj-faint); font-size: 11px; }

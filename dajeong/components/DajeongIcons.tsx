@@ -51,6 +51,14 @@ export function RefreshIcon(props: IconProps) {
   return <IconBase {...props}><path d="M20 6v5h-5" /><path d="M4 18v-5h5" /><path d="M18.4 9A7 7 0 0 0 6.2 6.2L4 8M5.6 15A7 7 0 0 0 17.8 17.8L20 16" /></IconBase>;
 }
 
+export function LockIcon(props: IconProps) {
+  return <IconBase {...props}><rect x="5" y="10.5" width="14" height="9.5" rx="2.4" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></IconBase>;
+}
+
+export function UsersIcon(props: IconProps) {
+  return <IconBase {...props}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5" /><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.1M20.5 19.5c0-2.7-1.8-4.7-4-5.3" /></IconBase>;
+}
+
 export function TrashIcon(props: IconProps) {
   return <IconBase {...props}><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" /></IconBase>;
 }

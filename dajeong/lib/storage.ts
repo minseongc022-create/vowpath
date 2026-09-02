@@ -1,9 +1,10 @@
 "use client";
 
-import type { AgeBand, DajeongPlan, ExperienceMood, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
+import type { AgeBand, DajeongPlan, ExperienceMood, PaceUpdate, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
 
 const STORAGE_KEY = "dajeong:plans:v1";
 const PEOPLE_STORAGE_KEY = "haruon:people:v1";
+const PACE_STORAGE_KEY = "haruon:pace:v1";
 
 function readAll(): DajeongPlan[] {
   if (typeof window === "undefined") return [];
@@ -90,4 +91,36 @@ export function rememberPersonProfile(
   const next = [profile, ...readPeople().filter((entry) => entry.id !== profile.id)].slice(0, 20);
   window.localStorage.setItem(PEOPLE_STORAGE_KEY, JSON.stringify(next));
   return profile;
+}
+
+type StoredPace = { companionKey: string; density?: PaceUpdate["density"]; placesPerDay?: number; notes: string[]; updatedAt: string };
+
+function readPace(): Record<string, StoredPace> {
+  if (typeof window === "undefined") return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PACE_STORAGE_KEY) ?? "{}") as unknown;
+    return parsed && typeof parsed === "object" ? parsed as Record<string, StoredPace> : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Only "profile"-scoped feedback should ever reach here — session-only remarks stay on the plan itself. */
+export function rememberPacePreference(companionKey: string, update: PaceUpdate): StoredPace {
+  const all = readPace();
+  const current = all[companionKey];
+  const next: StoredPace = {
+    companionKey,
+    density: update.density ?? current?.density,
+    placesPerDay: update.placesPerDay ?? current?.placesPerDay,
+    notes: Array.from(new Set([...(current?.notes ?? []), update.note])).slice(-20),
+    updatedAt: new Date().toISOString(),
+  };
+  all[companionKey] = next;
+  if (typeof window !== "undefined") window.localStorage.setItem(PACE_STORAGE_KEY, JSON.stringify(all));
+  return next;
+}
+
+export function getPacePreference(companionKey: string): StoredPace | null {
+  return readPace()[companionKey] ?? null;
 }

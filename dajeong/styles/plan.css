@@ -372,3 +372,49 @@
   .dj-weather-banner, .dj-schedule-warnings { padding: 13px; }
   .dj-travel-row { flex-wrap: wrap; }
 }
+
+/* Today (day-of) workspace */
+.dj-today-page { padding: 30px 0 60px; display: grid; gap: 16px; max-width: 640px; margin: 0 auto; }
+.dj-today-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 26px; border: 1px solid var(--dj-border); border-radius: 22px; background: rgba(255,253,249,.9); }
+.dj-today-hero h1 { margin: 8px 0 6px; font-family: inherit; font-size: clamp(22px, 4vw, 28px); letter-spacing: -.03em; }
+.dj-today-hero p { margin: 0; color: var(--dj-muted); font-size: 12px; }
+.dj-role-chip { flex: 0 0 auto; padding: 7px 11px; border-radius: 999px; background: var(--dj-coral-soft); color: var(--dj-coral-dark); font-size: 10px; font-weight: 800; white-space: nowrap; }
+.dj-role-companion { background: #eef2fb; color: #3d51a3; }
+.dj-today-current { padding: 20px 22px; }
+.dj-today-between { color: var(--dj-muted); font-size: 13px; }
+.dj-today-label { display: block; margin-bottom: 8px; color: var(--dj-coral-dark); font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.dj-today-current-head { display: flex; align-items: center; gap: 9px; }
+.dj-today-current-head svg { color: var(--dj-coral); }
+.dj-today-current-head h2, .dj-today-current-head h3 { margin: 0; font-family: inherit; letter-spacing: -.02em; }
+.dj-today-current-head h2 { font-size: 21px; }
+.dj-today-current-head h3 { font-size: 16px; }
+.dj-today-current p, .dj-today-next p { margin: 8px 0 0; color: var(--dj-muted); font-size: 12px; display: flex; align-items: center; gap: 5px; }
+.dj-today-delay { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 999px; background: #fdeceb; color: #a33d31; font-size: 11px; font-weight: 800; }
+.dj-today-next { padding: 16px 20px; }
+.dj-today-remaining { padding: 18px 20px; border: 1px solid var(--dj-border); border-radius: 18px; background: rgba(255,253,249,.7); }
+.dj-today-remaining-row { display: grid; grid-template-columns: 46px 20px 1fr auto; align-items: center; gap: 8px; padding: 7px 0; color: var(--dj-ink); font-size: 12px; }
+.dj-today-remaining-row + .dj-today-remaining-row { border-top: 1px dashed var(--dj-border); }
+.dj-today-remaining-row span { color: var(--dj-faint); font-size: 11px; }
+.dj-today-remaining-row em { color: var(--dj-muted); font-style: normal; font-size: 11px; }
+.dj-today-footer { text-align: center; padding: 6px 0 20px; }
+
+/* Sharing & secrecy */
+.dj-plan-header-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.dj-share-status { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px; background: #eef2fb; color: #3d51a3; font-size: 11px; font-weight: 800; }
+.dj-secret-mode-badge { background: #2b2825; color: #f2c9be; }
+.dj-item-visibility-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.dj-secret-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: #2b2825; color: #f2c9be; font-size: 10px; font-weight: 800; }
+.dj-visibility-toggle { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border: 1px solid var(--dj-border); border-radius: 999px; background: transparent; color: var(--dj-muted); font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.dj-visibility-toggle:hover { border-color: var(--dj-coral); color: var(--dj-coral-dark); }
+.dj-visibility-toggle-active { border-color: #2b2825; background: #2b2825; color: #f2c9be; }
+.dj-share-panel { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; padding: 14px; }
+.dj-share-panel p { margin: 0; color: var(--dj-muted); font-size: 12px; }
+.dj-share-panel a { color: var(--dj-coral-dark); font-weight: 700; }
+.dj-today-badge { padding: 2px 7px; border-radius: 999px; background: var(--dj-coral-soft); color: var(--dj-coral-dark); font-size: 9px; font-weight: 900; }
+.dj-today-badge-shared { background: #eef2fb; color: #3d51a3; }
+.dj-plan-today-link { display: grid; place-items: center; width: 34px; height: 34px; margin-left: 6px; border-radius: 12px; background: var(--dj-coral-soft); color: var(--dj-coral-dark); }
+
+@media (max-width: 600px) {
+  .dj-today-hero { flex-direction: column; }
+  .dj-today-remaining-row { grid-template-columns: 42px 18px 1fr auto; font-size: 11px; }
+}

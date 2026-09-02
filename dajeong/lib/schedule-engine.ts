@@ -153,8 +153,8 @@ function reassignForWeather(plan: DajeongPlan, items: PlanItem[]): PlanItem[] {
   if (!worst || !best || worst.date === best.date || worst.impact === best.impact) return items;
   const worstDay = Math.round((new Date(`${worst.date}T12:00:00`).getTime() - new Date(`${plan.situation.targetDate}T12:00:00`).getTime()) / 86_400_000) + 1;
   const bestDay = Math.round((new Date(`${best.date}T12:00:00`).getTime() - new Date(`${plan.situation.targetDate}T12:00:00`).getTime()) / 86_400_000) + 1;
-  const outdoor = items.find((item) => item.dayNumber === worstDay && item.venueType === "outdoor" && !item.placeLocked && !strongLock(plan, item));
-  const indoor = items.find((item) => item.dayNumber === bestDay && item.venueType === "indoor" && !item.placeLocked && !strongLock(plan, item) && !["lodging", "meal"].includes(item.category));
+  const outdoor = items.find((item) => item.dayNumber === worstDay && item.venueType === "outdoor" && !item.placeLocked && !strongLock(plan, item) && item.liveState !== "done");
+  const indoor = items.find((item) => item.dayNumber === bestDay && item.venueType === "indoor" && !item.placeLocked && !strongLock(plan, item) && !["lodging", "meal"].includes(item.category) && item.liveState !== "done");
   if (!outdoor || !indoor) return items;
   return items.map((item) => item.id === outdoor.id
     ? { ...item, dayNumber: bestDay, time: indoor.time }
@@ -198,13 +198,24 @@ export function scheduleDajeongPlan(plan: DajeongPlan, options: ScheduleOptions 
   const windows = dayNumbers.map((dayNumber) => dayWindow(seeded, dayNumber));
   for (const window of windows) {
     const originals = items.filter((item) => (item.dayNumber ?? 1) === window.dayNumber);
-    const withTravel = originals.map((item, index) => ({ ...item, travelFromPrevious: travelProfile(seeded, originals[index - 1], item) }));
-    const fitted = fitDurations(withTravel, Math.max(60, clockToMinutes(window.endTime) - clockToMinutes(window.startTime)), density, conditionLow);
-    let cursor = clockToMinutes(window.startTime);
-    fitted.forEach((item, index) => {
-      const travel = index === 0 ? 0 : item.travelFromPrevious?.minutes ?? 0;
-      const previous = fitted[index - 1];
-      const earliest = cursor + (index === 0 ? 0 : (previous?.bufferAfterMinutes ?? 0) + travel);
+    // Items already lived through (liveState "done") are frozen history: they keep their
+    // real time/duration untouched, and only the remaining items are re-flowed forward from
+    // wherever the day actually stands right now. Without this split, a day-of delay report
+    // would retroactively reshuffle things that already happened.
+    const doneItems = originals.filter((item) => item.liveState === "done");
+    const activeOriginals = originals.filter((item) => item.liveState !== "done");
+    const lastDone = doneItems.at(-1);
+    const withTravel = activeOriginals.map((item, index) => ({ ...item, travelFromPrevious: travelProfile(seeded, index === 0 ? lastDone : activeOriginals[index - 1], item) }));
+    const windowStartMinutes = lastDone
+      ? Math.max(clockToMinutes(window.startTime), clockToMinutes(lastDone.endTime ?? lastDone.time))
+      : clockToMinutes(window.startTime);
+    const fitted = fitDurations(withTravel, Math.max(60, clockToMinutes(window.endTime) - windowStartMinutes), density, conditionLow);
+    scheduled.push(...doneItems);
+    let cursor = windowStartMinutes;
+    let previousItem: PlanItem | undefined = lastDone;
+    fitted.forEach((item) => {
+      const travel = previousItem ? item.travelFromPrevious?.minutes ?? 0 : 0;
+      const earliest = cursor + (previousItem ? (previousItem.bufferAfterMinutes ?? 0) + travel : 0);
       let start = earliest;
       if (strongLock(seeded, item)) {
         const locked = clockToMinutes(item.time);
@@ -212,10 +223,12 @@ export function scheduleDajeongPlan(plan: DajeongPlan, options: ScheduleOptions 
         start = locked;
       }
       if (!strongLock(seeded, item) && ["meal", "view", "lodging"].includes(item.category) && clockToMinutes(item.time) > start) start = clockToMinutes(item.time);
-      if (item.category === "meal" && start < 17 * 60 && index > 0 && clockToMinutes(item.time) >= 17 * 60) start = Math.max(start, clockToMinutes(seeded.situation.preferredTime));
+      if (item.category === "meal" && start < 17 * 60 && previousItem && clockToMinutes(item.time) >= 17 * 60) start = Math.max(start, clockToMinutes(seeded.situation.preferredTime));
       const end = start + item.durationMinutes;
-      scheduled.push({ ...item, time: minutesToClock(start), endTime: minutesToClock(end) });
+      const scheduledItem = { ...item, time: minutesToClock(start), endTime: minutesToClock(end) };
+      scheduled.push(scheduledItem);
       cursor = end;
+      previousItem = scheduledItem;
     });
     if (cursor > clockToMinutes(window.endTime)) warnings.push(`${window.dayNumber}일차가 가용시간을 ${cursor - clockToMinutes(window.endTime)}분 넘겨 조정이 필요해요.`);
     const lateMeal = scheduled.find((item) => item.dayNumber === window.dayNumber && item.category === "meal" && clockToMinutes(item.time) > 20 * 60);

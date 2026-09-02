@@ -10,6 +10,11 @@ function displayDate(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
 }
 
+function todayKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export function PlansWorkspace() {
   const [plans, setPlans] = useState<DajeongPlan[] | null>(null);
   useEffect(() => {
@@ -36,13 +41,15 @@ export function PlansWorkspace() {
           {plans.map((plan) => {
             const done = plan.items.filter((item) => item.status === "done").length;
             const href = plan.status === "draft" ? `/dajeong/plan/${plan.id}` : `/dajeong/plan/${plan.id}/execute`;
+            const isToday = plan.situation.targetDate === todayKey();
             return (
               <article key={plan.id} className="dj-saved-plan dj-card">
                 <Link href={href} className="dj-saved-plan-main">
                   <span className={`dj-status-mark dj-status-${plan.status}`}>{plan.status === "completed" ? <CheckIcon size={18} /> : <HeartIcon size={18} />}</span>
-                  <div><div className="dj-saved-meta"><span><ClockIcon size={13} />{displayDate(plan.situation.targetDate)}</span><span><MapPinIcon size={13} />{plan.situation.region}</span></div><h2>{plan.title}</h2><p>{plan.summary}</p></div>
+                  <div><div className="dj-saved-meta"><span><ClockIcon size={13} />{displayDate(plan.situation.targetDate)}</span><span><MapPinIcon size={13} />{plan.situation.region}</span>{isToday ? <span className="dj-today-badge">오늘</span> : null}{plan.planKind === "shared" ? <span className="dj-today-badge dj-today-badge-shared">공유 중</span> : null}</div><h2>{plan.title}</h2><p>{plan.summary}</p></div>
                   <div className="dj-saved-progress"><strong>{plan.status === "draft" ? "검토 중" : plan.status === "completed" ? "준비 완료" : `${done}/${plan.items.length} 완료`}</strong><span>예상 {new Intl.NumberFormat("ko-KR").format(plan.total)}원</span><ArrowIcon size={18} /></div>
                 </Link>
+                {isToday ? <Link href={`/dajeong/plan/${plan.id}/today`} className="dj-plan-today-link" aria-label={`${plan.title} 오늘 일정 보기`}><ClockIcon size={15} /></Link> : null}
                 <button type="button" className="dj-plan-delete" aria-label={`${plan.title} 삭제`} onClick={() => remove(plan.id)}><TrashIcon size={16} /></button>
               </article>
             );

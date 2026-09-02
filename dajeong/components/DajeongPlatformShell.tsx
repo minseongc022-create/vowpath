@@ -23,6 +23,7 @@ export function DajeongPlatformShell({ children }: { children: React.ReactNode }
               <nav className="dj-header-nav" aria-label="주 메뉴">
                 <Link href="/dajeong" className="dj-nav-link">새 계획</Link>
                 <Link href="/dajeong/plans" className="dj-nav-link">내 계획</Link>
+                <Link href="/dajeong/companions" className="dj-nav-link">동반자</Link>
                 <span className="dj-ai-badge"><SparkleIcon size={14} /> 실행형 AI 컨시어지</span>
               </nav>
             </div>
