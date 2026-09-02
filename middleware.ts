@@ -16,6 +16,12 @@ import {
   isSellerPulsePrimaryHost,
   sellerPulseInternalPath,
 } from "@/lib/seller-pulse-host";
+import {
+  CHAEBI_UID_COOKIE,
+  isValidOwnerId,
+  newOwnerId,
+  ownerCookieOptions,
+} from "@/chaebi/lib/owner";
 import { isJarvisHost } from "@/jarvis/host";
 import { isPublicJarvisPath } from "@/jarvis/core/gate";
 import { isOwnerSession } from "@/jarvis/core/access";
@@ -243,6 +249,36 @@ export async function middleware(request: NextRequest) {
     const localeHandled = handleTopikLocale(request);
     if (localeHandled) return localeHandled;
     return topikShellResponse(request);
+  }
+
+  // ★ 채비 — 상황 한 줄로 기념일·데이트를 대신 준비해 주는 독립 제품.
+  //
+  // 다른 제품(효이로드·자비스·마노·토픽·런)과 코드·저장소·세션을 하나도
+  // 공유하지 않는다. 여기서 하는 일은 두 가지다:
+  //   1) 셸 태그 — 루트 레이아웃이 채비 전용 html/body를 그리게 한다.
+  //   2) 익명 소유자 쿠키 — 이 앱엔 로그인이 없다. 첫 요청부터 id가 있어야
+  //      서버 컴포넌트가 곧바로 "내 계획"을 읽을 수 있으므로, 응답 쿠키만
+  //      심는 게 아니라 **넘겨주는 요청 헤더에도** 같이 심는다. 그러지 않으면
+  //      맨 처음 방문에서만 계획 목록이 비어 보이는 미묘한 버그가 난다.
+  if (pathname.startsWith("/chaebi")) {
+    const existing = request.cookies.get(CHAEBI_UID_COOKIE)?.value;
+    const known = isValidOwnerId(existing);
+    const ownerId = known ? existing : newOwnerId();
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "chaebi");
+    requestHeaders.set("x-pathname", pathname);
+    if (!known) {
+      const cookieHeader = request.headers.get("cookie");
+      requestHeaders.set(
+        "cookie",
+        [cookieHeader, `${CHAEBI_UID_COOKIE}=${ownerId}`].filter(Boolean).join("; "),
+      );
+    }
+
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    if (!known) res.cookies.set({ ...ownerCookieOptions(), value: ownerId });
+    return res;
   }
 
   // Mano — home services marketplace (Guadalajara), isolated product shell.

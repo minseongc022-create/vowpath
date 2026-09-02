@@ -1,0 +1,430 @@
+/*
+ * 채비 디자인 시스템.
+ *
+ * 컨셉은 "원클릭"이다. 그래서 화면마다 **주된 행동은 하나뿐**이고, 나머지는
+ * 전부 그 하나를 뒷받침하는 정보로 내려앉는다. 색은 튀지 않게 — 깊은 자주
+ * 하나를 축으로 잡고, 확정·완료에만 짙은 녹색을 쓴다. 사람이 돈과 약속을
+ * 맡기는 화면이라 채도가 높으면 신뢰가 깎인다.
+ *
+ * 이 파일은 .chaebi-theme 아래에서만 산다. 다른 제품 화면에 절대 새지 않는다.
+ */
+
+.chaebi-theme {
+  color-scheme: light;
+
+  /* 바탕 — 순백 대신 아주 옅은 온기. 오래 봐도 눈이 덜 피로하다. */
+  --cb-bg: #f7f4f5;
+  --cb-surface: #ffffff;
+  --cb-surface-alt: #f2eced;
+  --cb-surface-sunken: #efe9eb;
+
+  /* 글자 */
+  --cb-ink: #211c22;
+  --cb-ink-soft: #4a4250;
+  --cb-muted: #7b7280;
+  --cb-subtle: #a79fab;
+
+  /* 선 */
+  --cb-border: #e9e2e5;
+  --cb-border-strong: #d9ced3;
+
+  /* 축이 되는 색 — 깊은 자주. 신뢰 + 기념일의 온도. */
+  --cb-primary: #5e3550;
+  --cb-primary-hover: #4a2840;
+  --cb-primary-soft: #f4ecf0;
+  --cb-primary-line: #e3d3db;
+
+  /* 확정·완료 */
+  --cb-good: #2f6f5e;
+  --cb-good-soft: #e9f2ef;
+
+  /* 주의 (대안 교체·마감 임박) */
+  --cb-warn: #a2612b;
+  --cb-warn-soft: #fbf1e7;
+
+  --cb-danger: #a63a3a;
+  --cb-danger-soft: #fbeeee;
+
+  --cb-shadow-sm: 0 1px 2px rgba(33, 28, 34, 0.04), 0 1px 3px rgba(33, 28, 34, 0.03);
+  --cb-shadow: 0 2px 8px rgba(33, 28, 34, 0.05), 0 8px 24px -12px rgba(33, 28, 34, 0.12);
+  --cb-shadow-lg: 0 8px 28px -8px rgba(33, 28, 34, 0.16), 0 24px 48px -24px rgba(33, 28, 34, 0.2);
+
+  --cb-radius: 20px;
+  --cb-radius-sm: 14px;
+
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", system-ui, "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+}
+
+/* 앱처럼 보이게 — 데스크톱에서도 한 손 폭을 유지한다.
+   기념일 준비는 이동 중에 하는 일이라 모바일이 기준이다. */
+.cb-app {
+  min-height: 100dvh;
+  background: var(--cb-bg);
+  color: var(--cb-ink);
+}
+
+.cb-frame {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 34rem;
+  min-height: 100dvh;
+  background: var(--cb-bg);
+  position: relative;
+}
+
+@media (min-width: 560px) {
+  .cb-app {
+    background:
+      radial-gradient(120% 80% at 50% 0%, #efe6ea 0%, var(--cb-bg) 55%);
+  }
+  .cb-frame {
+    box-shadow: 0 0 0 1px var(--cb-border), var(--cb-shadow-lg);
+  }
+}
+
+/* ── 카드 ─────────────────────────────────────────── */
+
+.cb-card {
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius);
+  box-shadow: var(--cb-shadow-sm);
+}
+
+.cb-card-flat {
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius);
+}
+
+/* ── 버튼 ─────────────────────────────────────────── */
+
+.cb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--cb-radius-sm);
+  font-weight: 700;
+  transition:
+    transform 0.12s cubic-bezier(0.2, 0, 0.2, 1),
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.cb-btn:active:not(:disabled) {
+  transform: scale(0.975);
+}
+
+.cb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cb-btn:focus-visible {
+  outline: 2px solid var(--cb-primary);
+  outline-offset: 2px;
+}
+
+.cb-btn-primary {
+  background: var(--cb-primary);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(94, 53, 80, 0.6);
+}
+
+.cb-btn-primary:hover:not(:disabled) {
+  background: var(--cb-primary-hover);
+}
+
+.cb-btn-ghost {
+  background: var(--cb-surface);
+  color: var(--cb-ink);
+  border: 1px solid var(--cb-border-strong);
+}
+
+.cb-btn-ghost:hover:not(:disabled) {
+  background: var(--cb-surface-alt);
+}
+
+.cb-btn-quiet {
+  background: transparent;
+  color: var(--cb-muted);
+}
+
+.cb-btn-quiet:hover:not(:disabled) {
+  color: var(--cb-ink);
+  background: var(--cb-surface-alt);
+}
+
+/* ── 칩 ───────────────────────────────────────────── */
+
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  border: 1px solid var(--cb-border-strong);
+  background: var(--cb-surface);
+  color: var(--cb-ink-soft);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cb-chip:hover {
+  background: var(--cb-surface-alt);
+}
+
+.cb-chip[data-active="true"] {
+  background: var(--cb-primary);
+  border-color: var(--cb-primary);
+  color: #fff;
+}
+
+/* ── 상태 뱃지 ────────────────────────────────────── */
+
+.cb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.cb-badge[data-tone="idle"] {
+  background: var(--cb-surface-sunken);
+  color: var(--cb-muted);
+}
+
+.cb-badge[data-tone="progress"] {
+  background: var(--cb-primary-soft);
+  color: var(--cb-primary);
+}
+
+.cb-badge[data-tone="good"] {
+  background: var(--cb-good-soft);
+  color: var(--cb-good);
+}
+
+.cb-badge[data-tone="warn"] {
+  background: var(--cb-warn-soft);
+  color: var(--cb-warn);
+}
+
+.cb-badge[data-tone="muted"] {
+  background: var(--cb-surface-sunken);
+  color: var(--cb-subtle);
+}
+
+/* 진행 중일 때만 점이 뛴다 — 정지 상태에서는 아무것도 안 움직인다 */
+.cb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.cb-badge[data-tone="progress"] .cb-dot {
+  animation: cb-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cb-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* ── 하단 고정 액션 바 ────────────────────────────── */
+
+.cb-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background: linear-gradient(to top, var(--cb-bg) 62%, rgba(247, 244, 245, 0));
+  padding: 1rem 1.25rem calc(1.1rem + env(safe-area-inset-bottom));
+}
+
+/* ── 바텀시트 ─────────────────────────────────────── */
+
+.cb-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(33, 28, 34, 0.42);
+  backdrop-filter: blur(2px);
+  animation: cb-fade-in 0.2s ease forwards;
+}
+
+.cb-sheet {
+  position: fixed;
+  z-index: 61;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 34rem;
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cb-bg);
+  border-radius: 24px 24px 0 0;
+  box-shadow: var(--cb-shadow-lg);
+  animation: cb-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.cb-sheet-handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--cb-border-strong);
+  margin: 0.75rem auto 0.25rem;
+  flex: none;
+}
+
+@keyframes cb-slide-up {
+  from { transform: translate(-50%, 8%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes cb-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── 등장 애니메이션 ──────────────────────────────── */
+
+.cb-rise {
+  animation: cb-rise 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cb-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 생성 중 화면 ─────────────────────────────────── */
+
+.cb-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--cb-surface-alt) 25%,
+    #f8f4f6 50%,
+    var(--cb-surface-alt) 75%
+  );
+  background-size: 200% 100%;
+  animation: cb-shimmer 1.4s linear infinite;
+  border-radius: 10px;
+}
+
+@keyframes cb-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ── 타임라인 ─────────────────────────────────────── */
+
+.cb-timeline-line {
+  position: absolute;
+  left: 0.5rem;
+  top: 1.6rem;
+  bottom: -0.4rem;
+  width: 1px;
+  background: var(--cb-border-strong);
+}
+
+.cb-timeline-node {
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  border: 2px solid var(--cb-border-strong);
+  background: var(--cb-surface);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.cb-timeline-node[data-done="true"] {
+  border-color: var(--cb-good);
+  background: var(--cb-good);
+}
+
+/* ── 진행 막대 ────────────────────────────────────── */
+
+.cb-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cb-surface-sunken);
+  overflow: hidden;
+}
+
+.cb-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cb-primary), #7a4a68);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 입력 ─────────────────────────────────────────── */
+
+.cb-input {
+  width: 100%;
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-border-strong);
+  border-radius: var(--cb-radius-sm);
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  color: var(--cb-ink);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.cb-input::placeholder {
+  color: var(--cb-subtle);
+}
+
+.cb-input:focus {
+  outline: none;
+  border-color: var(--cb-primary);
+  box-shadow: 0 0 0 3px rgba(94, 53, 80, 0.12);
+}
+
+.cb-textarea {
+  resize: none;
+  line-height: 1.55;
+}
+
+/* 화면 낭독기 전용 */
+.cb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chaebi-theme *,
+  .chaebi-theme *::before,
+  .chaebi-theme *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

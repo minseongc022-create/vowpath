@@ -5,6 +5,8 @@ import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell
 import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { JarvisPlatformShell } from "@/jarvis/ui/JarvisPlatformShell";
+import { ChaebiPlatformShell } from "@/chaebi/components/layout/ChaebiPlatformShell";
+import { CHAEBI_BRAND } from "@/chaebi/lib/brand";
 import { EFFIROAD_BRAND } from "@/jarvis/brand";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
@@ -49,6 +51,19 @@ export async function generateMetadata(): Promise<Metadata> {
         title: MANO_BRAND.name,
         description: MANO_BRAND.tagline,
         locale: "es_MX",
+      },
+    };
+  }
+  if (shell === "chaebi") {
+    return {
+      title: { default: CHAEBI_BRAND.fullName, template: `%s · ${CHAEBI_BRAND.name}` },
+      description: `${CHAEBI_BRAND.tagline} ${CHAEBI_BRAND.subline}`,
+      applicationName: CHAEBI_BRAND.name,
+      robots: { index: true, follow: true },
+      openGraph: {
+        title: CHAEBI_BRAND.fullName,
+        description: CHAEBI_BRAND.subline,
+        locale: CHAEBI_BRAND.locale,
       },
     };
   }
@@ -111,6 +126,9 @@ export default async function RootLayout({
   }
   if (shell === "jarvis") {
     return <JarvisPlatformShell>{children}</JarvisPlatformShell>;
+  }
+  if (shell === "chaebi") {
+    return <ChaebiPlatformShell>{children}</ChaebiPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }
