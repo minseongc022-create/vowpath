@@ -4,6 +4,7 @@ import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
 import { reconcileReservationOrder } from "./reservation-engine";
 import { clockToMinutes, scheduleDajeongPlan } from "./schedule-engine";
+import { createPrepOfferMessage, shouldOfferPrepCheck } from "./prep-engine";
 import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
@@ -61,6 +62,11 @@ export function appendPlanConversation(plan: DajeongPlan, userText: string, assi
       planConversationMessage("assistant", assistantText),
     ].slice(-30),
   };
+}
+
+/** A proactive assistant-only follow-up (no synthetic user turn) — e.g. the one-time prep check. */
+export function appendAssistantNote(plan: DajeongPlan, assistantText: string): DajeongPlan {
+  return { ...plan, conversation: [...(plan.conversation ?? []), planConversationMessage("assistant", assistantText)].slice(-30) };
 }
 
 function copyItems(items: PlanItem[]): PlanItem[] {
@@ -448,7 +454,10 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     experienceFlow: buildExperienceFlow(items),
   };
   const scheduled = scheduleDajeongPlan(createdPlan);
-  return initializePlanVersion(appendPlanConversation(scheduled, input.request.trim(), "말씀하신 조건을 기억하고 체류시간·이동·완충시간까지 함께 살펴 계획을 준비했어요."));
+  const withConversation = appendPlanConversation(scheduled, input.request.trim(), "말씀하신 조건을 기억하고 체류시간·이동·완충시간까지 함께 살펴 계획을 준비했어요.");
+  const askPrep = shouldOfferPrepCheck(situation);
+  const withPrepOffer = askPrep ? appendAssistantNote({ ...withConversation, prepAsked: true }, createPrepOfferMessage()) : withConversation;
+  return initializePlanVersion(withPrepOffer);
 }
 
 export function replacePlanItem(plan: DajeongPlan, category: PlanCategory, optionId: string, itemId?: string): DajeongPlan {

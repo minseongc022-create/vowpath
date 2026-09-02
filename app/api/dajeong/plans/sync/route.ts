@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     changeLog: [...(current.changeLog ?? []), changeEntry].slice(-40),
   }), expectedVersion);
   if (!published.ok) {
-    return NextResponse.json({ error: published.error, conflict: true, plan: published.conflict ? redactPlanForViewer(published.conflict.plan, actorId) : undefined, version: published.conflict?.version }, { status: 409 });
+    const status = published.conflict ? 409 : 404;
+    return NextResponse.json({ error: published.error, conflict: Boolean(published.conflict), plan: published.conflict ? redactPlanForViewer(published.conflict.plan, actorId) : undefined, version: published.conflict?.version }, { status });
   }
   return NextResponse.json({ plan: redactPlanForViewer(published.record.plan, actorId), version: published.record.version });
 }

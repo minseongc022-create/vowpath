@@ -80,8 +80,9 @@ function defaultBuffer(density: ScheduleDensity, conditionLow: boolean): number 
 
 function defaultHomeTravel(plan: DajeongPlan): number {
   if (plan.situation.homeTravelMinutes != null) return plan.situation.homeTravelMinutes;
-  if (plan.situation.transport === "car") return 30;
-  if (plan.situation.transport === "walking") return 20;
+  const mode = plan.situation.homeTransportOverride ?? plan.situation.transport;
+  if (mode === "car") return 30;
+  if (mode === "walking") return 20;
   return 45;
 }
 
@@ -123,20 +124,24 @@ function coordinates(item?: PlanItem) {
 
 function travelProfile(plan: DajeongPlan, previous: PlanItem | undefined, item: PlanItem): NonNullable<PlanItem["travelFromPrevious"]> | undefined {
   if (!previous || (previous.dayNumber ?? 1) !== (item.dayNumber ?? 1)) return undefined;
+  // A segment override ("여기서 다음 데까지만 택시 타자") only ever changes how *this* leg is
+  // computed — the plan's default transport for every other segment is untouched.
+  const transport = item.segmentTransportOverride ?? plan.situation.transport;
   const distance = haversineKm(coordinates(previous), coordinates(item));
-  const minutes = travelMinutes(distance, plan.situation.transport) ?? item.travelFromPrevious?.minutes ?? (plan.situation.transport === "car" ? 18 : plan.situation.transport === "walking" ? 14 : 20);
-  const walkingMinutes = plan.situation.transport === "walking" ? minutes : plan.situation.transport === "public_transit" ? Math.min(22, Math.max(6, Math.round(minutes * 0.4))) : Math.min(10, Math.round(minutes * 0.2));
-  const transfers = plan.situation.transport === "public_transit" ? (minutes >= 35 ? 2 : minutes >= 16 ? 1 : 0) : 0;
+  const minutes = travelMinutes(distance, transport) ?? item.travelFromPrevious?.minutes ?? (transport === "car" ? 18 : transport === "walking" ? 14 : 20);
+  const walkingMinutes = transport === "walking" ? minutes : transport === "public_transit" ? Math.min(22, Math.max(6, Math.round(minutes * 0.4))) : Math.min(10, Math.round(minutes * 0.2));
+  const transfers = transport === "public_transit" ? (minutes >= 35 ? 2 : minutes >= 16 ? 1 : 0) : 0;
   const wet = isWetWeather(plan, item.dayNumber ?? 1);
   const weatherExposure = plan.schedule?.weather.status === "unavailable" || plan.schedule?.weather.status === "outside_forecast"
     ? "unknown"
     : wet && walkingMinutes >= 12 ? "high" : wet && walkingMinutes >= 6 ? "medium" : "low";
-  const fatigueScore = walkingMinutes / 10 + transfers * 0.8 + (plan.situation.transport === "car" ? 0.5 : 0) + (weatherExposure === "high" ? 1.4 : weatherExposure === "medium" ? 0.6 : 0);
+  const fatigueScore = walkingMinutes / 10 + transfers * 0.8 + (transport === "car" ? 0.5 : 0) + (weatherExposure === "high" ? 1.4 : weatherExposure === "medium" ? 0.6 : 0);
   const fatigue = fatigueScore >= 2.7 ? "high" : fatigueScore >= 1.4 ? "medium" : "low";
-  const mode = plan.situation.transport === "car" ? "차량" : plan.situation.transport === "walking" ? "도보" : "대중교통";
+  const mode = transport === "car" ? "차량" : transport === "walking" ? "도보" : "대중교통";
   const evidence = item.reality?.travelEstimateBasis === "route" ? "실제 경로 기준" : distance != null ? "직선거리 기반 예상" : "교통수단별 기본 예상";
+  const segmentNote = item.segmentTransportOverride ? " · 이 구간만 별도 지정" : "";
   const weatherNote = weatherExposure === "high" ? " · 날씨 노출이 커 이동이 피곤할 수 있음" : transfers >= 2 ? " · 환승 2회 예상" : "";
-  return { minutes, mode, note: `${evidence}${weatherNote}`, walkingMinutes, transfers, fatigue, weatherExposure };
+  return { minutes, mode, note: `${evidence}${segmentNote}${weatherNote}`, walkingMinutes, transfers, fatigue, weatherExposure };
 }
 
 function strongLock(plan: DajeongPlan, item: PlanItem): boolean {

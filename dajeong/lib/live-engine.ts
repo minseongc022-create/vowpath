@@ -206,6 +206,53 @@ export function applyLeaveEarly(plan: DajeongPlan, input: LeaveEarlyInput): Live
   return { plan: next, message, changedItemIds: next.items.map((item) => item.id) };
 }
 
+const TRANSPORT_WORD: Array<[RegExp, "car" | "public_transit" | "walking"]> = [
+  [/택시|차\s*타/, "car"],
+  [/버스|지하철|대중교통|전철/, "public_transit"],
+  [/걸어서|도보로|걸어\s*가/, "walking"],
+];
+
+function detectTransportWord(instruction: string): "car" | "public_transit" | "walking" | undefined {
+  return TRANSPORT_WORD.find(([pattern]) => pattern.test(instruction))?.[1];
+}
+
+const TRANSPORT_LABEL: Record<"car" | "public_transit" | "walking", string> = { car: "차량/택시", public_transit: "대중교통", walking: "도보" };
+
+/** Only fires on explicitly scoped phrasing ("여기서 다음 데까지만", "남은 건 다", "돌아갈 때만") —
+ * an unscoped "택시 타자" is left to the whole-plan transport update it already was. */
+export const SEGMENT_TRANSPORT_PATTERN = /(까지만|구간만|이동만|여기서\s*다음|다음\s*(?:데|곳|장소)까지)|(남은\s*(?:건|거|일정)\s*다|이후는\s*다|나머지\s*(?:는|다))|(돌아갈\s*때만|집\s*갈\s*때만|귀가할\s*때만)/;
+
+export type SegmentTransportInput = { nowClock?: string; reason: string };
+
+export function applySegmentTransport(plan: DajeongPlan, input: SegmentTransportInput): LiveActionResult {
+  const mode = detectTransportWord(input.reason);
+  if (!mode) return { plan, message: "어떤 이동수단으로 바꿀지 정확히 못 들었어요. 택시·대중교통·도보처럼 말해 주세요.", changedItemIds: [] };
+  const now = input.nowClock ?? currentClock();
+  const dayNumber = resolveDayNumber(plan);
+  const dayItems = itemsForDay(plan, dayNumber);
+  const { current, next } = resolveCurrentItem(plan, now, dayNumber);
+
+  if (/돌아갈\s*때만|집\s*갈\s*때만|귀가할\s*때만/.test(input.reason)) {
+    const nextPlan = { ...plan, situation: { ...plan.situation, homeTransportOverride: mode } };
+    return { plan: nextPlan, message: `귀가할 때는 ${TRANSPORT_LABEL[mode]}(으)로 반영했어요. 나머지 이동수단은 그대로예요.`, changedItemIds: [] };
+  }
+
+  const scopeAll = /남은\s*(?:건|거|일정)\s*다|이후는\s*다|나머지\s*(?:는|다)/.test(input.reason);
+  const anchor = current ?? next;
+  if (!anchor) return { plan, message: "지금부터 어느 구간을 바꿀지 정확히 못 짚었어요.", changedItemIds: [] };
+  const anchorIndex = dayItems.findIndex((item) => item.id === anchor.id);
+  const targets = scopeAll ? dayItems.slice(Math.max(0, anchorIndex + (current ? 1 : 0))) : next ? [next] : [];
+  if (!targets.length) return { plan, message: "바꿀 다음 이동 구간을 찾지 못했어요.", changedItemIds: [] };
+
+  const targetIds = new Set(targets.map((item) => item.id));
+  const withOverride = { ...plan, items: plan.items.map((item) => targetIds.has(item.id) ? { ...item, segmentTransportOverride: mode } : item) };
+  const next2 = scheduleDajeongPlan(withOverride);
+  const message = scopeAll
+    ? `지금부터 남은 이동은 ${TRANSPORT_LABEL[mode]}(으)로 바꿨어요. 이미 지난 구간과 앞서 정한 전체 이동수단은 그대로예요.`
+    : `${targets[0].title} 가는 길만 ${TRANSPORT_LABEL[mode]}(으)로 바꿨어요. 나머지 구간은 그대로예요.`;
+  return { plan: next2, message, changedItemIds: targets.map((item) => item.id) };
+}
+
 export type SkipNextInput = { itemId?: string; nowClock?: string; reason: string };
 
 /** "다음 거 그냥 빼자" — explicit removal request, still refuses to drop anything the user locked. */

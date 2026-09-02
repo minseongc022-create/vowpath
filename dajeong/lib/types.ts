@@ -157,6 +157,46 @@ export type ItemVisibility = "shared" | "secret";
 export type PlanKind = "solo" | "shared";
 export type LiveItemState = "upcoming" | "current" | "done" | "skipped";
 
+/**
+ * How much a secret item reveals to a companion who is otherwise allowed to view the plan:
+ * hidden — not present at all (the default, safest); time_only — a blank "일정 있음" slot so
+ * the timeline still reads as internally consistent; label_only — a generic "서프라이즈 일정"
+ * label with no place/price. Never affects what the scheduling engine itself uses.
+ */
+export type SecretDisclosure = "hidden" | "time_only" | "label_only";
+
+export type PrepCategory = "flower" | "cake" | "gift" | "event_booking" | "custom";
+export type PrepHandling = "pickup" | "delivery" | "self_prepared" | "unknown";
+export type PrepStatus = "suggested" | "confirmed" | "ordered" | "ready" | "picked_up" | "delivered" | "cancelled";
+/** shared: 동반자와 함께 봄 · personal: 소유자만(민감하진 않음, 예: 잊지 않게 하는 개인 준비물) · secret: 서프라이즈 보호 대상 */
+export type PrepVisibility = "shared" | "personal" | "secret";
+
+export type PrepItem = {
+  id: string;
+  planId: string;
+  category: PrepCategory;
+  title: string;
+  notes: string;
+  relatedMainItemId?: string;
+  deliverToItemId?: string;
+  date: string;
+  time?: string;
+  leadTimeDays: number;
+  orderDeadline?: string;
+  handling: PrepHandling;
+  handlingReason?: string;
+  storageNote?: string;
+  price?: number;
+  priceConfidence: "estimate" | "provider_quote" | "unknown";
+  status: PrepStatus;
+  visibility: PrepVisibility;
+  secretLabel?: string;
+  secretDisclosure?: SecretDisclosure;
+  reservationTaskId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type HandoffKind = "search" | "gift" | "call" | "self";
 
 export type PlanItemStatus = "proposed" | "confirmed" | "done";
@@ -382,6 +422,7 @@ export type ParsedSituation = {
   homeTravelMinutes?: number;
   temporaryCondition: TemporaryCondition;
   budgetUsage: "reserve" | "full";
+  homeTransportOverride?: TransportMode;
 };
 
 export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave" | "availabilityTime" | "density";
@@ -463,8 +504,10 @@ export type PlanItem = PlanOption & {
   lockReason?: string;
   visibility?: ItemVisibility;
   secretLabel?: string;
+  secretDisclosure?: SecretDisclosure;
   liveState?: LiveItemState;
   actualStartTime?: string;
+  segmentTransportOverride?: TransportMode;
 };
 
 export type PlanRevision = {
@@ -555,6 +598,10 @@ export type DajeongPlan = {
   sharedVersion?: number;
   lastEditedBy?: string;
   changeLog?: PlanChangeLogEntry[];
+  prep?: PrepItem[];
+  prepAsked?: boolean;
+  prepDeclined?: boolean;
+  notificationLevel?: "normal" | "content_hidden" | "off";
 };
 
 export type ConciergeMessage = {

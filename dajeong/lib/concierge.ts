@@ -11,9 +11,11 @@ import { handleExecutionInstruction } from "./execution-conversation";
 import { reconcileReservationOrder } from "./reservation-engine";
 import { scheduleDajeongPlan, setItemDuration, weatherContextFromUser } from "./schedule-engine";
 import { enrichPlanWithWeather } from "./weather";
-import { applyDelayReport, applyLeaveEarly, applySkipNext, applyStayLonger, DELAY_PATTERN, LEAVE_EARLY_PATTERN, SKIP_NEXT_PATTERN, STAY_LONGER_PATTERN } from "./live-engine";
+import { applyDelayReport, applyLeaveEarly, applySegmentTransport, applySkipNext, applyStayLonger, DELAY_PATTERN, LEAVE_EARLY_PATTERN, SEGMENT_TRANSPORT_PATTERN, SKIP_NEXT_PATTERN, STAY_LONGER_PATTERN } from "./live-engine";
 import { applySecrecyInstruction } from "./secrecy-actions";
+import { applyPrepInstruction } from "./prep-conversation";
 import { classifyPaceFeedback } from "./pace";
+import { planAccessRole, redactPlanForViewer } from "./secrecy";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
 
 type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "reschedule" | "explain" | "execute" | "payment_review";
@@ -600,8 +602,9 @@ export async function reviseDajeongPlanWithDiscovery(
   instruction: string,
   requestedCategory?: PlanCategory,
   requestedItemId?: string,
+  viewerId?: string,
 ): Promise<PlanRevisionResult> {
-  const result = await reviseDajeongPlanWithDiscoveryCore(plan, instruction, requestedCategory, requestedItemId);
+  const result = await reviseDajeongPlanWithDiscoveryCore(plan, instruction, requestedCategory, requestedItemId, viewerId);
   const paceUpdate = classifyPaceFeedback(instruction);
   return paceUpdate ? { ...result, paceUpdate } : result;
 }
@@ -611,12 +614,20 @@ async function reviseDajeongPlanWithDiscoveryCore(
   instruction: string,
   requestedCategory?: PlanCategory,
   requestedItemId?: string,
+  viewerId?: string,
 ): Promise<PlanRevisionResult> {
   const normalizedInstruction = instruction.trim();
   const executionResult = handleExecutionInstruction(plan, normalizedInstruction, requestedItemId);
   if (executionResult.handled) {
     const next = appendPlanConversation(executionResult.plan, normalizedInstruction, executionResult.message);
     return { plan: next, message: executionResult.message, changedCategories: [] };
+  }
+
+  // Prep work (꽃/케이크/선물/이벤트 준비) — a request to prepare something is distinct enough
+  // phrasing from "add this to today's timeline" that it's checked before the generic add flow.
+  const prepResult = applyPrepInstruction(plan, normalizedInstruction, requestedItemId);
+  if (prepResult.handled) {
+    return { plan: prepResult.plan, message: prepResult.message, changedCategories: [] };
   }
 
   // Day-of instructions ("우리 아직 밥 먹고 있어", "여기 더 있고 싶어", "집에 좀 일찍 갈래", "다음 거 빼자")
@@ -643,6 +654,11 @@ async function reviseDajeongPlanWithDiscoveryCore(
   if (SKIP_NEXT_PATTERN.test(normalizedInstruction)) {
     const live = applySkipNext(plan, { itemId: requestedItemId, reason: normalizedInstruction });
     const next = live.changedItemIds.length ? addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(plan, live.changedItemIds)) : appendPlanConversation(live.plan, normalizedInstruction, live.message);
+    return { plan: next, message: live.message, changedCategories: [] };
+  }
+  if (SEGMENT_TRANSPORT_PATTERN.test(normalizedInstruction)) {
+    const live = applySegmentTransport(plan, { reason: normalizedInstruction });
+    const next = live.changedItemIds.length ? addRevision(live.plan, normalizedInstruction, live.message, categoriesOf(live.plan, live.changedItemIds)) : appendPlanConversation(live.plan, normalizedInstruction, live.message);
     return { plan: next, message: live.message, changedCategories: [] };
   }
 
@@ -746,7 +762,11 @@ async function reviseDajeongPlanWithDiscoveryCore(
   const hasPersonalizationUpdate = intent.preferences.length > 0 || intent.constraints.length > 0;
 
   if (intent.action === "explain") {
-    const message = explainSelection(contextualPlan, target, instruction);
+    // A companion's "왜 그 시간엔 아무것도 없어?" gets answered from what they can actually see —
+    // never from the owner's full (secret-including) plan.
+    const isCompanionAsking = Boolean(viewerId) && planAccessRole(contextualPlan, viewerId) === "companion";
+    const explainBasis = isCompanionAsking ? redactPlanForViewer(contextualPlan, viewerId) ?? contextualPlan : contextualPlan;
+    const message = explainSelection(explainBasis, target, instruction);
     return { plan: appendPlanConversation(contextualPlan, instruction, message), message, changedCategories: [], profileUpdate };
   }
 

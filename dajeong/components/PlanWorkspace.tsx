@@ -9,7 +9,7 @@ import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import { prepareReservationOrder } from "../lib/reservation-engine";
 import { getOrCreateIdentity } from "../lib/identity";
-import { planRole, reviseAnyPlan, syncPlanIfShared } from "../lib/plan-sync";
+import { fetchSharedPlan, planRole, reviseAnyPlan, syncPlanIfShared } from "../lib/plan-sync";
 import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, LockIcon, MapPinIcon, ShieldIcon, SparkleIcon, UsersIcon, WalletIcon } from "./DajeongIcons";
 
@@ -63,6 +63,7 @@ function TimelineItem({
   onAsk,
   onApplyProposal,
   onToggleSecret,
+  onSetDisclosure,
 }: {
   item: PlanItem;
   isLast: boolean;
@@ -72,6 +73,7 @@ function TimelineItem({
   onAsk: (instruction: string) => Promise<PlanRevisionResult>;
   onApplyProposal: (proposal: PlanChangeProposal) => void;
   onToggleSecret: (item: PlanItem) => void;
+  onSetDisclosure: (item: PlanItem, disclosure: "hidden" | "time_only" | "label_only") => void;
 }) {
   const [open, setOpen] = useState(false);
   const [localInstruction, setLocalInstruction] = useState("");
@@ -151,7 +153,20 @@ function TimelineItem({
               {item.endTime ? <span><ClockIcon size={14} /> {item.endTime} 종료</span> : null}
               {item.bufferAfterMinutes ? <span>다음 일정 전 여유 {item.bufferAfterMinutes}분</span> : null}
               {item.placeLocked || item.timeLocked ? <span className="dj-fixed-chip"><ShieldIcon size={14} /> 사용자 고정</span> : null}
-              {item.visibility === "secret" ? <span className="dj-secret-chip"><LockIcon size={13} /> 동반자에게 비공개</span> : null}
+              {item.visibility === "secret" ? (
+                <span className="dj-secret-chip-row">
+                  <span className="dj-secret-chip"><LockIcon size={13} /> 동반자에게 비공개</span>
+                  <select
+                    aria-label={`${item.title} 공개 수준`}
+                    value={item.secretDisclosure ?? "hidden"}
+                    onChange={(event) => onSetDisclosure(item, event.target.value as "hidden" | "time_only" | "label_only")}
+                  >
+                    <option value="hidden">완전 숨김</option>
+                    <option value="time_only">시간만 표시</option>
+                    <option value="label_only">서프라이즈로 표시</option>
+                  </select>
+                </span>
+              ) : null}
               {item.category === "lodging" ? <span><ClockIcon size={14} /> 체크인 {item.time}</span> : null}
               <span><ShieldIcon size={14} /> {reservationLabel}</span>
               {item.reality?.distanceFromPreviousKm != null ? <span><MapPinIcon size={14} /> 앞 일정에서 약 {item.reality.distanceFromPreviousKm.toFixed(1)}km</span> : null}
@@ -201,6 +216,9 @@ function TimelineItem({
 }
 
 const revisionExamples = ["조금 더 싸게 해줘", "저녁 식당만 바꿔줘", "실내 위주로 바꿔줘", "마지막에 야경 넣어줘", "좀 더 특별하게 해줘"];
+
+const PREP_STATUS_LABEL: Record<string, string> = { suggested: "제안됨", confirmed: "준비 확정", ordered: "주문 완료", ready: "준비 완료", picked_up: "픽업 완료", delivered: "전달 완료", cancelled: "취소됨" };
+const PREP_HANDLING_LABEL: Record<string, string> = { pickup: "픽업", delivery: "배송/전달", self_prepared: "직접 준비/보관", unknown: "방식 확인 필요" };
 
 export function PlanWorkspace({ planId }: { planId: string }) {
   const router = useRouter();
@@ -258,6 +276,30 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     if (chat) chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   }, [messages.length, proposal]);
 
+  // Coming back to this tab (or switching back from another app) re-checks the shared copy —
+  // this is what actually catches "the other person changed something while I was away",
+  // not just the 20s background poll.
+  useEffect(() => {
+    if (!plan?.id || plan.planKind !== "shared" || !identity.id) return;
+    const planId2 = plan.id;
+    const myId = identity.id;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchSharedPlan(planId2, myId).then((result) => {
+        if (result && result.version !== plan.sharedVersion) {
+          setPlan(result.plan);
+          if (result.plan.conversation?.length) setMessages(result.plan.conversation);
+        }
+      });
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [plan?.id, plan?.planKind, plan?.sharedVersion, identity.id]);
+
   const role = planRole(plan, identity.id);
 
   async function replace(item: PlanItem, optionId: string) {
@@ -278,8 +320,13 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       }, ...(next.revisions ?? [])].slice(0, 12),
     };
     next = appendPlanVersion(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
-    next = await syncPlanIfShared(next, identity.id, identity.name, response);
-    if (role !== "companion") savePlan(next);
+    // A companion's local plan is already redacted (missing secret items) — publishing it
+    // as-is would overwrite the owner's real data. Only the owner's client, which always
+    // holds the full plan, is allowed to push a locally-computed result like this.
+    if (role !== "companion") {
+      next = await syncPlanIfShared(next, identity.id, identity.name, response);
+      savePlan(next);
+    }
     setPlan(next);
     setChanged([category]);
     setRevisionMessage(`${next.items.find((item) => item.category === category)?.categoryLabel ?? "일정"}만 바꿨어요. 전체 비용도 다시 계산했습니다.`);
@@ -331,6 +378,17 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     return result;
   }
 
+  async function sendPrepText(text: string, prepId?: string) {
+    if (!plan) return;
+    try {
+      const result = await reviseAnyPlan(plan, identity.id, identity.name, text, undefined, prepId);
+      applyRevisionResult(result);
+      setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
+    } catch (error) {
+      setRevisionMessage(error instanceof Error ? error.message : "준비 항목을 바꾸지 못했어요.");
+    }
+  }
+
   async function toggleSecret(item: PlanItem) {
     if (!plan || role === "companion") return;
     const text = item.visibility !== "secret" ? `${item.title} 일정은 동반자에게 비밀로 해줘` : `${item.title} 일정은 이제 공개해도 돼`;
@@ -340,6 +398,22 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
     } catch (error) {
       setRevisionMessage(error instanceof Error ? error.message : "비공개 설정을 바꾸지 못했어요.");
+    }
+  }
+
+  async function setDisclosure(item: PlanItem, disclosure: "hidden" | "time_only" | "label_only") {
+    if (!plan || role === "companion") return;
+    const text = disclosure === "hidden"
+      ? `${item.title}은 완전히 숨겨줘`
+      : disclosure === "time_only"
+        ? `${item.title}은 시간만 보여줘`
+        : `${item.title}은 서프라이즈라고만 보여줘`;
+    try {
+      const result = await reviseAnyPlan(plan, identity.id, identity.name, text, item.category, item.id);
+      applyRevisionResult(result);
+      setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
+    } catch (error) {
+      setRevisionMessage(error instanceof Error ? error.message : "공개 수준을 바꾸지 못했어요.");
     }
   }
 
@@ -387,9 +461,11 @@ export function PlanWorkspace({ planId }: { planId: string }) {
 
   async function applyItemProposal(nextProposal: PlanChangeProposal) {
     let next = appendPlanConversation(nextProposal.plan, "추천한 동선으로 바꿔줘", "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요.");
-    next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 순서까지 바꿨어요.");
+    if (role !== "companion") {
+      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 순서까지 바꿨어요.");
+      savePlan(next);
+    }
     setPlan(next);
-    if (role !== "companion") savePlan(next);
     setChanged(next.items.map((item) => item.category));
     setRevisionMessage("이동이 덜 끊기도록 일정 순서를 바꿨어요.");
   }
@@ -397,9 +473,11 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   async function acceptProposal() {
     if (!proposal) return;
     let next = appendPlanConversation(proposal.plan, "추천한 순서로 바꿔줘", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.");
-    next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 일정 순서를 바꿨어요.");
+    if (role !== "companion") {
+      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 일정 순서를 바꿨어요.");
+      savePlan(next);
+    }
     setPlan(next);
-    if (role !== "companion") savePlan(next);
     setChanged(next.items.map((item) => item.category));
     setMessages((current) => [...current, chatMessage("user", "추천한 순서로 바꿔줘"), chatMessage("assistant", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.")]);
     setProposal(null);
@@ -408,9 +486,11 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   async function keepCurrentOrder() {
     if (plan) {
       let next = appendPlanConversation(plan, "지금 순서를 유지할게", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.");
-      next = await syncPlanIfShared(next, identity.id, identity.name, "장소만 바꾸고 기존 순서는 그대로 유지했어요.");
+      if (role !== "companion") {
+        next = await syncPlanIfShared(next, identity.id, identity.name, "장소만 바꾸고 기존 순서는 그대로 유지했어요.");
+        savePlan(next);
+      }
       setPlan(next);
-      if (role !== "companion") savePlan(next);
     }
     setMessages((current) => [...current, chatMessage("user", "지금 순서를 유지할게"), chatMessage("assistant", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.")]);
     setProposal(null);
@@ -430,6 +510,14 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     next = await syncPlanIfShared(next, identity.id, identity.name, "계획을 확정하고 예약 준비를 시작했어요.");
     savePlan(next);
     router.push(`/dajeong/plan/${plan.id}/execute`);
+  }
+
+  async function setNotificationLevel(level: "normal" | "content_hidden" | "off") {
+    if (!plan || role === "companion") return;
+    let next: DajeongPlan = { ...plan, notificationLevel: level };
+    next = await syncPlanIfShared(next, identity.id, identity.name, "알림 공개 수준을 바꿨어요.");
+    savePlan(next);
+    setPlan(next);
   }
 
   if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>계획을 꺼내고 있어요</p></div>;
@@ -471,6 +559,20 @@ export function PlanWorkspace({ planId }: { planId: string }) {
             </button>
           )}
           {hasSecretItems ? <span className="dj-share-status dj-secret-mode-badge"><LockIcon size={13} /> 일부 비공개 포함</span> : null}
+          {hasSecretItems && plan.planKind === "shared" ? (
+            <span className="dj-notify-group" role="group" aria-label="비공개 일정 알림 수준">
+              {(["normal", "content_hidden", "off"] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={`dj-visibility-toggle ${((plan.notificationLevel ?? "content_hidden") === level) ? "dj-visibility-toggle-active" : ""}`}
+                  onClick={() => setNotificationLevel(level)}
+                >
+                  {level === "normal" ? "일반 알림" : level === "content_hidden" ? "내용 숨긴 알림" : "알림 끄기"}
+                </button>
+              ))}
+            </span>
+          ) : null}
           {shareOpen ? (
             <div className="dj-share-panel dj-card">
               {availableCompanions.length ? availableCompanions.map((companion) => (
@@ -533,8 +635,39 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         <section className="dj-plan-main">
           <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>실제로 따라갈 수 있는 시간표</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {plan.schedule?.density === "compact" ? "알차게" : plan.schedule?.density === "relaxed" ? "여유롭게" : "균형 있게"}</p></div>
           {plan.logistics?.length ? <div className="dj-trip-logistics"><strong>현실 이동 기준</strong>{plan.logistics.map((item) => <div key={item.id}><span>{item.dayNumber}일차 · {item.time}</span><p><b>{item.title}</b>{item.note}</p></div>)}</div> : null}
+
+          <section className="dj-prep-section">
+            <div className="dj-prep-heading">
+              <span className="dj-summary-eyebrow">데이트 전에 챙길 것</span>
+              {role !== "companion" ? <button type="button" className="dj-visibility-toggle" onClick={() => sendPrepText("뭘 준비해야 할지 모르겠어, 추천해줘")}>AI에게 준비 추천 요청</button> : null}
+            </div>
+            {plan.prep?.filter((item) => item.status !== "cancelled").length ? (
+              <div className="dj-prep-list">
+                {plan.prep.filter((item) => item.status !== "cancelled").map((item) => (
+                  <div key={item.id} className="dj-prep-row">
+                    <div className="dj-prep-row-main">
+                      <strong>{item.title}</strong>
+                      <span>{item.date}{item.time ? ` · ${item.time}` : ""} · {PREP_HANDLING_LABEL[item.handling]} · {PREP_STATUS_LABEL[item.status]}</span>
+                      {item.handlingReason ? <em>{item.handlingReason}</em> : null}
+                      {item.visibility !== "shared" ? <span className="dj-secret-chip"><LockIcon size={12} /> {item.visibility === "secret" ? "동반자에게 비공개" : "나만 보기"}</span> : null}
+                    </div>
+                    {role !== "companion" ? (
+                      <div className="dj-prep-row-actions">
+                        <button type="button" onClick={() => sendPrepText("준비 완료했어", item.id)}>완료</button>
+                        <button type="button" className={item.visibility === "secret" ? "dj-visibility-toggle-active" : ""} onClick={() => sendPrepText(item.visibility === "secret" ? `${item.title}은 이제 공개해도 돼` : `${item.title} 준비는 여자친구한테 비밀로 해줘`, item.id)}>{item.visibility === "secret" ? "공개" : "비공개"}</button>
+                        <button type="button" onClick={() => sendPrepText("이건 그냥 취소하자", item.id)}>취소</button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="dj-companion-empty">{plan.prepDeclined ? "따로 준비할 건 없다고 기억했어요." : "아직 준비 목록이 비어 있어요. “꽃이랑 케이크 준비하고 싶어”처럼 말하거나 위 버튼을 눌러보세요."}</p>
+            )}
+          </section>
+
           <div className="dj-timeline">
-            {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} onToggleSecret={toggleSecret} /></Fragment>)}
+            {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} onToggleSecret={toggleSecret} onSetDisclosure={setDisclosure} /></Fragment>)}
           </div>
         </section>
 

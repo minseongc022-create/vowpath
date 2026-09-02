@@ -1,5 +1,5 @@
 import { buildExperienceFlow } from "./experience";
-import type { ConciergeMessage, DajeongPlan, PlanItem, ReservationOrder } from "./types";
+import type { ConciergeMessage, DajeongPlan, PlanItem, PrepItem, ReservationOrder } from "./types";
 
 export function isSecretItem(item: PlanItem): boolean {
   return item.visibility === "secret";
@@ -18,17 +18,34 @@ function secretTerms(plan: DajeongPlan): string[] {
     if (item.title) terms.add(item.title);
     if (item.secretLabel) terms.add(item.secretLabel);
     if (item.location) terms.add(item.location);
+    if (item.reality?.address) terms.add(item.reality.address);
+  });
+  (plan.prep ?? []).filter((item) => item.visibility !== "shared").forEach((item) => {
+    if (item.title) terms.add(item.title);
+    if (item.secretLabel) terms.add(item.secretLabel);
+    if (item.notes) terms.add(item.notes);
   });
   return [...terms].filter((term) => term.length >= 2);
 }
 
-function scrub(text: string, terms: string[]): string {
+/**
+ * Term-level scrub for free text (chat replies, revision summaries) that a non-owner might
+ * receive. This is a defense-in-depth layer, not the primary boundary — redactPlanForViewer
+ * (which drops secret records structurally) is what a companion's screen is actually built
+ * from. Kept exported so API routes can sanitize generated NL messages too.
+ */
+export function scrub(text: string, terms: string[]): string {
   if (!terms.length) return text;
   let result = text;
   for (const term of terms) {
-    if (result.includes(term)) result = result.split(term).join("(비공개 일정)");
+    if (result.includes(term)) result = result.split(term).join("그 일정");
   }
   return result;
+}
+
+export function sanitizeMessageForViewer(plan: DajeongPlan, viewerId: string | null | undefined, text: string): string {
+  if (planAccessRole(plan, viewerId) !== "companion") return text;
+  return scrub(text, secretTerms(plan));
 }
 
 function redactMessage(message: ConciergeMessage, terms: string[]): ConciergeMessage | null {
@@ -37,9 +54,9 @@ function redactMessage(message: ConciergeMessage, terms: string[]): ConciergeMes
   return text === message.text ? message : { ...message, text };
 }
 
-function redactExecution(order: ReservationOrder | undefined, secretItemIds: Set<string>): ReservationOrder | undefined {
+function redactExecution(order: ReservationOrder | undefined, hiddenItemIds: Set<string>): ReservationOrder | undefined {
   if (!order) return order;
-  const tasks = order.tasks.filter((task) => !secretItemIds.has(task.itemId));
+  const tasks = order.tasks.filter((task) => !hiddenItemIds.has(task.itemId));
   if (tasks.length === order.tasks.length) return order;
   const depositTotal = tasks.reduce((sum, task) => sum + (task.price.prepayAmount ?? 0), 0);
   const estimatedTotal = tasks.reduce((sum, task) => sum + (task.price.estimatedAmount ?? 0), 0);
@@ -54,16 +71,50 @@ function redactExecution(order: ReservationOrder | undefined, secretItemIds: Set
     onsiteEstimated,
     payableNow,
     unconfirmedPriceTaskIds: order.unconfirmedPriceTaskIds.filter((id) => visibleTaskIds.has(id)),
-    requestedItemIds: order.requestedItemIds.filter((id) => !secretItemIds.has(id)),
+    requestedItemIds: order.requestedItemIds.filter((id) => !hiddenItemIds.has(id)),
     approval: order.approval && order.approval.taskIds.every((id) => visibleTaskIds.has(id)) ? order.approval : undefined,
   };
 }
 
+/** A secret item redacted to "time_only": keeps a blank timeline slot, strips every place fact. */
+function toTimeOnly(item: PlanItem): PlanItem {
+  return {
+    ...item,
+    title: "일정 있음",
+    subtitle: "",
+    location: "",
+    reason: "",
+    href: "",
+    imageUrl: "",
+    referenceImageUrl: undefined,
+    imageAlt: "",
+    notes: [],
+    alternatives: [],
+    reality: undefined,
+    experience: undefined,
+    price: 0,
+    secretLabel: undefined,
+    reservationRequired: false,
+    badge: undefined,
+  };
+}
+
+/** A secret item redacted to "label_only": a generic "서프라이즈 일정" chip, still no place facts. */
+function toLabelOnly(item: PlanItem): PlanItem {
+  return { ...toTimeOnly(item), title: "서프라이즈 일정" };
+}
+
+function redactPrepForCompanion(prep: PrepItem[] | undefined): PrepItem[] {
+  return (prep ?? []).filter((item) => item.visibility === "shared");
+}
+
 /**
- * Non-owner viewers never see secret items, secret-tagged chat, or execution/price
- * details tied to a secret item — even indirectly through warnings or the flow narrative.
- * The scheduling engine itself must keep operating on the unredacted plan; only this
- * boundary function narrows what leaves the server toward a companion.
+ * Non-owner viewers never see secret items at full fidelity, secret-tagged chat, or
+ * execution/price details tied to a secret item or secret prep — even indirectly through
+ * warnings, the flow narrative, or totals. The scheduling engine itself must keep operating
+ * on the unredacted plan; only this boundary function narrows what leaves the server toward
+ * a companion. Disclosure level ("hidden" default, "time_only", "label_only") is the owner's
+ * choice per item — never the reverse of hiding less by default.
  */
 export function redactPlanForViewer(plan: DajeongPlan, viewerId: string | null | undefined): DajeongPlan | null {
   const role = planAccessRole(plan, viewerId);
@@ -71,13 +122,17 @@ export function redactPlanForViewer(plan: DajeongPlan, viewerId: string | null |
   if (role === "owner") return plan;
 
   const secretItems = plan.items.filter(isSecretItem);
-  const secretItemIds = new Set(secretItems.map((item) => item.id));
+  const hiddenItemIds = new Set(secretItems.filter((item) => (item.secretDisclosure ?? "hidden") === "hidden").map((item) => item.id));
   const terms = secretTerms(plan);
   const items = plan.items
-    .filter((item) => !isSecretItem(item))
-    .map(({ secretLabel: _secretLabel, ...item }) => item);
+    .filter((item) => !hiddenItemIds.has(item.id))
+    .map((item) => {
+      if (!isSecretItem(item)) return item;
+      const disclosure = item.secretDisclosure ?? "hidden";
+      return disclosure === "label_only" ? toLabelOnly(item) : toTimeOnly(item);
+    });
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  const subtotal = items.filter((item) => !isSecretItem(item)).reduce((sum, item) => sum + item.price, 0);
   const conversation = (plan.conversation ?? [])
     .map((message) => redactMessage(message, terms))
     .filter((message): message is ConciergeMessage => Boolean(message));
@@ -85,20 +140,32 @@ export function redactPlanForViewer(plan: DajeongPlan, viewerId: string | null |
   return {
     ...plan,
     items,
+    prep: redactPrepForCompanion(plan.prep),
     subtotal,
     total: subtotal,
     budgetRemaining: plan.budget - subtotal,
     conversation,
-    execution: redactExecution(plan.execution, secretItemIds),
-    experienceFlow: buildExperienceFlow(items),
+    execution: redactExecution(plan.execution, hiddenItemIds),
+    experienceFlow: buildExperienceFlow(items.filter((item) => !isSecretItem(item))),
+    changeLog: (plan.changeLog ?? []).map((entry) => ({ ...entry, summary: scrub(entry.summary, terms) })),
     schedule: plan.schedule
       ? { ...plan.schedule, warnings: plan.schedule.warnings.map((warning) => scrub(warning, terms)).filter((warning, index, all) => all.indexOf(warning) === index) }
       : plan.schedule,
-    changeLog: (plan.changeLog ?? []).map((entry) => ({ ...entry, summary: scrub(entry.summary, terms) })),
-    notice: secretItems.length ? `${plan.notice} 일부 일정은 계획을 만든 사람이 비공개로 설정해 이 화면에는 표시하지 않았어요.` : plan.notice,
+    // Deliberately NOT annotated with "일부 일정은 비공개예요" or similar — even naming that
+    // something is hidden tells a companion a secret exists. The timeline just ends where it
+    // ends; that has to read as ordinary, not as a redacted document.
+    notice: plan.notice,
   };
 }
 
+/** Item list an "explain" style answer should be composed from — full for the owner, exactly
+ * what redactPlanForViewer would show otherwise, so the AI's prose can't describe more than
+ * the screen it corresponds to. */
+export function explainableItems(plan: DajeongPlan, viewerId: string | null | undefined): PlanItem[] {
+  if (planAccessRole(plan, viewerId) !== "companion") return plan.items;
+  return redactPlanForViewer(plan, viewerId)?.items ?? [];
+}
+
 export function hasSecretContent(plan: DajeongPlan): boolean {
-  return plan.items.some(isSecretItem) || (plan.conversation ?? []).some((message) => message.visibility === "secret");
+  return plan.items.some(isSecretItem) || (plan.prep ?? []).some((item) => item.visibility !== "shared") || (plan.conversation ?? []).some((message) => message.visibility === "secret");
 }

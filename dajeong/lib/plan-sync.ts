@@ -48,6 +48,20 @@ export async function reviseAnyPlan(
   return data;
 }
 
+/** Pulls the latest canonical copy for a shared plan — used on focus/visibility return and
+ * light polling so two people's screens don't silently drift apart between their own edits. */
+export async function fetchSharedPlan(planId: string, viewerId: string): Promise<{ plan: DajeongPlan; version: number } | null> {
+  try {
+    const response = await fetch(`/api/dajeong/plans/shared?planId=${encodeURIComponent(planId)}&viewerId=${encodeURIComponent(viewerId)}`);
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; version?: number };
+    if (!data.plan || data.version == null) return null;
+    return { plan: { ...data.plan, sharedVersion: data.version }, version: data.version };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * For mutations already fully computed on the client (candidate pick, accepted route
  * proposal, confirmation) — pushes the result to the shared record if this plan is shared,

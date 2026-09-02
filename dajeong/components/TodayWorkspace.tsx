@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { getOrCreateIdentity } from "../lib/identity";
 import { getPlan, savePlan } from "../lib/storage";
-import { planRole, reviseAnyPlan } from "../lib/plan-sync";
+import { fetchSharedPlan, planRole, reviseAnyPlan } from "../lib/plan-sync";
 import { buildLiveSnapshot, currentClock, type LiveSnapshot } from "../lib/live-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
 import type { ConciergeMessage, DajeongPlan } from "../lib/types";
@@ -62,16 +62,26 @@ export function TodayWorkspace({ planId }: { planId: string }) {
   useEffect(() => {
     if (!plan?.id || plan.planKind !== "shared") return;
     const identity = getOrCreateIdentity();
-    const timer = window.setInterval(() => {
-      fetch(`/api/dajeong/plans/shared?planId=${plan.id}&viewerId=${identity.id}`)
-        .then((response) => response.json())
-        .then((data: { plan?: DajeongPlan; version?: number }) => {
-          if (data.plan && data.version != null && data.version !== plan.sharedVersion) setPlan({ ...data.plan, sharedVersion: data.version });
-        })
-        .catch(() => {});
-    }, 20_000);
-    return () => window.clearInterval(timer);
-  }, [plan?.id, plan?.sharedVersion]);
+    const planId2 = plan.id;
+    const currentVersion = plan.sharedVersion;
+    const check = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchSharedPlan(planId2, identity.id).then((result) => {
+        if (result && result.version !== currentVersion) setPlan(result.plan);
+      });
+    };
+    // Background poll while the day is actively being followed, plus an immediate check the
+    // moment the tab/app comes back to the foreground — that catches "the other person just
+    // changed something" far faster than waiting out the poll interval.
+    const timer = window.setInterval(check, 15_000);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [plan?.id, plan?.planKind, plan?.sharedVersion]);
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
@@ -103,6 +113,9 @@ export function TodayWorkspace({ planId }: { planId: string }) {
 
   const role = planRole(plan, myId);
   const snapshot: LiveSnapshot = buildLiveSnapshot(plan, nowClock);
+  const todayPrep = (plan.prep ?? [])
+    .filter((item) => item.date === plan.situation.targetDate && item.status !== "cancelled")
+    .sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
 
   return (
     <div className="dj-today-page dj-container">
@@ -141,6 +154,20 @@ export function TodayWorkspace({ planId }: { planId: string }) {
               <p><ClockIcon size={14} /> {snapshot.next.time} 시작{snapshot.next.travelFromPrevious ? ` · 이동 ${snapshot.next.travelFromPrevious.mode} 약 ${snapshot.next.travelFromPrevious.minutes}분` : ""}</p>
               {snapshot.next.reservationRequired ? <span className="dj-fixed-chip"><ShieldIcon size={13} /> {snapshot.next.reality?.reservationLabel ?? "예약 확인 필요"}</span> : null}
             </article>
+          ) : null}
+
+          {todayPrep.length ? (
+            <section className="dj-today-remaining">
+              <span className="dj-summary-eyebrow">오늘 준비할 것</span>
+              {todayPrep.map((item) => (
+                <div key={item.id} className="dj-today-remaining-row">
+                  <span>{item.time ?? "시간 미정"}</span>
+                  <ClockIcon size={16} />
+                  <strong>{item.title}{item.visibility === "secret" ? " (비공개)" : ""}</strong>
+                  <em>{item.status === "cancelled" ? "취소됨" : item.status}</em>
+                </div>
+              ))}
+            </section>
           ) : null}
 
           {snapshot.weatherNote ? <div className="dj-weather-banner dj-weather-user_report"><div><strong>날씨 변화</strong><p>{snapshot.weatherNote}</p></div></div> : null}

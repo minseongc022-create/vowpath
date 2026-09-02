@@ -69,7 +69,9 @@ function newId(prefix: string): string {
 }
 
 function newInviteCode(): string {
-  return randomBytes(3).toString("hex").toUpperCase();
+  // 4 bytes (8 hex chars, 32 bits) — resistant enough to guessing for a short-lived,
+  // single-use, per-owner-capped invite without adding real auth.
+  return randomBytes(4).toString("hex").toUpperCase();
 }
 
 export async function upsertPerson(id: string, name: string): Promise<void> {
@@ -239,8 +241,9 @@ export async function publishSharedPlan(
 ): Promise<{ ok: true; record: SharedPlanRecord } | { ok: false; error: string; conflict?: SharedPlanRecord }> {
   const store = await loadStore();
   const record = store.sharedPlans[planId];
-  if (!record) return { ok: false, error: "공유된 계획을 찾지 못했어요." };
-  if (record.ownerId !== actorId && record.companionId !== actorId) return { ok: false, error: "이 계획을 볼 수 있는 권한이 없어요." };
+  // Deliberately the same message whether the plan doesn't exist or the caller just isn't a
+  // participant — distinguishing the two would let a client enumerate valid plan IDs.
+  if (!record || (record.ownerId !== actorId && record.companionId !== actorId)) return { ok: false, error: "이 계획을 찾을 수 없어요." };
   if (expectedVersion != null && expectedVersion !== record.version) {
     return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어요. 최신 내용을 다시 확인해 주세요.", conflict: record };
   }

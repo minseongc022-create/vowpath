@@ -10,9 +10,9 @@ export async function GET(request: Request) {
 
   if (planId) {
     const record = await getSharedPlanRecord(planId);
-    if (!record) return NextResponse.json({ error: "공유된 계획을 찾지 못했어요." }, { status: 404 });
-    const plan = redactPlanForViewer(record.plan, viewerId);
-    if (!plan) return NextResponse.json({ error: "이 계획을 볼 수 있는 권한이 없어요." }, { status: 403 });
+    const plan = record ? redactPlanForViewer(record.plan, viewerId) : null;
+    // Same 404 whether the plan is missing or the viewer just isn't a participant.
+    if (!record || !plan) return NextResponse.json({ error: "이 계획을 찾을 수 없어요." }, { status: 404 });
     return NextResponse.json({ plan, version: record.version, isOwner: record.ownerId === viewerId });
   }
 
