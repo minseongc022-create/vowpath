@@ -1,5 +1,6 @@
 import { getOptions } from "./catalog";
 import { buildExperienceFlow, journeyRoleFor, MOOD_LABEL } from "./experience";
+import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
 import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
@@ -344,7 +345,35 @@ function buildItems(input: PlanRequest): { items: PlanItem[]; budget: number } {
 
 function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situation): DajeongPlan {
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  const ordered = [...items].sort((a, b) => (a.dayNumber ?? 1) - (b.dayNumber ?? 1) || a.time.localeCompare(b.time));
+  const ordered: PlanItem[] = [...items]
+    .sort((a, b) => (a.dayNumber ?? 1) - (b.dayNumber ?? 1) || a.time.localeCompare(b.time))
+    .map((item, index, all): PlanItem => {
+      const previous = all[index - 1];
+      if (!previous || (previous.dayNumber ?? 1) !== (item.dayNumber ?? 1)) return { ...item, travelFromPrevious: undefined };
+      const from = previous.reality?.latitude != null && previous.reality.longitude != null
+        ? { latitude: previous.reality.latitude, longitude: previous.reality.longitude }
+        : undefined;
+      const to = item.reality?.latitude != null && item.reality.longitude != null
+        ? { latitude: item.reality.latitude, longitude: item.reality.longitude }
+        : undefined;
+      const distance = haversineKm(from, to);
+      const minutes = travelMinutes(distance, situation.transport);
+      if (distance == null || minutes == null) return { ...item, travelFromPrevious: item.travelFromPrevious ?? travelFor(situation, index) };
+      return {
+        ...item,
+        travelFromPrevious: {
+          minutes,
+          mode: situation.transport === "car" ? "차량" : situation.transport === "walking" ? "도보" : "대중교통",
+          note: "직선거리 기반 예상 · 실제 경로는 지도에서 확인",
+        },
+        reality: item.reality ? {
+          ...item.reality,
+          distanceFromPreviousKm: distance,
+          travelEstimateMinutes: minutes,
+          travelEstimateBasis: "straight_line" as const,
+        } : item.reality,
+      };
+    });
   return {
     ...plan,
     situation,

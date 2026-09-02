@@ -85,6 +85,33 @@ test("항목을 교체하면 총액과 남은 예산을 다시 계산한다", ()
   assert.equal(next.budgetRemaining, next.budget - next.total);
 });
 
+test("실제 장소 후보를 직접 교체하면 이동거리와 이동시간도 같은 상태에서 다시 계산한다", () => {
+  const plan = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  const mealIndex = plan.items.findIndex((item) => item.category === "meal");
+  const meal = plan.items[mealIndex];
+  const previous = plan.items[mealIndex - 1];
+  const replacement = meal.alternatives[0];
+  assert.ok(previous && replacement);
+  const withCoordinates = {
+    ...plan,
+    items: plan.items.map((item, index) => index === mealIndex - 1 ? {
+      ...item,
+      reality: { ...item.reality, latitude: 37.544, longitude: 127.055 },
+    } : index === mealIndex ? {
+      ...item,
+      alternatives: item.alternatives.map((option, optionIndex) => optionIndex === 0 ? {
+        ...option,
+        reality: { ...option.reality, latitude: 37.566, longitude: 126.978 },
+      } : option),
+    } : item),
+  };
+  const next = replacePlanItem(withCoordinates, "meal", replacement.id, meal.id);
+  const changedMeal = next.items.find((item) => item.category === "meal");
+  assert.ok((changedMeal?.reality?.distanceFromPreviousKm ?? 0) > 5);
+  assert.ok((changedMeal?.travelFromPrevious?.minutes ?? 0) > 20);
+  assert.equal(changedMeal?.reality?.travelEstimateMinutes, changedMeal?.travelFromPrevious?.minutes);
+});
+
 test("자연어 수정은 요청한 일정만 바꾸고 나머지는 보존한다", () => {
   const plan = createDajeongPlan({ request: "서울에서 여자친구와 기념일 데이트 30만원", budget: 300_000 });
   const activity = plan.items.find((item) => item.category === "activity")?.id;
