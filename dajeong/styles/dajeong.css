@@ -131,6 +131,9 @@
   text-decoration: none;
 }
 .dj-nav-link:hover { background: rgba(255, 255, 255, 0.7); color: var(--dj-ink); }
+.dj-auth-status { display: inline-flex; align-items: center; gap: 4px; }
+.dj-auth-name { padding: 9px 4px; color: var(--dj-ink); font-size: 13px; font-weight: 700; }
+.dj-auth-signout { border: 0; background: transparent; cursor: pointer; font: inherit; }
 
 .dj-ai-badge {
   display: inline-flex;

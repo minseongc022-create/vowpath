@@ -8,7 +8,7 @@ import { appendPlanConversation, appendPlanVersion, replacePlanItem } from "../l
 import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import { prepareReservationOrder } from "../lib/reservation-engine";
-import { getOrCreateIdentity } from "../lib/identity";
+import { resolveIdentity } from "../lib/identity";
 import { fetchSharedPlan, planRole, reviseAnyPlan, syncPlanIfShared } from "../lib/plan-sync";
 import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, LockIcon, MapPinIcon, ShieldIcon, SparkleIcon, UsersIcon, WalletIcon } from "./DajeongIcons";
@@ -238,7 +238,8 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   const [shareBusy, setShareBusy] = useState(false);
 
   useEffect(() => {
-    const me = getOrCreateIdentity();
+    void (async () => {
+    const me = await resolveIdentity();
     setIdentity(me);
     const stored = getPlan(planId);
     if (stored && (stored.planKind !== "shared" || stored.ownerId === me.id)) {
@@ -269,6 +270,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       .then((response) => response.json())
       .then((data: { companions?: Array<{ companionId: string; companionName: string }> }) => setCompanions(data.companions ?? []))
       .catch(() => setCompanions([]));
+    })();
   }, [planId]);
 
   useEffect(() => {

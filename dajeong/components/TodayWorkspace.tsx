@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { getOrCreateIdentity } from "../lib/identity";
+import { resolveIdentity } from "../lib/identity";
 import { getPlan, savePlan } from "../lib/storage";
 import { fetchSharedPlan, planRole, reviseAnyPlan } from "../lib/plan-sync";
 import { buildLiveSnapshot, currentClock, type LiveSnapshot } from "../lib/live-engine";
@@ -27,7 +27,8 @@ const quickActions = [
 
 export function TodayWorkspace({ planId }: { planId: string }) {
   const [plan, setPlan] = useState<DajeongPlan | null | undefined>(undefined);
-  const [myId, setMyId] = useState("");
+  const [identity, setIdentity] = useState({ id: "", name: "나" });
+  const myId = identity.id;
   const [nowClock, setNowClock] = useState(() => currentClock());
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,23 +36,25 @@ export function TodayWorkspace({ planId }: { planId: string }) {
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const identity = getOrCreateIdentity();
-    setMyId(identity.id);
+    void (async () => {
+    const me = await resolveIdentity();
+    setIdentity(me);
     const local = getPlan(planId);
-    if (local && (local.planKind !== "shared" || local.ownerId === identity.id)) {
+    if (local && (local.planKind !== "shared" || local.ownerId === me.id)) {
       setPlan(local);
       if (local.planKind === "shared") {
-        fetch(`/api/dajeong/plans/shared?planId=${planId}&viewerId=${identity.id}`)
+        fetch(`/api/dajeong/plans/shared?planId=${planId}&viewerId=${me.id}`)
           .then((response) => response.json())
           .then((data: { plan?: DajeongPlan; version?: number }) => { if (data.plan) setPlan({ ...data.plan, sharedVersion: data.version }); })
           .catch(() => {});
       }
       return;
     }
-    fetch(`/api/dajeong/plans/shared?planId=${planId}&viewerId=${identity.id}`)
+    fetch(`/api/dajeong/plans/shared?planId=${planId}&viewerId=${me.id}`)
       .then((response) => response.json())
       .then((data: { plan?: DajeongPlan; version?: number; error?: string }) => setPlan(data.plan ? { ...data.plan, sharedVersion: data.version } : null))
       .catch(() => setPlan(local ?? null));
+    })();
   }, [planId]);
 
   useEffect(() => {
@@ -60,13 +63,13 @@ export function TodayWorkspace({ planId }: { planId: string }) {
   }, []);
 
   useEffect(() => {
-    if (!plan?.id || plan.planKind !== "shared") return;
-    const identity = getOrCreateIdentity();
+    if (!plan?.id || plan.planKind !== "shared" || !identity.id) return;
     const planId2 = plan.id;
+    const viewerId = identity.id;
     const currentVersion = plan.sharedVersion;
     const check = () => {
       if (document.visibilityState !== "visible") return;
-      fetchSharedPlan(planId2, identity.id).then((result) => {
+      fetchSharedPlan(planId2, viewerId).then((result) => {
         if (result && result.version !== currentVersion) setPlan(result.plan);
       });
     };
@@ -81,7 +84,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
       window.removeEventListener("focus", check);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [plan?.id, plan?.planKind, plan?.sharedVersion]);
+  }, [plan?.id, plan?.planKind, plan?.sharedVersion, identity.id]);
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
@@ -92,7 +95,6 @@ export function TodayWorkspace({ planId }: { planId: string }) {
     if (!plan || trimmed.length < 2 || busy) return;
     setBusy(true);
     setInstruction("");
-    const identity = getOrCreateIdentity();
     const searching = chatMessage("assistant", "지금 상황을 반영해서 남은 일정을 확인하고 있어요…", "searching");
     setMessages((current) => [...current, chatMessage("user", trimmed), searching]);
     try {

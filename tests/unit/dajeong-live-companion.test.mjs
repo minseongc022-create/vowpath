@@ -188,7 +188,10 @@ test("[TEST G] 시크릿 일정도 일정 엔진의 동선·시간 계산에는 
   const beforeTime = withSecret.items.find((item) => item.id === secretItem.id).time;
 
   const mealItem = withSecret.items.find((item) => item.category === "meal");
-  const delayed = applyDelayReport(withSecret, { itemId: mealItem.id, extraMinutes: 60, reason: "밥이 늦게 나와서 아직 식당이야" });
+  // Explicit nowClock so this test is deterministic regardless of the real wall-clock time
+  // it happens to run at — otherwise markLiveProgress could freeze the secret (evening) item
+  // as "already done" purely because the test suite ran late in the day.
+  const delayed = applyDelayReport(withSecret, { itemId: mealItem.id, extraMinutes: 60, nowClock: mealItem.time, reason: "밥이 늦게 나와서 아직 식당이야" });
   const afterTime = delayed.plan.items.find((item) => item.id === secretItem.id)?.time;
 
   assert.ok(afterTime, "시크릿 일정은 재계산 후에도 여전히 존재해야 한다 (엔진이 계속 알고 있다는 뜻)");

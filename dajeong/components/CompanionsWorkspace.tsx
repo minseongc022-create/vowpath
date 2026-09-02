@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { getOrCreateIdentity, setIdentityName } from "../lib/identity";
+import { resolveIdentity, setIdentityName } from "../lib/identity";
 import type { CompanionInvite, CompanionRelationLabel, DajeongPlan } from "../lib/types";
 import { ArrowIcon, CheckIcon, ClockIcon, HeartIcon, SparkleIcon, TrashIcon } from "./DajeongIcons";
 
@@ -18,6 +18,7 @@ function displayDate(value: string): string {
 export function CompanionsWorkspace() {
   const [myId, setMyId] = useState("");
   const [myName, setMyName] = useState("나");
+  const [loggedIn, setLoggedIn] = useState(false);
   const [relation, setRelation] = useState<CompanionRelationLabel>("연인");
   const [note, setNote] = useState("");
   const [invite, setInvite] = useState<CompanionInvite | null>(null);
@@ -39,10 +40,13 @@ export function CompanionsWorkspace() {
   }
 
   useEffect(() => {
-    const identity = getOrCreateIdentity();
-    setMyId(identity.id);
-    setMyName(identity.name);
-    void refresh(identity.id);
+    void (async () => {
+      const identity = await resolveIdentity();
+      setMyId(identity.id);
+      setMyName(identity.name);
+      setLoggedIn(identity.id.startsWith("user_"));
+      void refresh(identity.id);
+    })();
   }, []);
 
   function saveName(event: FormEvent) {
@@ -120,13 +124,18 @@ export function CompanionsWorkspace() {
         <Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 <ArrowIcon size={16} /></Link>
       </div>
 
-      <form className="dj-companion-name-form dj-card" onSubmit={saveName}>
-        <label>내 이름 (동반자 화면에 보여요)</label>
-        <div>
-          <input value={myName} onChange={(event) => setMyName(event.target.value)} maxLength={20} />
-          <button type="submit" className="dj-btn dj-btn-secondary">저장</button>
-        </div>
-      </form>
+      {loggedIn ? (
+        <div className="dj-companion-name-form dj-card"><label>내 이름 (동반자 화면에 보여요)</label><p className="dj-companion-empty">{myName} · 로그인 계정 이름을 사용해요</p></div>
+      ) : (
+        <form className="dj-companion-name-form dj-card" onSubmit={saveName}>
+          <label>내 이름 (동반자 화면에 보여요)</label>
+          <div>
+            <input value={myName} onChange={(event) => setMyName(event.target.value)} maxLength={20} />
+            <button type="submit" className="dj-btn dj-btn-secondary">저장</button>
+          </div>
+          <p className="dj-companion-empty"><Link href="/dajeong/login">로그인</Link>하면 다른 기기에서도 같은 계정으로 이어볼 수 있어요.</p>
+        </form>
+      )}
 
       <section className="dj-card dj-companion-invite">
         <h2>동반자 초대하기</h2>

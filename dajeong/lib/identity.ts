@@ -34,3 +34,24 @@ export function setIdentityName(name: string): DajeongIdentity {
   if (typeof window !== "undefined") window.localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
   return identity;
 }
+
+/**
+ * Real login, when available, replaces the guessable anonymous device id with a stable id
+ * tied to an actual account — that's what makes "다른 기기/브라우저에서도 이어보기" and the
+ * companion-sharing permission model trustworthy instead of resting entirely on whichever
+ * browser happens to hold a given localStorage value. Logged-out users keep working exactly
+ * as before (anonymous device id) — login is additive, not a hard requirement.
+ */
+export async function resolveIdentity(): Promise<DajeongIdentity> {
+  if (typeof window === "undefined") return getOrCreateIdentity();
+  try {
+    const { getSession } = await import("next-auth/react");
+    const session = await getSession();
+    if (session?.user?.id) {
+      return { id: `user_${session.user.id}`, name: session.user.name?.trim().slice(0, 20) || "나" };
+    }
+  } catch {
+    // next-auth not reachable (no DB/provider configured) — fall through to anonymous id
+  }
+  return getOrCreateIdentity();
+}
