@@ -23,6 +23,7 @@
     "demo:mux-voice": "node scripts/mux-demo-voice-audio.mjs",
     "demo:mux-audio": "node scripts/mux-demo-audio.mjs all",
     "og:image": "node scripts/generate-og-image.mjs",
+    "chaebi:icons": "node scripts/chaebi-icons.mjs",
     "seo:ping": "node scripts/seo-post-deploy.mjs",
     "seo:indexnow": "node scripts/indexnow-submit.mjs",
     "vercel:domains": "node scripts/vercel-link-domains.mjs",
