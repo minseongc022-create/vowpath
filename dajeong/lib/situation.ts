@@ -143,7 +143,7 @@ function deriveSingleCategory(text: string): PlanCategory | undefined {
 function derivePlanScope(text: string, singleCategory?: PlanCategory, explicit?: PlanScope): PlanScope {
   if (explicit) return explicit;
   if (/\d+\s*박\s*\d+\s*일|여행|숙소|항공|렌터카/.test(text)) return "trip";
-  if (singleCategory && /예약|잡아|찾아|찾아줘|골라|가고 싶|가고싶/.test(text)
+  if (singleCategory && /예약|잡아|찾아|찾아줘|골라|가고 싶|가고싶|픽업|주문|사고 싶|사고싶/.test(text)
     && !/하루|코스|데이트|놀고|놀자|특별하게 보내|준비해/.test(text)) return "single";
   return "day";
 }
@@ -173,7 +173,7 @@ function derivePartySize(text: string, explicit?: number): number {
 
 function deriveRequestKind(text: string, scope: PlanScope, category?: PlanCategory, explicit?: PlanRequest["requestKind"]): ParsedSituation["requestKind"] {
   if (explicit) return explicit;
-  if (/예약|잡아\s*줘|잡아줘/.test(text)) return "reservation";
+  if (/예약|잡아\s*줘|잡아줘|주문|픽업/.test(text)) return "reservation";
   if (scope === "trip") return "trip_plan";
   if (scope === "single" && category && ["flower", "gift", "cake"].includes(category)) return "product_search";
   return scope === "single" ? "place_search" : "day_plan";

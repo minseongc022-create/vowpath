@@ -5,7 +5,8 @@ import { createDajeongPlan, replacePlanItem, restorePlanVersion, restoreReferenc
 import { applyDeterministicConversation, continuePlanningConversation, missingPlanningQuestions } from "../../dajeong/lib/planning-brain.ts";
 import { analyzeSituation, parseSituation } from "../../dajeong/lib/situation.ts";
 import { chainNameFor, haversineKm, rankRealPlaceCandidates } from "../../dajeong/lib/place-utils.ts";
-import { prepareReservationOrder } from "../../dajeong/lib/reservation-engine.ts";
+import { handleExecutionInstruction } from "../../dajeong/lib/execution-conversation.ts";
+import { applyProviderQuote, approvePayment, prepareReservationOrder, recordProviderExecutionResult, requestPaymentReview } from "../../dajeong/lib/reservation-engine.ts";
 import { isIsolatedProductPath } from "../../lib/shell-route.ts";
 
 test("상황 문장에서 대상·지역·예산·제약을 읽는다", () => {
@@ -428,4 +429,126 @@ test("평범하다는 수정은 조건을 유지하면서 핵심 경험 후보�
   assert.equal(result.plan.situation.region, plan.situation.region);
   assert.equal(result.plan.situation.targetDate, plan.situation.targetDate);
   assert.ok(result.changedCategories.every((category) => ["activity", "meal", "view"].includes(category)));
+});
+
+test("현실 실행 1: 성수 식당 요청은 식당 하나만 실행 대상으로 유지한다", () => {
+  const plan = createDajeongPlan({ request: "성수에서 오늘 저녁 분위기 좋은 식당 찾아줘.", region: "성수", targetDate: "2026-09-02" });
+  const order = prepareReservationOrder(plan);
+  assert.deepEqual(plan.items.map((item) => item.category), ["meal"]);
+  assert.equal(order.tasks.filter((task) => task.kind !== "logistics").length, 1);
+  assert.equal(order.tasks[0].itemId, plan.items[0].id);
+});
+
+test("현실 실행 2: 이거 예약해줘는 현재 선택 식당의 방식 확인 상태로 연결한다", () => {
+  const plan = createDajeongPlan({ request: "성수에서 오늘 저녁 분위기 좋은 식당 찾아줘.", region: "성수", targetDate: "2026-09-02" });
+  const result = handleExecutionInstruction(plan, "이거 예약해줘");
+  assert.equal(result.handled, true);
+  assert.deepEqual(result.targetItemIds, [plan.items[0].id]);
+  assert.notEqual(result.plan.execution?.tasks[0].status, "booked");
+  assert.match(result.message, /완료|확인|예약 방식/);
+});
+
+test("현실 실행 3: 전화 예약만 가능한 곳은 전화 문구를 만들고 완료로 가장하지 않는다", () => {
+  const base = createDajeongPlan({ request: "성수에서 오늘 저녁 분위기 좋은 식당 찾아줘.", region: "성수", targetDate: "2026-09-02" });
+  const plan = {
+    ...base,
+    items: base.items.map((item) => ({
+      ...item,
+      reality: { ...item.reality, bookingMethod: "phone_only", phoneNumber: "02-1234-5678", phoneHours: ["11:00-20:00"] },
+    })),
+  };
+  const order = prepareReservationOrder(plan);
+  assert.equal(order.tasks[0].status, "phone_required");
+  assert.equal(order.tasks[0].confirmation, undefined);
+  assert.match(order.tasks[0].phoneScript ?? "", /가능한지 문의/);
+});
+
+test("현실 실행 4: 꽃다발 요청은 꽃 탐색과 주문 준비만 만든다", () => {
+  const plan = createDajeongPlan({ request: "여친 줄 꽃다발 5만원 안으로 내일 픽업하고 싶어.", budget: 50_000, targetDate: "2026-09-03" });
+  const execution = handleExecutionInstruction(plan, "이 꽃다발 주문해줘").plan.execution;
+  assert.deepEqual(plan.items.map((item) => item.category), ["flower"]);
+  assert.equal(execution?.tasks.length, 1);
+  assert.equal(execution?.tasks[0].kind, "purchase");
+});
+
+test("현실 실행 5: 제주 여행 실행 계획은 렌터카·숙소·체크아웃·귀가편을 연결한다", () => {
+  const plan = createDajeongPlan({
+    request: "여자친구와 제주도 2박3일 여행",
+    recipient: "여자친구",
+    planScope: "trip",
+    tripDays: 3,
+    tripNights: 2,
+    region: "제주",
+    budget: 1_000_000,
+    targetDate: "2026-09-09",
+    transport: "car",
+    arrivalTime: "15:00",
+    returnDepartureTime: "15:00",
+    lodgingPreference: "오션뷰",
+  });
+  const order = prepareReservationOrder(plan, { includeTravel: true });
+  assert.ok(order.tasks.some((task) => task.kind === "lodging"));
+  assert.ok(order.tasks.some((task) => task.title.includes("렌터카 수령")));
+  assert.ok(order.tasks.some((task) => task.title.includes("체크아웃")));
+  assert.ok(order.tasks.some((task) => task.title.includes("렌터카 반납") && task.time === "13:00"));
+  assert.ok(order.tasks.some((task) => task.title.includes("귀가편") && task.time === "15:00"));
+});
+
+test("현실 실행 6: 첫날 저녁만 바꾸면 다른 날 실행 대상과 일정은 보존한다", () => {
+  const plan = createDajeongPlan({ request: "제주 2박3일 여행", planScope: "trip", tripDays: 3, tripNights: 2, region: "제주", budget: 1_000_000, targetDate: "2026-09-09" });
+  const firstMeal = plan.items.find((item) => item.category === "meal" && item.dayNumber === 1);
+  const otherIds = plan.items.filter((item) => item.id !== firstMeal?.id).map((item) => item.id);
+  assert.ok(firstMeal);
+  const withAlternative = {
+    ...plan,
+    items: plan.items.map((item) => item.id === firstMeal.id ? { ...item, alternatives: [{ ...item, id: `${item.id}-alternative`, title: "첫날 저녁 대안", price: item.price - 5_000 }] } : item),
+  };
+  const executing = { ...withAlternative, execution: prepareReservationOrder(withAlternative, { includeTravel: true }) };
+  const unaffectedTaskIds = executing.execution.tasks.filter((task) => task.itemId !== firstMeal.id).map((task) => task.id);
+  const changed = reviseDajeongPlan(executing, "첫날 저녁만 바꿔줘").plan;
+  assert.deepEqual(changed.items.filter((item) => item.dayNumber !== 1 || item.category !== "meal").map((item) => item.id), otherIds);
+  assert.ok(unaffectedTaskIds.every((taskId) => changed.execution?.tasks.some((task) => task.id === taskId)));
+  assert.equal(changed.execution?.tasks.some((task) => task.itemId === firstMeal.id), false);
+});
+
+test("현실 실행 7: 결제 요청은 정확한 항목과 금액을 먼저 보여주고 승인 대기한다", () => {
+  const plan = createDajeongPlan({ request: "오늘 볼 전시 찾아줘", targetDate: "2026-09-02" });
+  let order = prepareReservationOrder(plan);
+  order = applyProviderQuote(order, order.tasks[0].id, { available: true, confirmedTotalAmount: 72_000, prepayAmount: 72_000, onsiteAmount: 0, quoteId: "quote-72", checkedAt: new Date().toISOString() });
+  const result = handleExecutionInstruction({ ...plan, execution: order }, "이걸로 결제해");
+  order = result.plan.execution;
+  assert.equal(order.status, "needs_approval");
+  assert.equal(order.approval?.amount, 72_000);
+  assert.equal(order.approval?.state, "requested");
+});
+
+test("현실 실행 8: 좋네 같은 애매한 긍정은 결제 승인이 아니다", () => {
+  const plan = createDajeongPlan({ request: "오늘 볼 전시 찾아줘", targetDate: "2026-09-02" });
+  let order = prepareReservationOrder(plan);
+  order = requestPaymentReview(applyProviderQuote(order, order.tasks[0].id, { available: true, confirmedTotalAmount: 72_000, prepayAmount: 72_000, onsiteAmount: 0, quoteId: "quote-72", checkedAt: new Date().toISOString() }));
+  const result = handleExecutionInstruction({ ...plan, execution: order }, "좋네");
+  assert.equal(result.handled, true);
+  assert.equal(result.plan.execution?.approval?.state, "requested");
+});
+
+test("현실 실행 9: 승인 뒤 가격이 오르면 자동 결제하지 않고 재승인 상태가 된다", () => {
+  const plan = createDajeongPlan({ request: "오늘 볼 전시 찾아줘", targetDate: "2026-09-02" });
+  let order = prepareReservationOrder(plan);
+  order = requestPaymentReview(applyProviderQuote(order, order.tasks[0].id, { available: true, confirmedTotalAmount: 72_000, prepayAmount: 72_000, onsiteAmount: 0, quoteId: "quote-72", checkedAt: new Date().toISOString() }));
+  order = approvePayment(order, `${order.tasks[0].title} 72000원 결제 승인에 동의합니다`);
+  assert.equal(order.approval?.state, "granted");
+  order = applyProviderQuote(order, order.tasks[0].id, { available: true, confirmedTotalAmount: 80_000, prepayAmount: 80_000, onsiteAmount: 0, quoteId: "quote-80", checkedAt: new Date().toISOString() });
+  assert.equal(order.approval?.state, "reapproval_required");
+  assert.equal(order.status, "needs_approval");
+});
+
+test("현실 실행 10: 여러 실행 중 하나가 실패하면 성공과 실패를 각각 보존한다", () => {
+  const plan = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  let order = prepareReservationOrder(plan);
+  assert.ok(order.tasks.length >= 2);
+  order = recordProviderExecutionResult(order, order.tasks[0].id, { ok: true, confirmationId: "confirmed-1", confirmedAt: new Date().toISOString() });
+  order = recordProviderExecutionResult(order, order.tasks[1].id, { ok: false, reason: "매진", alternativeRequired: true });
+  assert.equal(order.status, "partially_completed");
+  assert.ok(order.tasks.some((task) => ["booked", "purchased"].includes(task.status)));
+  assert.ok(order.tasks.some((task) => task.status === "alternative_required"));
 });

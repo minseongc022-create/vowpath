@@ -7,9 +7,11 @@ import { attachCuratedReality, haversineKm, travelMinutes } from "./place-utils"
 import { appendPlanConversation, appendPlanVersion, buildPlanLogistics, restorePlanVersion, restoreReferencedCandidate, reviseDajeongPlan } from "./plan-engine";
 import { parseSituation } from "./situation";
 import { buildExperienceFlow } from "./experience";
+import { handleExecutionInstruction } from "./execution-conversation";
+import { reconcileReservationOrder } from "./reservation-engine";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
 
-type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "explain";
+type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "explain" | "execute" | "payment_review";
 
 export type ConciergeIntent = {
   action: ConciergeAction;
@@ -39,12 +41,12 @@ const CATEGORY_LABEL: Record<PlanCategory, string> = {
 };
 
 const VALID_CATEGORIES = new Set<PlanCategory>(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"]);
-const VALID_ACTIONS = new Set<ConciergeAction>(["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain"]);
+const VALID_ACTIONS = new Set<ConciergeAction>(["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain", "execute", "payment_review"]);
 
 const CONCIERGE_INTENT_SCHEMA: OpenAiJsonSchema = {
   type: "object",
   properties: {
-    action: { type: "string", enum: ["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain"] },
+    action: { type: "string", enum: ["replace", "add", "remove", "cheaper", "indoor", "reorder", "refine", "explain", "execute", "payment_review"] },
     targetCategory: { anyOf: [{ type: "string", enum: ["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"] }, { type: "null" }] },
     searchQuery: { type: "string" },
     preferences: { type: "array", items: { type: "string" } },
@@ -108,7 +110,9 @@ function categoryFromConversation(plan: DajeongPlan, instruction: string, reques
 
 function fallbackIntent(plan: DajeongPlan, instruction: string, requestedCategory?: PlanCategory): ConciergeIntent {
   const category = categoryFromConversation(plan, instruction, requestedCategory);
-  const action: ConciergeAction = /왜|이유|설명|어떤 곳|뭐가 좋|어때|어디|주소|위치|얼마|몇 시|언제|평점|리뷰|(?:가격|비용|예산).{0,6}(확실|맞|알려|어떻|남)|시간.{0,5}(알려|어떻)|예약.{0,5}(돼|가능|필요|알려)|영업.{0,5}(해|시간)/.test(instruction) ? "explain"
+  const action: ConciergeAction = /(?:결제|구매).{0,8}(?:해|하자|진행|할게)/.test(instruction) ? "payment_review"
+    : /예약.{0,10}(?:해|부탁|진행|잡|원해)|예매.{0,10}(?:해|부탁|진행|원해)|주문.{0,10}(?:해|부탁|진행|원해)/.test(instruction) ? "execute"
+      : /왜|이유|설명|어떤 곳|뭐가 좋|어때|어디|주소|위치|얼마|몇 시|언제|평점|리뷰|(?:가격|비용|예산).{0,6}(확실|맞|알려|어떻|남)|시간.{0,5}(알려|어떻)|예약.{0,5}(돼|가능|필요|알려)|영업.{0,5}(해|시간)/.test(instruction) ? "explain"
     : /빼|제외|없애|삭제/.test(instruction) ? "remove"
     : /싸게|저렴|예산.*줄|비용.*줄/.test(instruction) ? "cheaper"
       : /실내|비가|비 와|추워|더워/.test(instruction) ? "indoor"
@@ -185,7 +189,7 @@ export async function interpretConciergeInstruction(
       messages: [
         {
           role: "system",
-          content: "너는 실행형 개인 컨시어지의 대화 이해 엔진이다. 사용자가 정해진 명령어를 쓰지 않아도 문장 전체의 의미, 대명사, 부정 표현, 상대 취향, 유지할 조건과 바꿀 범위를 이해한다. 기존 대화와 일정이 문맥이다. 사용자가 요청하지 않은 일정은 보존한다. 감성 표현도 구체적인 탐색 조건으로 번역한다. 질문에는 일정을 바꾸지 말고 근거만 답한다. 장소명·가격·영업·예약 사실은 만들지 않는다. 숙소를 찾아달라면 targetCategory=lodging, action=add다. updates에는 사용자가 이번 문장에서 바꾸라고 한 값만 넣고 나머지는 null로 둔다.",
+          content: "너는 실행형 개인 컨시어지의 대화 이해 엔진이다. 사용자가 정해진 명령어를 쓰지 않아도 문장 전체의 의미, 대명사, 부정 표현, 상대 취향, 유지할 조건과 바꿀 범위를 이해한다. 기존 대화와 일정이 문맥이다. 사용자가 요청하지 않은 일정은 보존한다. 감성 표현도 구체적인 탐색 조건으로 번역한다. 질문에는 일정을 바꾸지 말고 근거만 답한다. 장소명·가격·영업·예약 사실은 만들지 않는다. 특정 현재 후보를 실제로 예약·예매·주문해 달라는 요청은 execute, 결제해 달라는 요청은 payment_review다. 단순히 예약 가능 여부를 묻는 질문은 explain이다. 숙소를 찾아달라면 targetCategory=lodging, action=add다. updates에는 사용자가 이번 문장에서 바꾸라고 한 값만 넣고 나머지는 null로 둔다.",
         },
         {
           role: "user",
@@ -354,8 +358,9 @@ function explainSelection(plan: DajeongPlan, category: PlanCategory | null, inst
 }
 
 function addRevision(plan: DajeongPlan, instruction: string, message: string, categories: PlanCategory[]): DajeongPlan {
+  const synchronized = reconcileReservationOrder(plan);
   const revised: DajeongPlan = {
-    ...plan,
+    ...synchronized,
     revisions: [{
       id: `rev_${Date.now().toString(36)}`,
       instruction,
@@ -456,6 +461,11 @@ export async function reviseDajeongPlanWithDiscovery(
   requestedItemId?: string,
 ): Promise<PlanRevisionResult> {
   const normalizedInstruction = instruction.trim();
+  const executionResult = handleExecutionInstruction(plan, normalizedInstruction, requestedItemId);
+  if (executionResult.handled) {
+    const next = appendPlanConversation(executionResult.plan, normalizedInstruction, executionResult.message);
+    return { plan: next, message: executionResult.message, changedCategories: [] };
+  }
   if (/처음.{0,8}(걸|계획|상태).{0,8}(돌아|복원)|처음으로\s*돌아/.test(normalizedInstruction)) {
     const initial = plan.versions?.[0];
     if (initial) {
@@ -492,6 +502,14 @@ export async function reviseDajeongPlanWithDiscovery(
     }
   }
   const intent = await interpretConciergeInstruction(plan, instruction, requestedCategory);
+  if (intent.action === "execute" || intent.action === "payment_review") {
+    const targetItemId = requestedItemId ?? (intent.targetCategory ? plan.items.find((item) => item.category === intent.targetCategory)?.id : undefined);
+    const execution = handleExecutionInstruction(plan, intent.action === "execute" ? "이거 예약해줘" : "이걸로 결제해", targetItemId);
+    if (execution.handled) {
+      const next = appendPlanConversation(execution.plan, normalizedInstruction, execution.message);
+      return { plan: next, message: execution.message, changedCategories: [] };
+    }
+  }
   const profileUpdate = memoryUpdateForInstruction(instruction, intent);
   const addsLodging = intent.targetCategory === "lodging" && intent.action === "add" && !plan.items.some((item) => item.category === "lodging");
   const rememberedConstraints = [...new Set([...plan.situation.constraints, ...intent.constraints])];

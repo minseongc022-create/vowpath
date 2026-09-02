@@ -2,6 +2,7 @@ import { getOptions } from "./catalog";
 import { buildExperienceFlow, journeyRoleFor, MOOD_LABEL } from "./experience";
 import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
+import { reconcileReservationOrder } from "./reservation-engine";
 import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
@@ -116,6 +117,7 @@ export function restorePlanVersion(plan: DajeongPlan, version: PlanVersion, inst
     budgetRemaining: version.budgetRemaining,
     experienceFlow: version.experienceFlow ? { ...version.experienceFlow, labels: [...version.experienceFlow.labels] } : undefined,
     discovery: version.discovery ? { ...version.discovery } : undefined,
+    execution: undefined,
     status: "draft",
   };
   return appendPlanVersion(restored, instruction, `${version.summary} 상태로 복원`);
@@ -374,7 +376,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
         } : item.reality,
       };
     });
-  return {
+  return reconcileReservationOrder({
     ...plan,
     situation,
     items: ordered,
@@ -384,7 +386,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
     reserve: Math.max(0, plan.budget - total),
     budgetRemaining: plan.budget - total,
     experienceFlow: buildExperienceFlow(ordered),
-  };
+  });
 }
 
 export function createDajeongPlan(input: PlanRequest): DajeongPlan {

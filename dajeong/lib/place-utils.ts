@@ -21,6 +21,7 @@ export type RealPlaceCandidate = {
   businessStatus: "operational" | "closed_temporarily" | "closed_permanently" | "unknown";
   mapsUrl: string;
   websiteUrl?: string;
+  phoneNumber?: string;
   photoUrl?: string;
   source: "google_places" | "openstreetmap";
   sourceLabel: string;
@@ -199,6 +200,7 @@ export function placeToPlanOption(params: {
       imageKind: place.photoUrl ? "place" : "reference",
       detailsUrl: place.mapsUrl,
       websiteUrl: place.websiteUrl,
+      phoneNumber: place.phoneNumber,
       reservationState: reservationRequired ? "manual" : "walk_in",
       reservationLabel: reservationRequired ? "예약 가능 여부 확인 필요" : "방문 전 영업 상태 확인",
       distanceFromPreviousKm: distance,

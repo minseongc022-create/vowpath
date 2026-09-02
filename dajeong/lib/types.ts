@@ -106,34 +106,110 @@ export type PlaceReality = {
   websiteUrl?: string;
   reservationState: "supported" | "manual" | "walk_in" | "unknown";
   reservationLabel: string;
+  bookingMethod?: BookingMethod;
+  bookingProviderId?: string;
+  reservationUrl?: string;
+  phoneNumber?: string;
+  phoneHours?: string[];
   distanceFromPreviousKm?: number;
   travelEstimateMinutes?: number;
   travelEstimateBasis?: "route" | "straight_line";
 };
 
 export type ReservationCapability = "automatic" | "assisted";
-export type ReservationTaskStatus = "checking" | "needs_approval" | "needs_deposit" | "ready" | "user_action" | "booked" | "failed";
+export type BookingMethod = "haruon_direct" | "external_online" | "external_platform" | "phone_only" | "walk_in" | "no_reservation" | "unsupported";
+export type ExecutionTaskKind = "reservation" | "ticket" | "purchase" | "lodging" | "transport" | "rental_car" | "logistics";
+export type ReservationTaskStatus = "not_started" | "checking" | "needs_information" | "needs_approval" | "needs_deposit" | "ready" | "user_action" | "executing" | "completed" | "booked" | "purchased" | "failed" | "phone_required" | "alternative_required" | "cancel_requested" | "refund_pending" | "refunded" | "unsupported";
+
+export type ExecutionPrice = {
+  currency: "KRW";
+  estimatedAmount: number;
+  confirmedTotalAmount?: number;
+  prepayAmount?: number;
+  onsiteAmount?: number;
+  confidence: "estimate" | "range" | "provider_quote";
+  quoteId?: string;
+  checkedAt?: string;
+};
+
+export type ExecutionConfirmation = {
+  source: "provider" | "user_report";
+  confirmationId: string;
+  confirmedAt: string;
+  details?: string;
+};
+
+export type ExecutionProposedChange = {
+  time?: string;
+  title?: string;
+  amount?: number;
+  additionalCost?: number;
+  cancellationTerms?: string;
+  reason: string;
+  requiresApproval: true;
+};
+
+export type ExecutionPrivacy = {
+  requiredFields: Array<"name" | "phone" | "email">;
+  approvedFields: Array<"name" | "phone" | "email">;
+  disclosureApprovedAt?: string;
+  purpose: string;
+};
+
+export type ExecutionApproval = {
+  id: string;
+  state: "not_requested" | "requested" | "granted" | "reapproval_required" | "expired";
+  taskIds: string[];
+  amount: number;
+  currency: "KRW";
+  requestedAt?: string;
+  approvedAt?: string;
+  approvalText?: string;
+  termsFingerprint: string;
+};
 
 export type ReservationTask = {
   id: string;
   itemId: string;
   title: string;
   time: string;
+  dayNumber?: number;
+  kind: ExecutionTaskKind;
+  bookingMethod: BookingMethod;
   capability: ReservationCapability;
   status: ReservationTaskStatus;
   providerLabel: string;
   bookingUrl: string;
   depositAmount?: number;
   explanation: string;
+  availability: "unknown" | "checking" | "available" | "unavailable";
+  price: ExecutionPrice;
+  privacy: ExecutionPrivacy;
+  phoneNumber?: string;
+  phoneHours?: string[];
+  phoneScript?: string;
+  dependsOnTaskIds?: string[];
+  itemFingerprint: string;
+  confirmation?: ExecutionConfirmation;
+  proposedChange?: ExecutionProposedChange;
+  failureReason?: string;
 };
 
 export type ReservationOrder = {
   id: string;
   planId: string;
   createdAt: string;
-  status: "checking" | "needs_approval" | "needs_deposit" | "ready" | "partially_manual" | "completed";
+  updatedAt: string;
+  status: "not_started" | "checking" | "needs_information" | "needs_approval" | "needs_deposit" | "ready" | "partially_manual" | "executing" | "partially_completed" | "completed" | "failed" | "alternative_required";
   tasks: ReservationTask[];
   depositTotal: number;
+  estimatedTotal: number;
+  payableNow: number;
+  onsiteEstimated: number;
+  unconfirmedPriceTaskIds: string[];
+  requestedItemIds: string[];
+  requestedScope: "selection" | "whole_plan";
+  approval?: ExecutionApproval;
   message: string;
 };
 
@@ -329,6 +405,7 @@ export type DajeongPlan = {
   revisions: PlanRevision[];
   versions?: PlanVersion[];
   logistics?: PlanLogisticsItem[];
+  execution?: ReservationOrder;
   conversation?: ConciergeMessage[];
   experienceFlow?: {
     labels: string[];

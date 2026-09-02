@@ -11,6 +11,7 @@ type GoogleNewPlace = {
   location?: { latitude?: number; longitude?: number };
   googleMapsUri?: string;
   websiteUri?: string;
+  nationalPhoneNumber?: string;
   rating?: number;
   userRatingCount?: number;
   priceLevel?: string;
@@ -34,6 +35,7 @@ type GoogleLegacyPlace = {
   business_status?: string;
   photos?: Array<{ photo_reference?: string }>;
   website?: string;
+  formatted_phone_number?: string;
   url?: string;
   opening_hours?: { open_now?: boolean; weekday_text?: string[] };
   editorial_summary?: { overview?: string };
@@ -171,6 +173,7 @@ function normalizeNew(place: GoogleNewPlace, checkedAt: string): RealPlaceCandid
     businessStatus: businessStatus(place.businessStatus),
     mapsUrl: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${encodeURIComponent(id)}`,
     websiteUrl: place.websiteUri,
+    phoneNumber: place.nationalPhoneNumber,
     photoUrl: photo ? `/api/dajeong/places/photo?source=new&ref=${encodeURIComponent(photo)}` : undefined,
     source: "google_places",
     sourceLabel: "Google Places",
@@ -207,6 +210,7 @@ function normalizeLegacy(place: GoogleLegacyPlace, checkedAt: string): RealPlace
     businessStatus: businessStatus(place.business_status),
     mapsUrl: place.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${encodeURIComponent(id)}`,
     websiteUrl: place.website,
+    phoneNumber: place.formatted_phone_number,
     photoUrl: photo ? `/api/dajeong/places/photo?source=legacy&ref=${encodeURIComponent(photo)}` : undefined,
     source: "google_places",
     sourceLabel: "Google Places",
@@ -225,7 +229,7 @@ async function searchNew(apiKey: string, query: string, near?: Coordinates): Pro
         headers: headers(referer, {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.websiteUri,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.regularOpeningHours,places.photos,places.businessStatus,places.editorialSummary,places.reviews,places.types",
+          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.regularOpeningHours,places.photos,places.businessStatus,places.editorialSummary,places.reviews,places.types",
         }),
         body: JSON.stringify({
           textQuery: query,
@@ -279,7 +283,7 @@ async function legacyPlaceDetails(apiKey: string, placeId: string, referer: stri
     place_id: placeId,
     key: apiKey,
     language: "ko",
-    fields: "place_id,name,formatted_address,geometry,rating,user_ratings_total,price_level,opening_hours,business_status,photos,website,url,reviews,editorial_summary,types",
+    fields: "place_id,name,formatted_address,geometry,rating,user_ratings_total,price_level,opening_hours,business_status,photos,website,formatted_phone_number,url,reviews,editorial_summary,types",
   });
   try {
     const response = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`, {

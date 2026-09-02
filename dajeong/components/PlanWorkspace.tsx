@@ -7,6 +7,7 @@ import { getPlan, rememberPersonProfile, savePlan } from "../lib/storage";
 import { appendPlanConversation, appendPlanVersion, replacePlanItem } from "../lib/plan-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
+import { prepareReservationOrder } from "../lib/reservation-engine";
 import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, MapPinIcon, ShieldIcon, SparkleIcon, WalletIcon } from "./DajeongIcons";
 
@@ -327,10 +328,14 @@ export function PlanWorkspace({ planId }: { planId: string }) {
 
   function confirmPlan() {
     if (!plan || plan.budgetRemaining < 0) return;
-    const next: DajeongPlan = {
+    const confirmed: DajeongPlan = {
       ...plan,
       status: "confirmed",
       items: plan.items.map((item) => ({ ...item, status: "confirmed" })),
+    };
+    const next: DajeongPlan = {
+      ...confirmed,
+      execution: prepareReservationOrder(confirmed, { previous: plan.execution, includeTravel: true }),
     };
     savePlan(next);
     router.push(`/dajeong/plan/${plan.id}/execute`);
