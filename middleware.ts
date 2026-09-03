@@ -282,7 +282,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // Dajeong — occasion planning product, isolated from every legacy shell.
-  if (pathname.startsWith("/dajeong")) {
+  //
+  // ★ API routes live at /api/dajeong/* and /api/cron/dajeong-notifications, not under
+  // /dajeong — a plain `startsWith("/dajeong")` check misses them, and they'd otherwise fall
+  // through to the effiroad-apex "empty domain" branch below and 404 before ever reaching the
+  // route handler (real incident: the whole app loaded but every API call 404'd).
+  if (
+    pathname.startsWith("/dajeong") ||
+    pathname.startsWith("/api/dajeong") ||
+    pathname.startsWith("/api/cron/dajeong-notifications")
+  ) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "dajeong");
     requestHeaders.set("x-pathname", pathname);
