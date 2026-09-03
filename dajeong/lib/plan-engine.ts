@@ -448,7 +448,7 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     budgetRemaining: reserve,
     readiness: Math.min(96, 74 + (situation.urgency === "planned" ? 18 : situation.urgency === "soon" ? 12 : 6)),
     status: "draft",
-    notice: "현재 화면의 장소는 조건에 맞는 탐색 방향입니다. 가격·영업·좌석은 연결된 서비스에서 최종 확인되며, 하루온은 사용자 승인 없이 예약하거나 결제하지 않습니다.",
+    notice: "현재 화면의 장소는 조건에 맞는 탐색 방향입니다. 가격·영업·좌석은 연결된 서비스에서 최종 확인되며, 하루위드는 사용자 승인 없이 예약하거나 결제하지 않습니다.",
     revisions: [],
     logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),

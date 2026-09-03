@@ -277,7 +277,7 @@ test("여행의 두 번째 날 후보만 바꾸면 첫날 같은 종류 일정�
   assert.ok(changed.items.some((item) => item.dayNumber === 2 && item.category === "activity" && item.title === replacement.title));
 });
 
-test("하루온 멀티턴 여행 대화는 9턴의 조건을 잃지 않고 질문을 멈춘다", async () => {
+test("하루위드 멀티턴 여행 대화는 9턴의 조건을 잃지 않고 질문을 멈춘다", async () => {
   const turns = [
     "나 여친이랑 제주도 가고 싶은데 뭐하고 놀지",
     "2박3일",

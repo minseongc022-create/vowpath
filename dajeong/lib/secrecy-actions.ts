@@ -179,7 +179,7 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
       const dayNumber = cutoffItem?.dayNumber ?? 1;
       const { plan: next, changedItemIds } = setVisibilityFrom(plan, dayNumber, cutoffTime, "secret");
       const message = changedItemIds.length
-        ? `${cutoffTime} 이후 일정은 동반자 화면에서 비공개로 바꿨어요. 하루온은 계속 전체 일정을 기억하고 동선을 맞춰요.`
+        ? `${cutoffTime} 이후 일정은 동반자 화면에서 비공개로 바꿨어요. 하루위드는 계속 전체 일정을 기억하고 동선을 맞춰요.`
         : "그 시간 이후 일정이 없어서 바꿀 내용이 없어요.";
       return { handled: true, plan: record(next, instruction, message, changedItemIds, true), message, changedItemIds };
     }
@@ -226,7 +226,7 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
       return { handled: true, plan: appendPlanConversation(plan, instruction, message), message, changedItemIds: [] };
     }
     const next = setItemVisibility(plan, target.id, "secret", instruction.slice(0, 120));
-    const message = `${target.title} 일정은 이제 동반자 화면에는 보이지 않아요. 하루온은 계속 이 일정까지 포함해서 동선과 시간을 맞출게요.`;
+    const message = `${target.title} 일정은 이제 동반자 화면에는 보이지 않아요. 하루위드는 계속 이 일정까지 포함해서 동선과 시간을 맞출게요.`;
     return { handled: true, plan: record(next, instruction, message, [target.id], true), message, changedItemIds: [target.id] };
   }
 

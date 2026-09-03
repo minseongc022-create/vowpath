@@ -222,7 +222,7 @@ export function attachCuratedReality(option: PlanOption): PlanOption {
     ...option,
     reality: {
       source: "curated",
-      sourceLabel: "하루온 기본 후보",
+      sourceLabel: "하루위드 기본 후보",
       priceLabel: `예상 ${option.price.toLocaleString("ko-KR")}원`,
       priceConfidence: "estimated",
       openNow: null,

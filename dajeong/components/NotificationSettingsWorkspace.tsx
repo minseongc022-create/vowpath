@@ -13,7 +13,7 @@ const CATEGORY_LABEL: Record<keyof NotificationPreferences["categories"], string
   execution: "예약·체크인 알림",
   weather: "날씨 변화 알림",
   sharedPlanChanges: "공유방 변경 알림",
-  proactiveSuggestions: "하루온의 먼저 말 걸기",
+  proactiveSuggestions: "하루위드의 먼저 말 걸기",
 };
 
 export function NotificationSettingsWorkspace() {
@@ -65,7 +65,7 @@ export function NotificationSettingsWorkspace() {
   return (
     <div className="dj-plans-page dj-narrow">
       <div className="dj-plans-heading">
-        <div><span className="dj-kicker"><SparkleIcon size={15} /> 알림 설정</span><h1>하루온 알림</h1><p>필요한 순간에만, 부담스럽지 않게 보내도록 조절할 수 있어요.</p></div>
+        <div><span className="dj-kicker"><SparkleIcon size={15} /> 알림 설정</span><h1>하루위드 알림</h1><p>필요한 순간에만, 부담스럽지 않게 보내도록 조절할 수 있어요.</p></div>
         <Link href="/dajeong" className="dj-btn dj-btn-primary">계획으로 <ArrowIcon size={16} /></Link>
       </div>
 

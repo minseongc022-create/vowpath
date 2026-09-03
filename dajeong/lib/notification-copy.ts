@@ -110,17 +110,17 @@ export function checkinCheckoutCopy(input: { kind: "checkin" | "checkout"; title
 }
 
 const CONTENT_HIDDEN_BODY: Record<NotificationKind, string> = {
-  departure: "하루온에서 확인할 게 있어.",
-  prep_deadline: "하루온에서 확인할 게 있어.",
-  prep_pickup: "하루온에서 확인할 게 있어.",
-  weather_change: "하루온에서 확인할 게 있어.",
-  homebound: "하루온에서 확인할 게 있어.",
-  reservation_risk: "하루온에서 확인할 게 있어.",
-  checkin_checkout: "하루온에서 확인할 게 있어.",
+  departure: "하루위드에서 확인할 게 있어.",
+  prep_deadline: "하루위드에서 확인할 게 있어.",
+  prep_pickup: "하루위드에서 확인할 게 있어.",
+  weather_change: "하루위드에서 확인할 게 있어.",
+  homebound: "하루위드에서 확인할 게 있어.",
+  reservation_risk: "하루위드에서 확인할 게 있어.",
+  checkin_checkout: "하루위드에서 확인할 게 있어.",
 };
 
 /** Level-2 privacy: replace both title and body with a generic line before the notification is
  * ever persisted or sent — the real content never reaches storage or a device in that state. */
 export function contentHiddenCopy(kind: NotificationKind): { title: string; body: string } {
-  return { title: "하루온", body: CONTENT_HIDDEN_BODY[kind] };
+  return { title: "하루위드", body: CONTENT_HIDDEN_BODY[kind] };
 }

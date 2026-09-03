@@ -22,7 +22,7 @@ function backend(): typeof dbStore | typeof fileStore {
   if (isDatabaseConfigured()) return dbStore;
   if (isDeployed()) {
     throw new Error(
-      "하루온 동반자/공유 기능은 DAJEONG_DATABASE_URL이 설정된 운영 DB가 필요해요. " +
+      "하루위드 동반자/공유 기능은 DAJEONG_DATABASE_URL이 설정된 운영 DB가 필요해요. " +
       "이 배포에는 설정되어 있지 않아요 — 파일 저장소는 로컬 개발 전용 대체 수단입니다.",
     );
   }

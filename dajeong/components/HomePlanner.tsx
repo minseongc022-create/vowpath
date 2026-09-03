@@ -197,7 +197,7 @@ export function HomePlanner() {
     event?.preventDefault();
     const nextRequest = (value ?? request).trim();
     if (!nextRequest) {
-      setError("편하게 한마디만 말해 주세요. 온이가 이어서 물어볼게요.");
+      setError("편하게 한마디만 말해 주세요. 하루위드가 이어서 물어볼게요.");
       return;
     }
     void sendMessage(nextRequest);

@@ -93,7 +93,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  // "하루온이 먼저 말 걸기" — shows the most relevant already-delivered/due proactive message for
+  // "하루위드가 먼저 말 걸기" — shows the most relevant already-delivered/due proactive message for
   // this plan in the same place a push notification would have opened. In-app, so it reads as
   // one continuous experience instead of a duplicate ping on top of what the push already said.
   useEffect(() => {

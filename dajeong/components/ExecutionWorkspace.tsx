@@ -46,7 +46,7 @@ function downloadCalendar(plan: DajeongPlan) {
 }
 
 const METHOD_LABEL: Record<BookingMethod, string> = {
-  haruon_direct: "하루온 직접 실행",
+  haruon_direct: "하루위드 직접 실행",
   external_online: "업체 공식 온라인",
   external_platform: "외부 예약 플랫폼",
   phone_only: "전화 예약만 가능",
@@ -123,7 +123,7 @@ function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport:
           </div>
         ) : null}
         {task.privacy.requiredFields.length ? (
-          <div className="dj-privacy-note"><ShieldIcon size={14} /><span>예약 시 {task.privacy.requiredFields.map((field) => ({ name: "이름", phone: "전화번호", email: "이메일" })[field]).join("·")}가 필요할 수 있어요. 현재 하루온이 업체에 전달한 개인정보는 없습니다.</span></div>
+          <div className="dj-privacy-note"><ShieldIcon size={14} /><span>예약 시 {task.privacy.requiredFields.map((field) => ({ name: "이름", phone: "전화번호", email: "이메일" })[field]).join("·")}가 필요할 수 있어요. 현재 하루위드가 업체에 전달한 개인정보는 없습니다.</span></div>
         ) : null}
       </div>
       <div className="dj-execution-task-actions">
@@ -260,7 +260,7 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
             <button type="button" className="dj-btn dj-btn-primary" onClick={approveExactPayment}>위 항목 {money(approval.amount)} 결제 승인</button>
           </div>
         ) : approval?.state === "granted" ? (
-          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>{money(approval.amount)} 결제 승인을 기록했어요. 아직 결제 성공은 아니에요.</strong>하루온 직접 실행 파트너가 없는 항목은 외부 공식 화면에서 사용자가 완료하고 확인번호를 기록해야 합니다.</p></div>
+          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>{money(approval.amount)} 결제 승인을 기록했어요. 아직 결제 성공은 아니에요.</strong>하루위드 직접 실행 파트너가 없는 항목은 외부 공식 화면에서 사용자가 완료하고 확인번호를 기록해야 합니다.</p></div>
         ) : (
           <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>“좋네”나 “이걸로 하자”는 결제 승인이 아니에요.</strong>실제 가능 여부와 정확한 사전결제 금액이 확인된 항목만 따로 보여주고 명시적 승인을 받습니다.</p>{reservationOrder?.tasks.length ? <button type="button" onClick={reviewPayment}>결제 항목·금액 검토</button> : null}</div>
         )}

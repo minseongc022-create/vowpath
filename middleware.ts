@@ -205,8 +205,9 @@ export async function middleware(request: NextRequest) {
     return learnShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
   }
 
-  // haruwith.com (하루위드) → 하루온(dajeong), served at its own domain root instead of
-  // effiroad.com/dajeong. Same app, same DB, same API routes — only the host differs.
+  // haruwith.com (하루위드) — its own domain, entirely separate from effiroad.com: own
+  // brand, own DB rows, own OAuth clients. See the /dajeong-path redirect below for why
+  // effiroad.com/dajeong itself no longer serves this app.
   if (isDajeongHost(hostname)) {
     return dajeongShellResponse(request, dajeongInternalPath(pathname));
   }
@@ -302,19 +303,11 @@ export async function middleware(request: NextRequest) {
 
   // Dajeong — occasion planning product, isolated from every legacy shell.
   //
-  // ★ API routes live at /api/dajeong/* and /api/cron/dajeong-notifications, not under
-  // /dajeong — a plain `startsWith("/dajeong")` check misses them, and they'd otherwise fall
-  // through to the effiroad-apex "empty domain" branch below and 404 before ever reaching the
-  // route handler (real incident: the whole app loaded but every API call 404'd).
-  if (
-    pathname.startsWith("/dajeong") ||
-    pathname.startsWith("/api/dajeong") ||
-    pathname.startsWith("/api/cron/dajeong-notifications")
-  ) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "dajeong");
-    requestHeaders.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+  // 하루위드는 haruwith.com 전용 도메인으로 완전히 옮겼다 — effiroad.com과 브랜드·세션
+  // 쿠키·크론을 하나도 안 섞으려는 목적이라, 옛 경로로 오는 방문자는 그냥 새 도메인으로
+  // 보낸다(기존에 저장돼 있던 링크·북마크가 깨지지 않게).
+  if (pathname.startsWith("/dajeong")) {
+    return NextResponse.redirect(new URL(`https://haruwith.com${pathname}${request.nextUrl.search}`), 308);
   }
 
   // Mano — home services marketplace (Guadalajara), isolated product shell.

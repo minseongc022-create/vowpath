@@ -1,5 +1,5 @@
 /**
- * Service worker for 하루온(dajeong) proactive push notifications only. Registered with
+ * Service worker for 하루위드(dajeong) proactive push notifications only. Registered with
  * scope "/dajeong/" (see dajeong/lib/push-client.ts) so it never intercepts requests for any
  * other product in this monorepo.
  */
@@ -13,7 +13,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let payload = { title: "하루온", body: "", deepLink: "/dajeong" };
+  let payload = { title: "하루위드", body: "", deepLink: "/dajeong" };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
   } catch {

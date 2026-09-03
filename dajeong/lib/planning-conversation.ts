@@ -124,7 +124,7 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
   if (key === "tripLength") return { reply: "이번에는 당일치기로 다녀오고 싶으세요, 아니면 숙소가 있는 여행이 좋아요? 숙박이라면 몇 박인지 편하게 말해 주세요.", quickReplies: ["당일치기", "1박 2일", "2박 3일"] };
   if (key === "date") return { reply: "언제 떠나거나 만나실 예정인가요? 날짜를 아직 못 정했다면 ‘이번 주말로 추천해줘’라고 해도 괜찮아요.", quickReplies: ["오늘", "이번 토요일", "이번 주말로 추천해줘"] };
   if (key === "departure") return { reply: "어디에서 출발하세요? 출발지만 알려주시면 이동 시간이 무리 없는 여행지까지 제가 골라볼게요.", quickReplies: ["서울에서 출발해요", "인천에서 출발해요", "부산에서 출발해요"] };
-  if (key === "region") return { reply: "어느 지역에서 보내고 싶으세요? 아직 정한 곳이 없다면 지금 계신 지역을 말해 주세요. 그 안에서 가장 잘 맞는 동네를 제가 추천할게요.", quickReplies: ["서울 안에서 추천해줘", "성수 쪽이 좋아요", "지역도 온이에게 맡길게요"] };
+  if (key === "region") return { reply: "어느 지역에서 보내고 싶으세요? 아직 정한 곳이 없다면 지금 계신 지역을 말해 주세요. 그 안에서 가장 잘 맞는 동네를 제가 추천할게요.", quickReplies: ["서울 안에서 추천해줘", "성수 쪽이 좋아요", "지역도 하루위드에게 맡길게요"] };
   if (key === "partySize") return { reply: "함께 가는 분은 모두 몇 명인가요? 인원에 맞춰 좌석과 숙소 방 구성을 확인할게요.", quickReplies: ["둘이 가요", "3명이에요", "4명이에요"] };
   if (key === "budget") return { reply: "전체 예산은 어느 정도로 생각하세요? 아직 모르겠다면 ‘적당한 선으로 추천해줘’라고 해도 돼요. 교통과 숙소가 있으면 모두 포함해서 맞출게요.", quickReplies: ["20만원 정도", "30만원 안으로", "적당한 선으로 추천해줘"] };
   if (key === "preference") return { reply: `${recipient}분이 좋아하는 음식이나 분위기, 해보고 싶어 한 것이 있나요? 생각나는 것만 말해 주세요. 잘 모르겠다면 제가 특별한 쪽으로 제안할게요.`, quickReplies: ["신비롭고 이색적으로", "재밌고 활동적으로", "조용하고 분위기 좋게"] };

@@ -13,7 +13,7 @@
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
 | Effiroad seller dashboard UI | Every 60 seconds (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
-| **하루온(dajeong) proactive notifications** — *registered in config, NOT yet live on cron-job.org* | Intended: every 60 seconds via cron-job.org (same pattern as tech-dispatch). Entry is in `config/cron.schedule.json`'s `externalCrons` — running `CRONJOB_ORG_API_KEY=... node scripts/cron-job-org-setup.mjs` creates the real job with no further edits needed. That script was run in this repo's dev session on 2026-09-03 and correctly no-op'd ("Skip cron-job.org — set CRONJOB_ORG_API_KEY") because no cron-job.org account key was available there — a human with the account needs to run it once. Until then, only the daily `vercel.json` backup (`0 17 * * *`) and the in-request resweep-on-edit (no dispatch) fire. | `GET /api/cron/dajeong-notifications` (CRON_SECRET) — see `dajeong/lib/notification-sweep.ts` |
+| **하루위드(dajeong) proactive notifications** — live on cron-job.org, targeting haruwith.com | Every 60 seconds via cron-job.org. 2026-09-03: 하루위드 moved off effiroad.com onto its own domain (haruwith.com) — separate brand, separate session cookies, separate cron. `effiroad.com/dajeong*` now 308-redirects to `haruwith.com` (see `middleware.ts`); the cron job was re-registered against `haruwith.com` and the old `effiroad.com` job retired. Entry lives in `config/cron.schedule.json`'s `externalCrons`. | `GET https://haruwith.com/api/cron/dajeong-notifications` (CRON_SECRET) — see `dajeong/lib/notification-sweep.ts` |
 
 ### Why two schedulers?
 

@@ -59,7 +59,7 @@ function subtractMinutes(value: string, minutes: number): string {
 
 function methodLabel(method: BookingMethod): string {
   return {
-    haruon_direct: "하루온 직접 실행",
+    haruon_direct: "하루위드 직접 실행",
     external_online: "업체 공식 온라인 예약",
     external_platform: "외부 예약 플랫폼",
     phone_only: "전화 예약",
@@ -104,8 +104,8 @@ function explanation(method: BookingMethod): string {
   return {
     haruon_direct: "연결된 제공자에서 실제 가능 여부와 정확한 금액을 받은 뒤 승인 단계로 넘어가요.",
     external_online: "업체 공식 페이지에서 가능 여부와 최종 금액을 직접 확인해야 해요. 페이지를 여는 것만으로 예약되지는 않아요.",
-    external_platform: "외부 예약 플랫폼에서 가능 여부와 최종 금액을 확인해야 해요. 하루온에는 아직 완료 결과가 자동으로 돌아오지 않아요.",
-    phone_only: "전화로 가능 여부를 확인해야 해요. 현재 하루온은 직접 통화하지 않으므로 통화 문구를 준비해 드려요.",
+    external_platform: "외부 예약 플랫폼에서 가능 여부와 최종 금액을 확인해야 해요. 하루위드에는 아직 완료 결과가 자동으로 돌아오지 않아요.",
+    phone_only: "전화로 가능 여부를 확인해야 해요. 현재 하루위드는 직접 통화하지 않으므로 통화 문구를 준비해 드려요.",
     walk_in: "별도 예약 없이 방문하는 방식이에요. 방문 직전 영업 상태와 대기를 다시 확인하세요.",
     no_reservation: "예약이 필요 없는 일정이에요. 방문 시간의 운영 여부만 확인하면 돼요.",
     unsupported: "예약 방식이나 공식 실행 경로를 아직 확인하지 못했어요. 검색 링크를 열었다고 완료로 처리하지 않아요.",
