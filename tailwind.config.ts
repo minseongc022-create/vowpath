@@ -12,6 +12,7 @@ const config: Config = {
     "./chaebi/styles/**/*.css",
     "./giu/**/*.{js,ts,jsx,tsx,mdx}",
     "./giu/styles/**/*.css",
+    "./dajeong/**/*.{js,ts,jsx,tsx,mdx}",
     "./toss-shop/**/*.{js,ts,jsx,tsx,mdx}",
     "./toss-shop/styles/**/*.css",
   ],

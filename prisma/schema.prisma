@@ -73,6 +73,65 @@ model VerificationToken {
   @@map("learn_verification_tokens")
 }
 
+// ─── Auth (NextAuth) — 하루온(dajeong), isolated from Learn/Effiroad ──────────
+// Separate table set on purpose (same convention as Learn) — a dajeong login
+// must never accidentally read/write another product's user rows.
+
+model DajeongUser {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts DajeongAccount[]
+  sessions DajeongSession[]
+
+  @@map("dajeong_users")
+}
+
+model DajeongAccount {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user DajeongUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("dajeong_accounts")
+}
+
+model DajeongSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user DajeongUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("dajeong_sessions")
+}
+
+model DajeongVerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("dajeong_verification_tokens")
+}
+
 // ─── Curriculum ──────────────────────────────────────────────────────────────
 
 model Course {
@@ -291,4 +350,184 @@ model MaterialAnalysis {
   material LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
 
   @@map("learn_material_analysis")
+}
+
+// ─── 하루온(dajeong) — companion/sharing/notification operational state ──────
+// Isolated the same way as DajeongUser above: dajeong_* tables only, on the
+// same physical Postgres instance. `personId` here is either an account id
+// ("user_<DajeongUser.id>") or an anonymous device id minted client-side —
+// this store is identity-string-agnostic on purpose, matching the app's
+// existing anonymous/account duality (see dajeong/lib/identity.ts). Gated by
+// the same isDatabaseConfigured() flag as login; see dajeong/lib/db.ts.
+
+model DajeongPerson {
+  id        String   @id
+  name      String
+  updatedAt DateTime @updatedAt
+
+  @@map("dajeong_people")
+}
+
+model DajeongCompanionInvite {
+  code       String    @id
+  fromId     String
+  fromName   String
+  relation   String
+  note       String?
+  status     String    @default("pending") // pending | accepted | cancelled
+  acceptedBy String?
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+
+  @@index([fromId, status])
+  @@map("dajeong_companion_invites")
+}
+
+model DajeongCompanionLink {
+  id         String   @id @default(cuid())
+  // Stored with memberAId < memberBId lexicographically so the pair is always
+  // reachable from either direction with one unique index, instead of two.
+  memberAId   String
+  memberAName String
+  memberBId   String
+  memberBName String
+  relation    String
+  createdAt   DateTime @default(now())
+
+  @@unique([memberAId, memberBId])
+  @@index([memberBId])
+  @@map("dajeong_companion_links")
+}
+
+model DajeongSharedPlan {
+  planId        String   @id
+  ownerId       String
+  ownerName     String
+  companionId   String
+  companionName String
+  // The itinerary/prep/schedule/execution object graph is deep, highly
+  // variant (many optional branches per category/visibility/live state) and
+  // owned end-to-end by dajeong/lib/types.ts — normalizing every nested shape
+  // into relational tables here would duplicate that type system in SQL DDL
+  // for no real query benefit (nothing queries inside the plan; access is
+  // always "give me plan X for participant Y"). Kept as jsonb, matching how
+  // Learn stores comparably deep nested content (see e.g. MaterialAnalysis
+  // above). Ownership/participant/version fields that DO need to be queried,
+  // constrained, or joined are real columns.
+  plan      Json
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([companionId])
+  @@map("dajeong_shared_plans")
+}
+
+model DajeongPacePreference {
+  personId      String
+  companionKey  String
+  density       String?
+  placesPerDay  Int?
+  notes         Json     @default("[]")
+  updatedAt     DateTime @updatedAt
+
+  @@id([personId, companionKey])
+  @@map("dajeong_pace_preferences")
+}
+
+/** A solo (non-shared) plan the owner opted into proactive notifications for
+ * — see dajeong/lib/notification-sweep.ts. Never readable by anyone but the
+ * owner; there is no companion column here at all. */
+model DajeongRegisteredPlan {
+  planId    String   @id
+  ownerId   String
+  plan      Json
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("dajeong_registered_plans")
+}
+
+model DajeongWeatherDigest {
+  planId    String   @id
+  digest    Json
+  updatedAt DateTime @updatedAt
+
+  @@map("dajeong_weather_digests")
+}
+
+model DajeongPushSubscription {
+  id        String   @id @default(cuid())
+  personId  String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([personId])
+  @@map("dajeong_push_subscriptions")
+}
+
+model DajeongNotificationPreference {
+  personId          String   @id
+  masterEnabled     Boolean  @default(true)
+  categories        Json
+  secretPrivacyLevel String  @default("content_hidden")
+  quietHoursStart   String?
+  quietHoursEnd     String?
+  updatedAt         DateTime @updatedAt
+
+  @@map("dajeong_notification_preferences")
+}
+
+model DajeongNotification {
+  id             String    @id @default(cuid())
+  planId         String
+  planVersion    Int
+  targetPersonId String
+  kind           String
+  priority       String
+  status         String // scheduled | sent | cancelled | superseded | failed
+  dedupeKey      String
+  scheduledFor   DateTime
+  // Absolute instant (scheduledFor) is always correct regardless of this
+  // field — it just records which timezone the human-facing schedule was
+  // reasoned in, so a future non-Korea region can be added without a data
+  // migration. See notification-engine.ts's kstToUtc for how "Asia/Seoul" is
+  // currently the only timezone the itinerary engine understands at all.
+  timezone       String    @default("Asia/Seoul")
+  title          String
+  body           String    @db.Text
+  privacyAtSend  String
+  deepLink       String
+  relatedItemId  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sentAt         DateTime?
+  supersededBy   String?
+  failureReason  String?
+
+  @@index([targetPersonId, status])
+  @@index([status, scheduledFor])
+  @@index([planId])
+  @@map("dajeong_notifications")
+}
+
+/**
+ * Records that anonymous device id X has been claimed into account Y — see
+ * dajeong/lib/account-migration.ts. `anonymousId` is the primary key, so the
+ * database itself refuses a second claim of the same anonymous id by a
+ * different account; re-claiming into the SAME account is treated as a
+ * harmless no-op by the application layer (idempotent retry), never by
+ * relaxing this constraint.
+ */
+model DajeongAnonymousClaim {
+  anonymousId String   @id
+  accountId   String
+  claimedAt   DateTime @default(now())
+
+  @@index([accountId])
+  @@map("dajeong_anonymous_claims")
 }

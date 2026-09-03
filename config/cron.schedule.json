@@ -14,6 +14,19 @@
       ],
       "note": "자비스 자동 소싱. ★ baseUrl에 www가 붙어야 한다 — apex(giucuu.com)는 Vercel이 www로 308 리다이렉트하는데 cron-job.org는 따라가지 않아 308에서 멈춘다. 600초는 자비스 설계 주기(검색어 순환·API 예산)라 낮추지 말 것.",
       "baseUrl": "https://www.giucuu.com"
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/dajeong-notifications",
+      "intervalSeconds": 60,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": [
+        "하루온(dajeong): 등록된 solo 계획 + 공유 계획을 스윕해 지금 보낼 가치가 있는 proactive 알림(출발/prep 마감·픽업/날씨 변화/귀가/체크인·체크아웃)을 계산·저장",
+        "저장된 것 중 발송 시각이 지난 것을 실제 web push로 발송"
+      ],
+      "note": "2026-09-03 코드는 push됐지만 이 크론은 아직 cron-job.org에 등록되지 않았다 — 등록하려면 CRONJOB_ORG_API_KEY(cron-job.org 계정) + CRON_SECRET(또는 VERCEL_TOKEN)이 필요한데 이 세션엔 둘 다 없다. 사람이 CRONJOB_ORG_API_KEY를 넣고 node scripts/cron-job-org-setup.mjs를 실행하면 이 항목이 자동 등록된다. 그 전까지는 vercel.json의 일 1회 백업 크론(0 17 * * *)만 돈다 — 실시간성이 크게 떨어진다는 뜻. baseUrl은 effiroad.com(top-level 기본값)으로 충분 — /topik, /learn이 이미 거기서 200으로 응답하는 것으로 실제 확인함(2026-09-03, /dajeong 경로 자체는 아직 main에 머지 전이라 404).",
+      "baseUrl": "https://effiroad.com"
     }
   ],
   "retiredCrons": [
@@ -48,6 +61,12 @@
       "schedule": "0 6 * * *",
       "utcHour": 6,
       "note": "Daily backup; production real-time cadence is the external 600s cron-job.org job above"
+    },
+    {
+      "path": "/api/cron/dajeong-notifications",
+      "schedule": "0 17 * * *",
+      "utcHour": 17,
+      "note": "Daily backup only; production real-time cadence is the external 60s cron-job.org job above, which is not registered yet — see that entry's note"
     }
   ],
   "manualOrPostbuildCrons": [

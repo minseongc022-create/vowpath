@@ -7,6 +7,7 @@ import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { JarvisPlatformShell } from "@/jarvis/ui/JarvisPlatformShell";
 import { ChaebiPlatformShell } from "@/chaebi/components/layout/ChaebiPlatformShell";
 import { CHAEBI_BRAND } from "@/chaebi/lib/brand";
+import { DajeongPlatformShell } from "@/dajeong/components/DajeongPlatformShell";
 import { EFFIROAD_BRAND } from "@/jarvis/brand";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
@@ -16,6 +17,7 @@ import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import { getAppShell } from "@/lib/shell-route";
 import { LEARN_BRAND } from "@/learn/lib/brand";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
+import { DAJEONG_BRAND } from "@/dajeong/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +99,19 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
+  if (shell === "dajeong") {
+    return {
+      title: { default: DAJEONG_BRAND.fullName, template: `%s · ${DAJEONG_BRAND.name}` },
+      description: DAJEONG_BRAND.tagline,
+      applicationName: DAJEONG_BRAND.name,
+      robots: { index: false, follow: false },
+      openGraph: {
+        title: DAJEONG_BRAND.fullName,
+        description: DAJEONG_BRAND.tagline,
+        locale: "ko_KR",
+      },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -129,6 +144,9 @@ export default async function RootLayout({
   }
   if (shell === "chaebi") {
     return <ChaebiPlatformShell>{children}</ChaebiPlatformShell>;
+  }
+  if (shell === "dajeong") {
+    return <DajeongPlatformShell>{children}</DajeongPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }

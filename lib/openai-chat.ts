@@ -2,6 +2,13 @@ const DEFAULT_TIMEOUT_MS = 20_000;
 
 export type ChatTurn = { role: "user" | "assistant" | "system"; content: string };
 
+export type OpenAiJsonSchema = {
+  type: "object";
+  properties: Record<string, unknown>;
+  required: string[];
+  additionalProperties: false;
+};
+
 export async function openAiTextCompletion(params: {
   messages: ChatTurn[];
   temperature?: number;
@@ -49,6 +56,81 @@ export async function openAiTextCompletion(params: {
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new Error("OPENAI_EMPTY_RESPONSE");
   return content;
+}
+
+/**
+ * Chat Completions Structured Outputs wrapper.
+ *
+ * Haruon uses this for decisions that must update application state. A fluent
+ * paragraph is not enough there: the model response must match the same shape
+ * that the planner and UI consume. Callers still validate semantic ranges
+ * before merging values because schema adherence is not factual verification.
+ */
+export async function openAiStructuredCompletion<T>(params: {
+  messages: ChatTurn[];
+  name: string;
+  schema: OpenAiJsonSchema;
+  temperature?: number;
+  timeoutMs?: number;
+  model?: string;
+}): Promise<T> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: params.model ?? process.env.OPENAI_MODEL_CONCIERGE ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+        temperature: params.temperature ?? 0.05,
+        messages: params.messages,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: params.name,
+            strict: true,
+            schema: params.schema,
+          },
+        },
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw new Error("OPENAI_TIMEOUT");
+    throw new Error("OPENAI_REQUEST_FAILED");
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("OPENAI_INVALID_KEY");
+    if (res.status === 429) throw new Error("OPENAI_INSUFFICIENT_QUOTA");
+    throw new Error("OPENAI_REQUEST_FAILED");
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{
+      finish_reason?: string;
+      message?: { content?: string; refusal?: string | null };
+    }>;
+  };
+  const choice = data.choices?.[0];
+  if (choice?.message?.refusal) throw new Error("OPENAI_REFUSAL");
+  if (choice?.finish_reason && choice.finish_reason !== "stop") throw new Error("OPENAI_INCOMPLETE_RESPONSE");
+  const content = choice?.message?.content?.trim();
+  if (!content) throw new Error("OPENAI_EMPTY_RESPONSE");
+  try {
+    return JSON.parse(content) as T;
+  } catch {
+    throw new Error("OPENAI_INVALID_STRUCTURED_RESPONSE");
+  }
 }
 
 export type ChatContentPart =

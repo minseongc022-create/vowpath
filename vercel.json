@@ -84,6 +84,10 @@
     {
       "path": "/api/cron/quote-follow-up",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/dajeong-notifications",
+      "schedule": "0 17 * * *"
     }
   ]
 }
