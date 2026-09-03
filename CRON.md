@@ -13,6 +13,7 @@
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
 | Effiroad seller dashboard UI | Every 60 seconds (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
+| **하루온(dajeong) proactive notifications** — *route exists, external cron NOT yet configured* | Intended: every 60 seconds via cron-job.org (same pattern as tech-dispatch). Currently only fires from the daily `vercel.json` backup (`0 17 * * *`) and right after a plan is edited (in-request resweep, no dispatch). | `GET /api/cron/dajeong-notifications` (CRON_SECRET) — see `dajeong/lib/notification-sweep.ts` |
 
 ### Why two schedulers?
 

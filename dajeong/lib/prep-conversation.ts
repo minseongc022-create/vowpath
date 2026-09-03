@@ -15,7 +15,7 @@ function categoriesInText(text: string): PrepCategory[] {
   return CATEGORY_TERMS.filter(([, pattern]) => pattern.test(text)).map(([category]) => category);
 }
 
-function labelFor(category: PrepCategory): string {
+export function labelFor(category: PrepCategory): string {
   return { flower: "꽃", cake: "케이크", gift: "선물", event_booking: "이벤트 공간", custom: "준비물" }[category];
 }
 

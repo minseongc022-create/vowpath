@@ -3,6 +3,7 @@ import { z } from "zod";
 import { reviseDajeongPlanWithDiscovery } from "@/dajeong/lib/concierge";
 import { getSharedPlanRecord, publishSharedPlan, upsertPace } from "@/dajeong/lib/companion-store";
 import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
+import { resweepPlan } from "@/dajeong/lib/notification-sweep";
 import { redactPlanForViewer, sanitizeMessageForViewer } from "@/dajeong/lib/secrecy";
 
 const schema = z.object({
@@ -59,6 +60,12 @@ export async function POST(request: Request) {
   if (result.paceUpdate?.scope === "profile") {
     const companionKey = record.ownerId === actorId ? record.companionId : record.ownerId;
     await upsertPace(actorId, companionKey, { density: result.paceUpdate.density, placesPerDay: result.paceUpdate.placesPerDay, notes: [result.paceUpdate.note] });
+  }
+
+  try {
+    await resweepPlan(planId);
+  } catch {
+    // Never let notification bookkeeping fail the actual plan edit the user is waiting on.
   }
 
   const finalPlan = published.record.plan;

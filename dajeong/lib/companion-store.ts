@@ -205,6 +205,13 @@ export async function listMySharedPlans(ownerId: string): Promise<SharedPlanReco
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
+/** Every shared plan, regardless of owner — for the notification sweep, which needs to reach
+ * every owner/companion pair without already knowing who they are. */
+export async function listAllSharedPlans(): Promise<SharedPlanRecord[]> {
+  const store = await loadStore();
+  return Object.values(store.sharedPlans);
+}
+
 export async function shareplan(plan: DajeongPlan, ownerId: string, ownerName: string, companionId: string, companionName: string): Promise<{ ok: true; record: SharedPlanRecord } | { error: string }> {
   const link = await findLink(ownerId, companionId);
   if (!link) return { error: "연결된 동반자가 아니에요. 먼저 동반자를 연결해 주세요." };

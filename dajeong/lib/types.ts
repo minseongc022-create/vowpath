@@ -649,3 +649,84 @@ export type PlanRevisionResult = {
   profileUpdate?: PersonMemoryUpdate;
   paceUpdate?: PaceUpdate;
 };
+
+// ── Proactive notifications ──────────────────────────────────────────────
+
+export type NotificationKind =
+  | "departure"
+  | "prep_deadline"
+  | "prep_pickup"
+  | "weather_change"
+  | "homebound"
+  | "reservation_risk"
+  | "checkin_checkout";
+
+export type NotificationPriority = "critical" | "high" | "normal" | "low";
+
+export type NotificationStatus = "scheduled" | "sent" | "cancelled" | "superseded" | "failed";
+
+/** Same 3-level scheme as PrepVisibility/SecretDisclosure, applied to delivery — "normal" shows
+ * the real title/body, "content_hidden" replaces both with a generic line before it ever leaves
+ * the server, "off" means this kind of notification is never generated for this person at all. */
+export type NotificationPrivacyLevel = "normal" | "content_hidden" | "off";
+
+export type DajeongNotification = {
+  id: string;
+  planId: string;
+  /** The plan version this notification's content was computed from — a later version
+   * invalidates it (see notification-engine's supersede logic), so a stale notification
+   * referencing since-changed or since-deleted plan state can never fire. */
+  planVersion: number;
+  /** Who this notification is FOR. Never an aggregate — one row per recipient, computed from
+   * that recipient's own redacted view of the plan, so a companion's rows are structurally
+   * incapable of referencing anything the owner has not chosen to share. */
+  targetPersonId: string;
+  kind: NotificationKind;
+  priority: NotificationPriority;
+  status: NotificationStatus;
+  /** One active (scheduled) notification per dedupe key at a time — a recompute that finds an
+   * existing scheduled row with the same key either updates it in place or supersedes it,
+   * instead of stacking a second reminder for the same underlying event. */
+  dedupeKey: string;
+  scheduledFor: string;
+  title: string;
+  body: string;
+  privacyAtSend: "normal" | "content_hidden";
+  deepLink: string;
+  relatedItemId?: string;
+  createdAt: string;
+  updatedAt: string;
+  sentAt?: string;
+  supersededBy?: string;
+  failureReason?: string;
+};
+
+export type PushSubscriptionKeys = { p256dh: string; auth: string };
+
+export type PushSubscriptionRecord = {
+  id: string;
+  personId: string;
+  endpoint: string;
+  keys: PushSubscriptionKeys;
+  userAgent?: string;
+  createdAt: string;
+};
+
+export type NotificationCategoryToggles = {
+  departure: boolean;
+  prep: boolean;
+  execution: boolean;
+  weather: boolean;
+  sharedPlanChanges: boolean;
+  proactiveSuggestions: boolean;
+};
+
+export type NotificationPreferences = {
+  personId: string;
+  masterEnabled: boolean;
+  categories: NotificationCategoryToggles;
+  secretPrivacyLevel: NotificationPrivacyLevel;
+  /** Local HH:mm strings, applied in the plan's own region context (Asia/Seoul by default). */
+  quietHours?: { startTime: string; endTime: string };
+  updatedAt: string;
+};

@@ -379,6 +379,15 @@
 .dj-today-hero h1 { margin: 8px 0 6px; font-family: inherit; font-size: clamp(22px, 4vw, 28px); letter-spacing: -.03em; }
 .dj-today-hero p { margin: 0; color: var(--dj-muted); font-size: 12px; }
 .dj-role-chip { flex: 0 0 auto; padding: 7px 11px; border-radius: 999px; background: var(--dj-coral-soft); color: var(--dj-coral-dark); font-size: 10px; font-weight: 800; white-space: nowrap; }
+.dj-proactive-banner { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding: 16px 18px; border: 1px solid var(--dj-coral); border-radius: 18px; background: var(--dj-coral-soft); }
+.dj-proactive-mark { flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fff; color: var(--dj-coral-dark); }
+.dj-proactive-banner > div { flex: 1; min-width: 0; }
+.dj-proactive-banner strong { display: block; margin-bottom: 3px; font-size: 13px; letter-spacing: -.01em; }
+.dj-proactive-banner p { margin: 0; color: var(--dj-ink); font-size: 12px; line-height: 1.5; }
+.dj-proactive-banner button { flex: 0 0 auto; background: none; border: none; color: var(--dj-muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.dj-push-prompt { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0; padding: 16px 18px; }
+.dj-push-prompt p { margin: 0; font-size: 13px; line-height: 1.55; }
+.dj-push-prompt-actions { display: flex; gap: 8px; margin-top: 10px; }
 .dj-role-companion { background: #eef2fb; color: #3d51a3; }
 .dj-today-current { padding: 20px 22px; }
 .dj-today-between { color: var(--dj-muted); font-size: 13px; }

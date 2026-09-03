@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { publishSharedPlan } from "@/dajeong/lib/companion-store";
 import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
+import { resweepPlan } from "@/dajeong/lib/notification-sweep";
 import { redactPlanForViewer } from "@/dajeong/lib/secrecy";
 import type { DajeongPlan } from "@/dajeong/lib/types";
 
@@ -40,6 +41,11 @@ export async function POST(request: Request) {
   if (!published.ok) {
     const status = published.conflict ? 409 : 404;
     return NextResponse.json({ error: published.error, conflict: Boolean(published.conflict), plan: published.conflict ? redactPlanForViewer(published.conflict.plan, actorId) : undefined, version: published.conflict?.version }, { status });
+  }
+  try {
+    await resweepPlan(planId);
+  } catch {
+    // Never let notification bookkeeping fail the actual plan edit the user is waiting on.
   }
   return NextResponse.json({ plan: redactPlanForViewer(published.record.plan, actorId), version: published.record.version });
 }

@@ -7,7 +7,7 @@ import { getPlan, savePlan } from "../lib/storage";
 import { fetchSharedPlan, planRole, reviseAnyPlan } from "../lib/plan-sync";
 import { buildLiveSnapshot, currentClock, type LiveSnapshot } from "../lib/live-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
-import type { ConciergeMessage, DajeongPlan } from "../lib/types";
+import type { ConciergeMessage, DajeongNotification, DajeongPlan } from "../lib/types";
 import { ArrowIcon, CategoryIcon, ClockIcon, MapPinIcon, ShieldIcon, SparkleIcon } from "./DajeongIcons";
 
 function money(value: number): string {
@@ -33,6 +33,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<ConciergeMessage[]>([]);
+  const [proactive, setProactive] = useState<DajeongNotification | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,6 +91,20 @@ export function TodayWorkspace({ planId }: { planId: string }) {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
+  // "하루온이 먼저 말 걸기" — shows the most relevant already-delivered/due proactive message for
+  // this plan in the same place a push notification would have opened. In-app, so it reads as
+  // one continuous experience instead of a duplicate ping on top of what the push already said.
+  useEffect(() => {
+    if (!plan?.id || !identity.id) return;
+    fetch(`/api/dajeong/notifications/list?personId=${encodeURIComponent(identity.id)}`)
+      .then((response) => response.json())
+      .then((data: { notifications?: DajeongNotification[] }) => {
+        const forThisPlan = (data.notifications ?? []).filter((entry) => entry.planId === plan.id && new Date(entry.scheduledFor).getTime() <= Date.now());
+        setProactive(forThisPlan[0] ?? null);
+      })
+      .catch(() => {});
+  }, [plan?.id, identity.id]);
+
   async function sendInstruction(text: string) {
     const trimmed = text.trim();
     if (!plan || trimmed.length < 2 || busy) return;
@@ -130,6 +145,17 @@ export function TodayWorkspace({ planId }: { planId: string }) {
         </div>
         {role !== "solo" ? <span className={`dj-role-chip dj-role-${role}`}>{role === "owner" ? `${plan.companionName ?? "동반자"}와 공유 중` : "공유받은 계획"}</span> : null}
       </section>
+
+      {proactive ? (
+        <div className="dj-proactive-banner" role="status">
+          <span className="dj-proactive-mark"><SparkleIcon size={16} /></span>
+          <div>
+            <strong>{proactive.title}</strong>
+            <p>{proactive.body}</p>
+          </div>
+          <button type="button" aria-label="닫기" onClick={() => setProactive(null)}>×</button>
+        </div>
+      ) : null}
 
       {snapshot.allDone ? (
         <div className="dj-complete-card"><span>오늘 일정을 모두 마쳤어요</span><blockquote>수고했어요. 남은 하루도 편하게 보내세요.</blockquote></div>

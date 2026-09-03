@@ -9,6 +9,7 @@ import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import { prepareReservationOrder } from "../lib/reservation-engine";
 import { resolveIdentity } from "../lib/identity";
+import { NotificationPermissionPrompt } from "./NotificationPermissionPrompt";
 import { fetchSharedPlan, planRole, reviseAnyPlan, syncPlanIfShared } from "../lib/plan-sync";
 import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, LockIcon, MapPinIcon, ShieldIcon, SparkleIcon, UsersIcon, WalletIcon } from "./DajeongIcons";
@@ -520,6 +521,13 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     next = await syncPlanIfShared(next, identity.id, identity.name, "알림 공개 수준을 바꿨어요.");
     savePlan(next);
     setPlan(next);
+    // The plan-level toggle drives this person's actual notification privacy setting — a secret
+    // item's push must be governed by the same choice shown here, not a second hidden setting.
+    fetch("/api/dajeong/notifications/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ personId: identity.id, secretPrivacyLevel: level }),
+    }).catch(() => {});
   }
 
   if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>계획을 꺼내고 있어요</p></div>;
@@ -547,6 +555,8 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         </div>
         <div className="dj-readiness"><div className="dj-readiness-ring" style={{ "--readiness": `${plan.readiness * 3.6}deg` } as React.CSSProperties}><strong>{plan.readiness}</strong><span>조건 일치도</span></div></div>
       </section>
+
+      {role !== "companion" && identity.id ? <NotificationPermissionPrompt plan={plan} personId={identity.id} /> : null}
 
       {role !== "companion" ? (
         <div className="dj-plan-header-actions">
