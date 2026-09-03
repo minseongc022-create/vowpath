@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { DAJEONG_BRAND } from "../lib/brand";
+import { resolveIdentity } from "../lib/identity";
 import { getPersonProfile, listPlans, rememberPersonProfile, savePlan } from "../lib/storage";
 import type { DajeongPlan, PlanRequest, PlanningConversationResult, PlanningQuestionKey, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CheckIcon, MapPinIcon, SparkleIcon } from "./DajeongIcons";
@@ -53,7 +54,9 @@ export function HomePlanner() {
 
   useEffect(() => {
     const refresh = () => setPlans(listPlans());
-    refresh();
+    // Same reasoning as PlansWorkspace: the sidebar's "recent plans" must scope to whoever is
+    // actually signed in right now, so resolve identity before the first read.
+    void resolveIdentity().then(refresh);
     window.addEventListener("dajeong:plans-updated", refresh);
     return () => window.removeEventListener("dajeong:plans-updated", refresh);
   }, []);

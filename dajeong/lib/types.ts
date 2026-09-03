@@ -604,6 +604,13 @@ export type DajeongPlan = {
   prepAsked?: boolean;
   prepDeclined?: boolean;
   notificationLevel?: "normal" | "content_hidden" | "off";
+  /**
+   * Whichever local identity (anonymous device id or account id) was active in this browser when
+   * the plan was first saved to localStorage. Never sent to the server or trusted as an access
+   * check there — it only scopes what this browser's plan list shows, so that logging into a
+   * different account on a shared computer doesn't surface the previous person's saved plans.
+   */
+  localOwnerId?: string;
 };
 
 export type ConciergeMessage = {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { reviseDajeongPlanWithDiscovery } from "@/dajeong/lib/concierge";
 import { getSharedPlanRecord, publishSharedPlan, upsertPace } from "@/dajeong/lib/companion-store";
+import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
 import { redactPlanForViewer, sanitizeMessageForViewer } from "@/dajeong/lib/secrecy";
 
 const schema = z.object({
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "요청 내용을 확인해 주세요." }, { status: 400 });
   const { planId, actorId, actorName, instruction, targetCategory, targetItemId, expectedVersion } = parsed.data;
+  if (!(await verifyClaimedIdentity(actorId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
 
   const record = await getSharedPlanRecord(planId);
   // Same 404 whether the plan doesn't exist or the caller isn't a participant — never lets a

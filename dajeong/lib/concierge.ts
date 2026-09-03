@@ -689,7 +689,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
     const initial = plan.versions?.[0];
     if (initial) {
       const message = "처음 만들었던 계획으로 돌아왔어요. 시간표·장소·예산도 모두 그 상태로 복원했어요.";
-      const restored = appendPlanConversation(restorePlanVersion(plan, initial, normalizedInstruction), normalizedInstruction, message);
+      const restored = appendPlanConversation(syncPrepReservations(restorePlanVersion(plan, initial, normalizedInstruction)), normalizedInstruction, message);
       return { plan: restored, message, changedCategories: [...new Set([...plan.items.map((item) => item.category), ...restored.items.map((item) => item.category)])] };
     }
   }
@@ -698,7 +698,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
     const previous = versions.at(-2) ?? versions[0];
     if (previous) {
       const message = "바로 이전 계획으로 돌아왔어요. 화면의 일정과 총비용도 함께 복원했어요.";
-      const restored = appendPlanConversation(restorePlanVersion(plan, previous, normalizedInstruction), normalizedInstruction, message);
+      const restored = appendPlanConversation(syncPrepReservations(restorePlanVersion(plan, previous, normalizedInstruction)), normalizedInstruction, message);
       return { plan: restored, message, changedCategories: [...new Set([...plan.items.map((item) => item.category), ...restored.items.map((item) => item.category)])] };
     }
   }

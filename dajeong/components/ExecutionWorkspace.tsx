@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DAJEONG_BRAND } from "../lib/brand";
+import { resolveIdentity } from "../lib/identity";
 import { approvePayment, recordUserCompleted, requestPaymentReview } from "../lib/reservation-engine";
 import { getPlan, savePlan } from "../lib/storage";
 import type { BookingMethod, DajeongPlan, ReservationOrder, ReservationTask, ReservationTaskStatus } from "../lib/types";
@@ -141,9 +142,11 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const stored = getPlan(planId);
-    setPlan(stored);
-    setReservationOrder(stored?.execution ?? null);
+    void resolveIdentity().then(() => {
+      const stored = getPlan(planId);
+      setPlan(stored);
+      setReservationOrder(stored?.execution ?? null);
+    });
   }, [planId]);
 
   useEffect(() => {

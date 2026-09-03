@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSharedPlanRecord, listMySharedPlans, listSharedWithMe } from "@/dajeong/lib/companion-store";
+import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
 import { redactPlanForViewer } from "@/dajeong/lib/secrecy";
 
 export async function GET(request: Request) {
@@ -7,6 +8,7 @@ export async function GET(request: Request) {
   const viewerId = params.get("viewerId")?.trim();
   const planId = params.get("planId")?.trim();
   if (!viewerId) return NextResponse.json({ error: "viewerId가 필요해요." }, { status: 400 });
+  if (!(await verifyClaimedIdentity(viewerId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
 
   if (planId) {
     const record = await getSharedPlanRecord(planId);

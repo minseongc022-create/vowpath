@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { publishSharedPlan } from "@/dajeong/lib/companion-store";
+import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
 import { redactPlanForViewer } from "@/dajeong/lib/secrecy";
 import type { DajeongPlan } from "@/dajeong/lib/types";
 
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "요청 내용을 확인해 주세요." }, { status: 400 });
   const { planId, actorId, actorName, plan, summary, expectedVersion } = parsed.data;
+  if (!(await verifyClaimedIdentity(actorId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const changeEntry = {
     id: `change_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     actorId,

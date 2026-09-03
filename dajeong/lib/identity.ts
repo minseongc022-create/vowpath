@@ -1,6 +1,7 @@
 "use client";
 
 const IDENTITY_KEY = "dajeong:identity:v1";
+const RESOLVED_ID_CACHE_KEY = "dajeong:identity:resolved-id:v1";
 
 export type DajeongIdentity = { id: string; name: string };
 
@@ -44,6 +45,12 @@ export function setIdentityName(name: string): DajeongIdentity {
  */
 export async function resolveIdentity(): Promise<DajeongIdentity> {
   if (typeof window === "undefined") return getOrCreateIdentity();
+  const resolved = await resolveIdentityUncached();
+  window.localStorage.setItem(RESOLVED_ID_CACHE_KEY, resolved.id);
+  return resolved;
+}
+
+async function resolveIdentityUncached(): Promise<DajeongIdentity> {
   try {
     const { getSession } = await import("next-auth/react");
     const session = await getSession();
@@ -54,4 +61,15 @@ export async function resolveIdentity(): Promise<DajeongIdentity> {
     // next-auth not reachable (no DB/provider configured) — fall through to anonymous id
   }
   return getOrCreateIdentity();
+}
+
+/**
+ * Synchronous best-effort read of the last identity resolveIdentity() computed — for storage.ts,
+ * which needs to scope localStorage plan lists to "whoever is using this browser right now"
+ * without awaiting a session check on every read. Falls back to the anonymous device id (the
+ * safe default: an unresolved cache never accidentally exposes an account-scoped plan).
+ */
+export function getCachedResolvedIdentityId(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(RESOLVED_ID_CACHE_KEY) || getOrCreateIdentity().id;
 }

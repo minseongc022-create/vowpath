@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { resolveIdentity } from "../lib/identity";
 import { listPlans, removePlan } from "../lib/storage";
 import type { DajeongPlan } from "../lib/types";
 import { ArrowIcon, CheckIcon, ClockIcon, HeartIcon, MapPinIcon, SparkleIcon, TrashIcon } from "./DajeongIcons";
@@ -19,7 +20,10 @@ export function PlansWorkspace() {
   const [plans, setPlans] = useState<DajeongPlan[] | null>(null);
   useEffect(() => {
     const refresh = () => setPlans(listPlans());
-    refresh();
+    // resolveIdentity() has to land (and cache its result) before the very first read, or a
+    // just-logged-in user's list would render from a stale/anonymous cache for one tick and
+    // — worse — a shared computer's leftover cache could briefly attribute the wrong owner.
+    void resolveIdentity().then(refresh);
     window.addEventListener("dajeong:plans-updated", refresh);
     return () => window.removeEventListener("dajeong:plans-updated", refresh);
   }, []);

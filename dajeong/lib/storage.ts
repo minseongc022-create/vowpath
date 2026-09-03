@@ -1,5 +1,6 @@
 "use client";
 
+import { getCachedResolvedIdentityId, getOrCreateIdentity } from "./identity";
 import type { AgeBand, DajeongPlan, ExperienceMood, PaceUpdate, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
 
 const STORAGE_KEY = "dajeong:plans:v1";
@@ -16,18 +17,32 @@ function readAll(): DajeongPlan[] {
   }
 }
 
+/**
+ * A plan saved before this field existed has no localOwnerId at all. Treating that as "belongs
+ * to whoever the anonymous device id is" (never to a since-logged-in account) is the safe
+ * default: it keeps a pre-login user's own old plans visible to them, while a different account
+ * signing in later on the same browser — whose resolved id is "user_<...>", not the anonymous
+ * id — never inherits them.
+ */
+function ownerOf(plan: DajeongPlan): string {
+  return plan.localOwnerId ?? getOrCreateIdentity().id;
+}
+
 export function savePlan(plan: DajeongPlan): void {
-  const next = [plan, ...readAll().filter((entry) => entry.id !== plan.id)].slice(0, 20);
+  const stamped: DajeongPlan = { ...plan, localOwnerId: plan.localOwnerId ?? getCachedResolvedIdentityId() };
+  const next = [stamped, ...readAll().filter((entry) => entry.id !== plan.id)].slice(0, 20);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent("dajeong:plans-updated"));
 }
 
 export function getPlan(id: string): DajeongPlan | null {
-  return readAll().find((plan) => plan.id === id) ?? null;
+  const plan = readAll().find((entry) => entry.id === id) ?? null;
+  return plan && ownerOf(plan) === getCachedResolvedIdentityId() ? plan : null;
 }
 
 export function listPlans(): DajeongPlan[] {
-  return readAll().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const owner = getCachedResolvedIdentityId();
+  return readAll().filter((plan) => ownerOf(plan) === owner).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function removePlan(id: string): void {
