@@ -95,21 +95,40 @@ VAPID_SUBJECT=mailto:<운영자 이메일>
 
 ## 9. Cron 등록 (cron-job.org)
 
-`CRON.md`에 정리된 이 저장소의 기존 방식과 동일합니다. **cron-job.org 대시보드에서
-직접 등록해야 합니다** — 배포 콘솔 접근 권한이 없어 이 부분은 자동화하지 못했습니다.
+`config/cron.schedule.json`의 `externalCrons`에 이미 등록 항목이 들어가 있습니다
+(이 저장소의 다른 크론들과 같은 방식). **직접 만들 필요 없이 기존 자동 등록
+스크립트를 한 번 실행하면 됩니다**:
+
+```bash
+export CRONJOB_ORG_API_KEY=<cron-job.org 계정 → Settings → API key>
+export CRON_SECRET=<Vercel에 설정한 값과 동일>
+export NEXT_PUBLIC_APP_URL=https://<배포 도메인>
+node scripts/cron-job-org-setup.mjs
+```
+
+`CRONJOB_ORG_API_KEY`/`CRON_SECRET` 둘 다 없으면 스크립트는 조용히 아무것도 하지
+않고 스킵합니다(실제로 이 저장소 개발 세션에서 그렇게 확인했습니다 — 그 세션엔
+cron-job.org 계정 접근 권한이 없었습니다). 값을 채운 뒤 실행하면:
+
+```
+✓ created job <jobId> → https://<도메인>/api/cron/dajeong-notifications
+```
+
+가 출력되며 60초 간격 job이 실제로 생성됩니다(같은 URL의 job이 이미 있으면 갱신).
+수동으로 대시보드에서 만들고 싶다면 아래 값을 그대로 입력해도 됩니다:
 
 | 항목 | 값 |
 |------|-----|
 | URL | `https://<배포 도메인>/api/cron/dajeong-notifications` |
 | Method | GET |
-| Interval | 60초 권장 (분 단위 최소 간격이면 그보다 넉넉해도 무방 — 알림은 idempotent) |
+| Interval | 60초 |
 | Header | `Authorization: Bearer <CRON_SECRET>` |
 | Timeout | 15~30초 권장 |
 | 예상 응답 | `200 {"ok": true, "plansScanned": N, "dispatched": N, ...}` |
 
-`CRON_SECRET`은 다른 크론들과 공용 값을 그대로 씁니다. `vercel.json`에 이미 일 1회
-백업 크론(`0 17 * * *`)이 등록되어 있어, 외부 크론을 깜빡 등록 안 해도 하루 한 번은
-정리됩니다(단, 실시간성은 크게 떨어짐).
+`vercel.json`에 이미 일 1회 백업 크론(`0 17 * * *`)이 등록되어 있어, 위 등록을
+깜빡해도 하루 한 번은 정리됩니다(단, 실시간성은 크게 떨어짐). `npm run check:cron`으로
+이 항목이 제대로 추적되고 있는지 확인할 수 있습니다.
 
 ## 10. Production 도메인 반영
 
