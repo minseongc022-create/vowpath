@@ -2,6 +2,7 @@
 
 const IDENTITY_KEY = "dajeong:identity:v1";
 const RESOLVED_ID_CACHE_KEY = "dajeong:identity:resolved-id:v1";
+const CLAIMED_FLAG_KEY = "dajeong:identity:claimed:v1";
 
 export type DajeongIdentity = { id: string; name: string };
 
@@ -47,7 +48,35 @@ export async function resolveIdentity(): Promise<DajeongIdentity> {
   if (typeof window === "undefined") return getOrCreateIdentity();
   const resolved = await resolveIdentityUncached();
   window.localStorage.setItem(RESOLVED_ID_CACHE_KEY, resolved.id);
+  if (resolved.id.startsWith("user_")) void claimAnonymousHistoryOnce();
   return resolved;
+}
+
+/**
+ * Fires once per browser the first time a real session is seen — moves this browser's
+ * pre-login anonymous data (plans, companion links, prep, notification prefs — everything
+ * account-migration.ts knows about) onto the account. Never re-sent after it succeeds or after
+ * a definitive rejection (claimed by a different account already), so this isn't a
+ * background retry loop; account-migration.ts's own idempotency is the real safety net if the
+ * flag is ever lost (e.g. localStorage cleared mid-flow).
+ */
+async function claimAnonymousHistoryOnce(): Promise<void> {
+  if (window.localStorage.getItem(CLAIMED_FLAG_KEY)) return;
+  const anonymous = getIdentity();
+  if (!anonymous) {
+    window.localStorage.setItem(CLAIMED_FLAG_KEY, "1");
+    return;
+  }
+  try {
+    const response = await fetch("/api/dajeong/account/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anonymousId: anonymous.id }),
+    });
+    if (response.ok) window.localStorage.setItem(CLAIMED_FLAG_KEY, "1");
+  } catch {
+    // Network hiccup — leave the flag unset so the next resolveIdentity() call retries.
+  }
 }
 
 async function resolveIdentityUncached(): Promise<DajeongIdentity> {

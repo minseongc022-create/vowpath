@@ -14,6 +14,10 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "구독 정보를 확인해 주세요." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
-  const record = await addSubscription(parsed.data.personId, parsed.data.endpoint, parsed.data.keys, parsed.data.userAgent);
-  return NextResponse.json({ ok: true, subscriptionId: record.id });
+  try {
+    const record = await addSubscription(parsed.data.personId, parsed.data.endpoint, parsed.data.keys, parsed.data.userAgent);
+    return NextResponse.json({ ok: true, subscriptionId: record.id });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "구독을 등록하지 못했어요." }, { status: 409 });
+  }
 }
