@@ -9,6 +9,7 @@ import {
 import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
+import { isDajeongHost, dajeongInternalPath } from "@/dajeong/lib/dajeong-host";
 import {
   isEffiroadDispatchEnabled,
   isLegacyEffiroadUiPath,
@@ -89,6 +90,18 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
   requestHeaders.set("x-app-shell", "learn");
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
   if (rewritePath) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewritePath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+function dajeongShellResponse(request: NextRequest, rewritePath?: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "dajeong");
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (rewritePath && rewritePath !== request.nextUrl.pathname) {
     const url = request.nextUrl.clone();
     url.pathname = rewritePath;
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
@@ -190,6 +203,12 @@ export async function middleware(request: NextRequest) {
   if (isLearnHost(hostname)) {
     const internal = learnInternalPath(pathname);
     return learnShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
+  }
+
+  // haruwith.com (하루위드) → 하루온(dajeong), served at its own domain root instead of
+  // effiroad.com/dajeong. Same app, same DB, same API routes — only the host differs.
+  if (isDajeongHost(hostname)) {
+    return dajeongShellResponse(request, dajeongInternalPath(pathname));
   }
 
   // ★ giucuu.com → 자비스. 사장님 한 명만 쓰는 개인 자동화다.
