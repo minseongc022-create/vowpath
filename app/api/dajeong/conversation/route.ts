@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { continuePlanningConversation } from "@/dajeong/lib/planning-brain";
 import type { PlanRequest, PlanningQuestionKey } from "@/dajeong/lib/types";
+import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const schema = z.object({
   messages: z.array(z.object({
@@ -13,6 +14,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await dajeongAiRateLimit(request);
+  if (limited) return NextResponse.json(limited, { status: 429 });
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "말씀하신 내용을 다시 한 번 보내 주세요." }, { status: 400 });
   try {

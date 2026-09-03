@@ -4,6 +4,7 @@ import { reviseDajeongPlanWithDiscovery } from "@/dajeong/lib/concierge";
 import { getRegisteredPlan, registerPlanForNotifications } from "@/dajeong/lib/notification-store";
 import { resweepPlan } from "@/dajeong/lib/notification-sweep";
 import type { DajeongPlan } from "@/dajeong/lib/types";
+import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const schema = z.object({
   instruction: z.string().trim().min(2).max(300),
@@ -13,6 +14,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await dajeongAiRateLimit(request);
+  if (limited) return NextResponse.json(limited, { status: 429 });
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "바꾸고 싶은 내용을 한 문장으로 적어 주세요." }, { status: 400 });
   const result = await reviseDajeongPlanWithDiscovery(parsed.data.plan as DajeongPlan, parsed.data.instruction, parsed.data.targetCategory, parsed.data.targetItemId);

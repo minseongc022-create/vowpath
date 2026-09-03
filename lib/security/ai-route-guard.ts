@@ -73,3 +73,33 @@ export function shopAiRateLimitKeys(userId: string) {
     hourly: { key: rateLimitKey("effiroad-ai:hour", userId) },
   };
 }
+
+const DAJEONG_AI_BURST_LIMIT = 20;
+const DAJEONG_AI_BURST_WINDOW_SEC = 60;
+const DAJEONG_AI_HOURLY_LIMIT = 100;
+const DAJEONG_AI_HOURLY_WINDOW_SEC = 60 * 60;
+
+/**
+ * Every dajeong route that calls the concierge/planning AI is reachable without login (the
+ * pre-login trust model in identity-guard.ts's verifyClaimedIdentity is a deliberate no-op for
+ * anonymous ids), so IP is the only handle available to stop an open loop from running up real
+ * OpenAI charges on the shared key. 20/min is far above anything a person typing can hit;
+ * 100/hour catches a slow drip that stays under the burst limit.
+ */
+export async function dajeongAiRateLimit(request: Request): Promise<{ error: string; code: "rate_limit" } | null> {
+  const ip = clientIpFromRequest(request);
+  const burst = await checkRateLimit({
+    key: rateLimitKey("dajeong-ai:burst", ip),
+    limit: DAJEONG_AI_BURST_LIMIT,
+    windowSeconds: DAJEONG_AI_BURST_WINDOW_SEC,
+  });
+  const hourly = burst.ok
+    ? await checkRateLimit({
+        key: rateLimitKey("dajeong-ai:hour", ip),
+        limit: DAJEONG_AI_HOURLY_LIMIT,
+        windowSeconds: DAJEONG_AI_HOURLY_WINDOW_SEC,
+      })
+    : burst;
+  if (!burst.ok || !hourly.ok) return { error: "잠시 후 다시 시도해 주세요.", code: "rate_limit" };
+  return null;
+}

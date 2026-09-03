@@ -4,6 +4,7 @@ import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-eng
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
 import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
+import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const ageBandSchema = z.enum(["10대", "20대", "30대", "40대", "50대", "60대 이상", "미상"]);
 const moodSchema = z.enum(["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"]);
@@ -89,6 +90,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await dajeongAiRateLimit(request);
+  if (limited) return NextResponse.json(limited, { status: 429 });
+
   let json: unknown;
   try {
     json = await request.json();

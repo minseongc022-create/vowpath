@@ -5,6 +5,7 @@ import { getSharedPlanRecord, publishSharedPlan, upsertPace } from "@/dajeong/li
 import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
 import { resweepPlan } from "@/dajeong/lib/notification-sweep";
 import { redactPlanForViewer, sanitizeMessageForViewer } from "@/dajeong/lib/secrecy";
+import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const schema = z.object({
   planId: z.string().trim().min(1).max(120),
@@ -26,6 +27,9 @@ const NOT_FOUND = "이 계획을 찾을 수 없어요.";
  * side-effect summary ("이어서 X 시작 시간을 밀었어요") can't name a secret item either.
  */
 export async function POST(request: Request) {
+  const limited = await dajeongAiRateLimit(request);
+  if (limited) return NextResponse.json(limited, { status: 429 });
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "요청 내용을 확인해 주세요." }, { status: 400 });
   const { planId, actorId, actorName, instruction, targetCategory, targetItemId, expectedVersion } = parsed.data;
