@@ -204,7 +204,7 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
   }
 
   // 비공개 지정 — 메인 일정 또는 준비 항목
-  const wantsSecret = /비밀로\s*해|숨겨\s*줘|숨겨줘|비공개로\s*(해|바꿔)|안\s*보이게|모르게\s*해/.test(instruction);
+  const wantsSecret = /비밀로\s*해|숨겨\s*줘|숨겨줘|비공개로\s*(해|바꿔)|안\s*보이게|모르게\s*해|보이면\s*안\s*(돼|되)|보면\s*안\s*(돼|되)|절대\s*(보이면|알면)\s*안|들키면\s*안/.test(instruction);
   if (wantsSecret) {
     if (PREFERS_PREP.test(instruction)) {
       const prepTarget = resolvePrepTarget(plan, instruction, requestedItemId);

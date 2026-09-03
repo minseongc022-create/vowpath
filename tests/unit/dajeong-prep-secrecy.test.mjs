@@ -363,3 +363,13 @@ test("[TEST 23] 실행 화면 유출 방지: 공개되지 않은 준비물(perso
   assert.equal(companionView.prep.some((item) => item.id === cake.id), false);
   assert.equal(companionView.execution?.tasks.some((task) => task.itemId === cake.id), false, "비공개 준비물의 예약 작업(실제 업체·가격)이 실행 화면을 통해 유출되면 안 된다");
 });
+
+test("[TEST 26] '보이면 안 돼' 같은 자연스러운 표현도 준비물을 비공개로 전환한다", () => {
+  let plan = birthdayPlan();
+  plan = applyPrepInstruction(plan, "꽃 준비해줘").plan;
+  const flower = plan.prep.find((item) => item.category === "flower");
+  const result = applySecrecyInstruction(plan, "꽃 이거 여자친구한테 절대 보이면 안 돼", flower.id);
+  assert.equal(result.handled, true);
+  const updated = result.plan.prep.find((item) => item.id === flower.id);
+  assert.equal(updated.visibility, "secret");
+});
