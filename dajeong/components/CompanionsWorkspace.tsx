@@ -35,6 +35,10 @@ export function CompanionsWorkspace() {
       fetch(`/api/dajeong/plans/shared?viewerId=${personId}`).then((r) => r.json()),
     ]);
     setCompanions(companionData.companions ?? []);
+    // createInvite() cancels any earlier pending invite server-side, so there's at most one — a
+    // returning visit (or another tab) needs to see it without having to make a fresh one.
+    const pending = (companionData.invites ?? []).find((entry: CompanionInvite) => entry.status === "pending") ?? null;
+    setInvite((current) => current ?? pending);
     setSharedWithMe(sharedData.sharedWithMe ?? []);
     setMine(sharedData.mine ?? []);
   }

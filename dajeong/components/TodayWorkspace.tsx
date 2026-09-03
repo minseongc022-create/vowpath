@@ -18,6 +18,8 @@ function chatMessage(role: ConciergeMessage["role"], text: string, status: Conci
   return { id: `today_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, role, text, status, createdAt: new Date().toISOString() };
 }
 
+const PREP_STATUS_LABEL: Record<string, string> = { suggested: "제안됨", confirmed: "준비 확정", ordered: "주문 완료", ready: "준비 완료", picked_up: "픽업 완료", delivered: "전달 완료", cancelled: "취소됨" };
+
 const quickActions = [
   { label: "여기 더 있고 싶어요", text: "여기 더 있고 싶어" },
   { label: "많이 늦어지고 있어요", text: "생각보다 많이 늦어지고 있어" },
@@ -192,7 +194,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
                   <span>{item.time ?? "시간 미정"}</span>
                   <ClockIcon size={16} />
                   <strong>{item.title}{item.visibility === "secret" ? " (비공개)" : ""}</strong>
-                  <em>{item.status === "cancelled" ? "취소됨" : item.status}</em>
+                  <em>{PREP_STATUS_LABEL[item.status] ?? item.status}</em>
                 </div>
               ))}
             </section>
