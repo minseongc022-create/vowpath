@@ -1,4 +1,5 @@
 import type { DiscoveryItem, ExperienceMood } from "./types";
+import { haversineKm, type Coordinates } from "./place-utils";
 
 /**
  * 여러 출처에서 온 "요즘 뜨는 것"을 하나의 목록으로 정리한다.
@@ -116,13 +117,19 @@ export function dedupeDiscoveries(items: DiscoveryItem[]): DiscoveryItem[] {
 /**
  * 사용자가 말한 지역과 실제로 관련 있는 것만 남긴다.
  *
- * 기관 API는 지역 필터가 느슨해서 "인천"으로 물어도 전국 결과가 섞여 오는 일이 있다.
- * 지역 정보가 아예 없는 항목은 버리지 않는다 — 블로그에서 온 항목은 원래 주소가 없고,
- * 검색어에 이미 지역을 넣어 물어봤기 때문이다.
+ * 텍스트 대조만으로는 안 된다 — "광화문"으로 물었는데 실제 행사는 "경복궁"으로 등록돼 있으면
+ * 글자로는 절대 안 겹친다. 실제로 사람이 "광화문 근처"라고 할 때 기대하는 건 도보 거리 안의
+ * 장소지, 정확히 그 이름을 쓴 곳이 아니다. 그래서 좌표가 있으면 거리로 판단한다 — 요청한
+ * 지역의 좌표를 중심으로 6km 안이면 "그 지역"으로 인정한다. 좌표가 없는 항목(블로그에서 온
+ * 추정 항목은 원래 주소가 없다)만 이름 겹침으로 판단한다.
  */
-export function matchesRegion(item: DiscoveryItem, region?: string): boolean {
+export function matchesRegion(item: DiscoveryItem, region?: string, regionCoordinates?: Coordinates): boolean {
   const wanted = region?.trim();
   if (!wanted) return true;
+  if (regionCoordinates && item.latitude != null && item.longitude != null) {
+    const distanceKm = haversineKm(regionCoordinates, { latitude: item.latitude, longitude: item.longitude });
+    if (distanceKm != null) return distanceKm <= 6;
+  }
   // 제목은 위치가 아니다. 블로그 글 제목("여기 진짜 예쁘다")에 동네 이름이 들어갈 이유가 없어서,
   // 제목까지 대조하면 블로그에서 온 항목이 통째로 걸러진다.
   const location = [item.region, item.address, item.place].filter(Boolean).join(" ").trim();
@@ -152,13 +159,14 @@ export function rankDiscoveries(items: DiscoveryItem[], today = new Date()): Dis
 export function selectDiscoveries(params: {
   items: DiscoveryItem[];
   region?: string;
+  regionCoordinates?: Coordinates;
   limit?: number;
   today?: Date;
 }): DiscoveryItem[] {
   const today = params.today ?? new Date();
   const kept = params.items
     .filter((item) => isStillRunning(item, today))
-    .filter((item) => matchesRegion(item, params.region));
+    .filter((item) => matchesRegion(item, params.region, params.regionCoordinates));
   return rankDiscoveries(dedupeDiscoveries(kept), today).slice(0, params.limit ?? 12);
 }
 

@@ -115,6 +115,20 @@ test("알림은 기관에서 확인됐고 곧 끝나는 것만 보낸다", () =>
   assert.equal(worthNotifying(inferred(), TODAY), false);
 });
 
+test("이름이 달라도 좌표가 가까우면 같은 지역으로 본다", () => {
+  // "광화문"으로 물었는데 실제 행사는 "경복궁"으로 등록돼 있다 — 실제로 겪은 문제.
+  const gwanghwamun = { latitude: 37.5759, longitude: 126.9768 };
+  const gyeongbokgung = official({ region: "서울", place: "경복궁", latitude: 37.5796, longitude: 126.9770 });
+  assert.equal(matchesRegion(gyeongbokgung, "광화문", gwanghwamun), true);
+
+  // 멀리 떨어진 곳은 좌표가 있어도 걸러야 한다.
+  const busan = official({ region: "부산", place: "부산시립미술관", latitude: 35.1796, longitude: 129.0756 });
+  assert.equal(matchesRegion(busan, "광화문", gwanghwamun), false);
+
+  // 좌표가 없는 항목(블로그 추정)은 여전히 이름 겹침으로 판단한다.
+  assert.equal(matchesRegion(inferred(), "광화문", gwanghwamun), true);
+});
+
 test("선별은 종료·지역·중복을 한 번에 정리한다", () => {
   const selected = selectDiscoveries({
     items: [

@@ -147,7 +147,10 @@ function coordinate(value?: string): number | undefined {
  * 기간이 겹치는 항목만 돌려주므로, "지금부터 N일 안에 하는 것"을 그대로 물어볼 수 있다.
  */
 export async function fetchCultureEvents(params: {
-  region?: string;
+  /** 이 좌표를 중심으로 반경만 요청한다 — 없으면 전국을 뒤진다. */
+  near?: { latitude: number; longitude: number };
+  /** near의 반경(km). API가 사각형 범위(gpsxfrom~to)로 받기 때문에 근사치다. */
+  radiusKm?: number;
   keyword?: string;
   withinDays?: number;
   limit?: number;
@@ -165,7 +168,16 @@ export async function fetchCultureEvents(params: {
     sortStdr: "1",
   });
   if (params.keyword?.trim()) search.set("keyword", params.keyword.trim());
-  if (params.region?.trim()) search.set("place", params.region.trim());
+  // 이름으로는 안 된다 — "광화문"으로 걸면 실제로는 "경복궁"으로 등록된 근처 행사가 통째로
+  // 걸러진다. 대신 이 API가 지원하는 좌표 사각형 범위(gpsxfrom~gpsyto)로 지역을 좁힌다.
+  // 위도 1도 ≈ 111km 이므로 반경(km)을 도 단위로 환산해 사각형을 만든다.
+  if (params.near) {
+    const radiusDeg = (params.radiusKm ?? 8) / 111;
+    search.set("gpsxfrom", String(params.near.longitude - radiusDeg));
+    search.set("gpsxto", String(params.near.longitude + radiusDeg));
+    search.set("gpsyfrom", String(params.near.latitude - radiusDeg));
+    search.set("gpsyto", String(params.near.latitude + radiusDeg));
+  }
 
   // serviceKey는 이미 인코딩된 형태로 발급되는 경우가 많아 URLSearchParams에 넣지 않고 직접 붙인다.
   // 공식 명칭: 한국문화정보원_한눈에보는문화정보조회서비스. 문화데이터광장(culture.go.kr)이 아니라

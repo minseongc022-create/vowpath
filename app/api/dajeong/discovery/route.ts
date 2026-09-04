@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { discoveryHeadline, discoveryQueries, selectDiscoveries } from "@/dajeong/lib/discovery-engine";
+import { geocodeRegion } from "@/dajeong/lib/place-discovery";
 import { discoverySourcesConfigured, fetchCultureEvents, fetchNaverBlogBuzz, fetchNaverLocal } from "@/dajeong/lib/discovery-sources";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 import type { DiscoveryItem } from "@/dajeong/lib/types";
@@ -43,16 +44,20 @@ export async function POST(request: Request) {
   }
 
   const queries = discoveryQueries({ region, preferences, moods });
+  // "광화문"으로 물으면 실제 행사가 "경복궁"으로 등록돼 있어도 찾아야 한다 — 이름이 아니라
+  // 좌표 거리로 지역을 판단하려면 먼저 그 지역이 어디인지 좌표를 알아야 한다.
+  const regionCoordinates = region ? await geocodeRegion(region) : undefined;
 
   try {
     const [culture, local, buzz] = await Promise.all([
-      // 기관 데이터는 키워드 하나로 넓게 받아 온다 — 기간 필터가 이미 강하게 걸린다.
-      fetchCultureEvents({ region, keyword: preferences?.[0], withinDays, limit: 20 }),
+      // 지역은 이름이 아니라 좌표 사각형으로 서버에 직접 요청한다 — "광화문"과 "경복궁"처럼
+      // 이름은 달라도 실제로는 붙어 있는 곳을 API 단계에서부터 잡아낸다.
+      fetchCultureEvents({ near: regionCoordinates, radiusKm: 8, keyword: preferences?.[0], withinDays, limit: 40 }),
       Promise.all(queries.slice(0, 2).map((query) => fetchNaverLocal({ query }))).then((rows) => rows.flat()),
       Promise.all(queries.slice(0, 2).map((query) => fetchNaverBlogBuzz({ query }))).then((rows) => rows.flat()),
     ]);
 
-    const items = selectDiscoveries({ items: [...culture, ...local, ...buzz], region, limit });
+    const items = selectDiscoveries({ items: [...culture, ...local, ...buzz], region, regionCoordinates, limit });
     const officialCount = items.filter((item) => item.confidence === "official").length;
 
     return NextResponse.json({

@@ -332,7 +332,7 @@ async function searchLegacyAutocomplete(apiKey: string, query: string, near?: Co
   return [];
 }
 
-async function geocodeRegion(region: string): Promise<Coordinates | undefined> {
+export async function geocodeRegion(region: string): Promise<Coordinates | undefined> {
   if (REGION_COORDINATES[region]) return REGION_COORDINATES[region];
   const search = new URL("https://nominatim.openstreetmap.org/search");
   search.searchParams.set("format", "jsonv2");
