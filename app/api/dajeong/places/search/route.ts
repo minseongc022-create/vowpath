@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { findPlaceByName, searchRealPlaces } from "@/dajeong/lib/place-discovery";
+import { findPlaceByName, placeSourcesConfigured, searchRealPlaces } from "@/dajeong/lib/place-discovery";
 import { classifyPlaceRequest, guessCategory, stripRegionFromName } from "@/dajeong/lib/place-intent";
 import { rankRealPlaceCandidates, estimatePlacePrice, type RealPlaceCandidate } from "@/dajeong/lib/place-utils";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
@@ -76,7 +76,9 @@ export async function POST(request: Request) {
           intent: "specific",
           askedFor: placeName,
           // 지목한 가게를 못 찾았으면 비슷한 다른 가게로 채우지 않는다. 그건 거짓말이다.
-          message: `'${placeName}'은(는) ${region}에서 못 찾았어. 비슷한 다른 가게를 대신 보여주진 않을게. 동네 이름이나 주소를 같이 알려주면 다시 찾아볼게.`,
+          message: placeSourcesConfigured()
+            ? `'${placeName}'은(는) ${region}에서 못 찾았어. 비슷한 다른 가게를 대신 보여주진 않을게. 동네 이름이나 주소를 같이 알려주면 다시 찾아볼게.`
+            : `지금 지도 데이터 연결이 안 돼 있어서 '${placeName}'을 확인할 방법이 없어. 가게가 없다는 뜻이 아니라 우리 쪽 설정 문제야.`,
         });
       }
       const places = matches.slice(0, 6).map((place) => toPayload(place, categoryOf(place, hint, intent.raw)));
@@ -113,7 +115,10 @@ export async function POST(request: Request) {
       // 못 찾았으면 왜 비었는지 화면이 그대로 말할 수 있게 함께 돌려준다.
       message: places.length
         ? `${places.length}곳 찾았어.`
-        : "이 조건으로는 실제 가게를 못 찾았어. 동네를 더 좁히거나 다른 표현으로 말해줘.",
+        // 출처가 안 붙어 있으면 조건을 바꿔봐야 소용없다. 원인을 그대로 말한다.
+        : placeSourcesConfigured()
+          ? "이 조건으로는 실제 가게를 못 찾았어. 동네를 더 좁히거나 다른 표현으로 말해줘."
+          : "지금 지도 데이터 연결이 안 돼 있어서 검색을 못 해. 조건 문제가 아니라 우리 쪽 설정 문제야.",
     });
   } catch {
     return NextResponse.json({ error: "장소를 찾는 중 문제가 생겼어. 잠시 후 다시 시도해줘." }, { status: 502 });

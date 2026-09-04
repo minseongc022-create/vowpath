@@ -1,7 +1,7 @@
 import "server-only";
 
 import { attachCuratedReality, chainNameFor, haversineKm, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
-import { findKakaoPlaceByName, searchKakaoPlaces } from "./kakao-local";
+import { findKakaoPlaceByName, kakaoLocalEnabled, searchKakaoPlaces } from "./kakao-local";
 import { isSamePlaceName } from "./place-intent";
 import { buildExperienceFlow } from "./experience";
 import { scheduleDajeongPlan } from "./schedule-engine";
@@ -118,6 +118,10 @@ function referers(): string[] {
   return [...new Set([
     process.env.GOOGLE_MAPS_HTTP_REFERER?.trim(),
     process.env.TWILIO_WEBHOOK_BASE_URL?.trim(),
+    // 하루위드는 haruwith.com으로 옮겼다. 구글 키가 리퍼러로 제한돼 있으면 이 도메인이
+    // 목록에 없는 순간 모든 장소 검색이 조용히 0건이 된다 — 옛 도메인보다 먼저 시도한다.
+    "https://haruwith.com/",
+    "https://www.haruwith.com/",
     "https://effiroad.com/",
     "https://www.effiroad.com/",
   ].filter((value): value is string => Boolean(value)).map((value) => value.endsWith("/") ? value : `${value}/`))];
@@ -338,7 +342,7 @@ async function geocodeRegion(region: string): Promise<Coordinates | undefined> {
   search.searchParams.set("q", `${region}역`);
   try {
     const response = await fetch(search, {
-      headers: { "User-Agent": "DajeongConcierge/1.0 (https://effiroad.com)", Accept: "application/json" },
+      headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
       signal: AbortSignal.timeout(6_000),
     });
     const data = await response.json().catch(() => []) as Array<{ lat?: string; lon?: string }>;
@@ -436,7 +440,7 @@ async function searchOpenStreetMap(region: string, category: PlanCategory, near?
   for (const endpoint of endpoints) {
     try {
       const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
-        headers: { "User-Agent": "DajeongConcierge/1.0 (https://effiroad.com)", Accept: "application/json" },
+        headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
         signal: AbortSignal.timeout(16_000),
       });
       if (!response.ok) continue;
@@ -483,7 +487,7 @@ async function searchOpenStreetMapBatch(region: string, categories: PlanCategory
   for (const endpoint of endpoints) {
     try {
       const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
-        headers: { "User-Agent": "DajeongConcierge/1.0 (https://effiroad.com)", Accept: "application/json" },
+        headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
         signal: AbortSignal.timeout(18_000),
       });
       if (!response.ok) continue;
@@ -520,6 +524,16 @@ async function searchGooglePlaces(params: { region: string; category: PlanCatego
 
 export function realPlaceDiscoveryEnabled(): boolean {
   return true;
+}
+
+/**
+ * 상권 데이터 출처(카카오·구글)가 하나라도 붙어 있는지.
+ *
+ * 이걸 구분하지 않으면 "이 조건에 맞는 가게가 없어"와 "우리가 지금 아무 데도 못 물어본다"가
+ * 똑같은 문장으로 나간다. 앞은 지역·조건 문제고 뒤는 우리 쪽 설정 문제라, 사용자가 할 일이 다르다.
+ */
+export function placeSourcesConfigured(): boolean {
+  return kakaoLocalEnabled() || Boolean(key());
 }
 
 /**
@@ -751,7 +765,10 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
               ? `평점·리뷰·대표 사진을 확인할 수 있는 장소 ${realPlaceCount}곳을 동선과 예산에 맞췄어.`
               : `실제로 등록된 장소 ${realPlaceCount}곳을 동선에 맞췄어. 평점·리뷰·사진은 지도에서 바로 볼 수 있어.`
             // 못 찾았을 때는 "탐색 중"처럼 얼버무리지 않는다 — 아래 후보가 실제 가게가 아니라는 뜻이다.
-            : "이번 조건에 맞는 실제 가게를 아직 못 찾았어. 아래는 참고용 기본 후보라 실제 가게가 아니고, 지역을 좁히거나 조건을 바꿔서 다시 찾아볼 수 있어.",
+            // 출처가 아예 안 붙어 있으면 그건 지역 문제가 아니라 우리 쪽 문제라 그렇게 말한다.
+            : placeSourcesConfigured()
+              ? "이번 조건에 맞는 실제 가게를 아직 못 찾았어. 아래는 참고용 기본 후보라 실제 가게가 아니고, 지역을 좁히거나 조건을 바꿔서 다시 찾아볼 수 있어."
+              : "지금 지도 데이터 연결이 안 돼 있어서 실제 가게를 하나도 못 찾았어. 지역이나 조건 문제가 아니라 우리 쪽 설정 문제야. 아래는 참고용 기본 후보라 실제 가게가 아니야.",
     },
   };
 }

@@ -11,6 +11,10 @@ function referers(): string[] {
   return [...new Set([
     process.env.GOOGLE_MAPS_HTTP_REFERER?.trim(),
     process.env.TWILIO_WEBHOOK_BASE_URL?.trim(),
+    // 하루위드는 haruwith.com으로 옮겼다. 구글 키가 리퍼러로 제한돼 있으면 이 도메인이
+    // 목록에 없는 순간 모든 장소 검색이 조용히 0건이 된다 — 옛 도메인보다 먼저 시도한다.
+    "https://haruwith.com/",
+    "https://www.haruwith.com/",
     "https://effiroad.com/",
     "https://www.effiroad.com/",
   ].filter((value): value is string => Boolean(value)).map((value) => value.endsWith("/") ? value : `${value}/`))];
