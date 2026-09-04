@@ -737,7 +737,8 @@ export type NotificationKind =
   | "weather_change"
   | "homebound"
   | "reservation_risk"
-  | "checkin_checkout";
+  | "checkin_checkout"
+  | "discovery_event";
 
 export type NotificationPriority = "critical" | "high" | "normal" | "low";
 

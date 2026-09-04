@@ -3,17 +3,21 @@ import "server-only";
 import { getSharedPlanRecord, listAllSharedPlans } from "./companion-store";
 import {
   computeNotificationDrafts,
+  discoveryIdsFromDrafts,
   secretRelatedItemIds,
   weatherDigestFor,
 } from "./notification-engine";
+import { refreshDiscoveredEventsForPlan } from "./discovery-region-refresh";
 import {
   dueNotifications,
+  getDiscoveryDigest,
   getPreferences,
   getWeatherDigest,
   listRegisteredPlans,
   markFailed,
   markSent,
   reconcileNotifications,
+  setDiscoveryDigest,
   setWeatherDigest,
 } from "./notification-store";
 import { dispatchToPerson } from "./push-dispatch";
@@ -21,6 +25,20 @@ import { redactPlanForViewer } from "./secrecy";
 import type { DajeongPlan } from "./types";
 
 type Participant = { plan: DajeongPlan; personId: string; role: "owner" | "companion" };
+
+/**
+ * 발견 항목 갱신(지역 API 호출 포함)은 계획당 한 번이면 된다 — 같은 계획을 보는 소유자·동반자
+ * 둘 다에게 매번 다시 부를 이유가 없다. 이 스윕 한 번(sweepDueNotifications 한 호출) 동안만
+ * 살아있는 캐시라 여러 스윕에 걸쳐 재사용되진 않지만, discovery-region-refresh.ts 쪽 지역
+ * 캐시가 실제 API 호출 빈도를 이미 3시간 단위로 눌러준다.
+ */
+async function refreshedDiscoveredEvents(plan: DajeongPlan, cache: Map<string, DajeongPlan>): Promise<DajeongPlan> {
+  const cached = cache.get(plan.id);
+  if (cached) return cached;
+  const refreshed = await refreshDiscoveredEventsForPlan(plan);
+  cache.set(plan.id, refreshed);
+  return refreshed;
+}
 
 /** Two distinct sources of "plans that need proactive scheduling": solo plans a person opted
  * into (registeredPlans, owner only — solo plans never leave the browser otherwise), and shared
@@ -42,11 +60,13 @@ async function collectParticipants(): Promise<Participant[]> {
   return participants;
 }
 
-async function sweepOneParticipant(participant: Participant): Promise<{ created: number; dispatched: number }> {
-  const viewerPlan = participant.role === "owner" ? participant.plan : redactPlanForViewer(participant.plan, participant.personId);
+async function sweepOneParticipant(participant: Participant, discoveryCache: Map<string, DajeongPlan>): Promise<{ created: number; dispatched: number }> {
+  const refreshedPlan = await refreshedDiscoveredEvents(participant.plan, discoveryCache);
+  const viewerPlan = participant.role === "owner" ? refreshedPlan : redactPlanForViewer(refreshedPlan, participant.personId);
   if (!viewerPlan) return { created: 0, dispatched: 0 };
   const prefs = await getPreferences(participant.personId);
   const previousDigest = await getWeatherDigest(participant.plan.id);
+  const previousNotifiedDiscoveryIds = await getDiscoveryDigest(participant.plan.id);
   const ownerSecretItemIds = participant.role === "owner" ? secretRelatedItemIds(participant.plan) : new Set<string>();
   const drafts = computeNotificationDrafts({
     plan: viewerPlan,
@@ -54,6 +74,7 @@ async function sweepOneParticipant(participant: Participant): Promise<{ created:
     now: new Date(),
     prefs,
     previousWeatherDigest: previousDigest,
+    previousNotifiedDiscoveryIds,
     ownerSecretItemIds,
   });
   const created = await reconcileNotifications({
@@ -64,6 +85,8 @@ async function sweepOneParticipant(participant: Participant): Promise<{ created:
   });
   if (participant.role === "owner") {
     await setWeatherDigest(participant.plan.id, weatherDigestFor(viewerPlan));
+    const newlyNotified = discoveryIdsFromDrafts(drafts, participant.plan.id);
+    if (newlyNotified.length) await setDiscoveryDigest(participant.plan.id, [...previousNotifiedDiscoveryIds, ...newlyNotified]);
   }
   return { created: created.length, dispatched: 0 };
 }
@@ -78,8 +101,9 @@ export type SweepSummary = { plansScanned: number; participantsScanned: number; 
 export async function sweepDueNotifications(): Promise<SweepSummary> {
   const participants = await collectParticipants();
   let notificationsReconciled = 0;
+  const discoveryCache = new Map<string, DajeongPlan>();
   for (const participant of participants) {
-    const result = await sweepOneParticipant(participant);
+    const result = await sweepOneParticipant(participant, discoveryCache);
     notificationsReconciled += result.created;
   }
   const now = new Date();
@@ -118,5 +142,6 @@ export async function resweepPlan(planId: string): Promise<void> {
     participants.push({ plan: shared.plan, personId: shared.ownerId, role: "owner" });
     participants.push({ plan: shared.plan, personId: shared.companionId, role: "companion" });
   }
-  for (const participant of participants) await sweepOneParticipant(participant);
+  const discoveryCache = new Map<string, DajeongPlan>();
+  for (const participant of participants) await sweepOneParticipant(participant, discoveryCache);
 }

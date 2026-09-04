@@ -1,9 +1,11 @@
 import { labelFor } from "./prep-conversation";
 import { isLeadTimeFeasible } from "./prep-engine";
+import { daysRemaining, worthNotifying } from "./discovery-engine";
 import {
   checkinCheckoutCopy,
   contentHiddenCopy,
   departureCopy,
+  discoveryEventCopy,
   homeboundCopy,
   prepDeadlineCopy,
   prepPickupCopy,
@@ -238,6 +240,35 @@ function weatherDrafts(plan: DajeongPlan, now: Date, categories: NotificationCat
   return drafts;
 }
 
+/**
+ * "요즘 뜨는 것" 알림 — 계획의 지역·날짜 근처에서 기관에 등록된 기간 한정 행사(경복궁
+ * 야간개장류)를 찾았고, 종료까지 14일 이내로 다가온 것만 알린다(worthNotifying 기준).
+ * 화제성(블로그 추정)만으로는 먼저 찔러 알리지 않는다 — 앱을 열었을 때 보여주는 걸로 충분하다.
+ * 같은 항목을 사용자당 한 번만 알리도록 previousNotifiedIds에 이미 있는 건 건너뛴다 — 아니면
+ * 종료 전까지 매 스윕(60초)마다 같은 알림이 반복해서 나가게 된다.
+ */
+function discoveryDrafts(plan: DajeongPlan, now: Date, categories: NotificationCategoryToggles, previousNotifiedIds: string[]): NotificationDraft[] {
+  if (!categories.proactiveSuggestions || !plan.discoveredEvents?.length) return [];
+  const alreadyNotified = new Set(previousNotifiedIds);
+  const drafts: NotificationDraft[] = [];
+  for (const item of plan.discoveredEvents) {
+    if (alreadyNotified.has(item.id) || !worthNotifying(item, now)) continue;
+    const copy = discoveryEventCopy({ title: item.title, region: item.region ?? plan.situation.region, daysLeft: daysRemaining(item, now) });
+    drafts.push({
+      targetPersonId: "",
+      kind: "discovery_event",
+      priority: "normal",
+      dedupeKey: `discovery:${plan.id}:${item.id}`,
+      scheduledFor: now.toISOString(),
+      title: copy.title,
+      body: copy.body,
+      privacyAtSend: "normal",
+      deepLink: deepLinkFor(plan),
+    });
+  }
+  return drafts;
+}
+
 /** Push quiet-hours-blocked, non-critical notifications to the end of quiet hours instead of
  * dropping or firing them silently at 3am. Critical notifications (missed reservation, deadline
  * today) are never delayed — that's the one case where waking someone is the point. */
@@ -289,12 +320,14 @@ export function computeNotificationDrafts(input: {
   now: Date;
   prefs: NotificationPreferences;
   previousWeatherDigest: WeatherDigestEntry[];
+  /** discovery item ids this person has already been notified about — see discoveryDrafts. */
+  previousNotifiedDiscoveryIds: string[];
   /** ids of secret main items / non-shared prep — used only to decide privacyAtSend for the
    * OWNER's own device (their lockscreen could be seen by the person they're hiding this from);
    * never used to decide whether a draft is generated at all. */
   ownerSecretItemIds: Set<string>;
 }): NotificationDraft[] {
-  const { plan, targetPersonId, now, prefs, previousWeatherDigest, ownerSecretItemIds } = input;
+  const { plan, targetPersonId, now, prefs, previousWeatherDigest, previousNotifiedDiscoveryIds, ownerSecretItemIds } = input;
   if (!prefs.masterEnabled) return [];
   const raw = [
     ...departureDrafts(plan, now, prefs.categories),
@@ -302,6 +335,7 @@ export function computeNotificationDrafts(input: {
     ...prepDrafts(plan, now, prefs.categories),
     ...checkinCheckoutDrafts(plan, now, prefs.categories),
     ...weatherDrafts(plan, now, prefs.categories, previousWeatherDigest),
+    ...discoveryDrafts(plan, now, prefs.categories, previousNotifiedDiscoveryIds),
   ];
   return raw.flatMap((draft) => {
     const isSecretForOwner = Boolean(draft.relatedItemId && ownerSecretItemIds.has(draft.relatedItemId));
@@ -317,6 +351,13 @@ export function computeNotificationDrafts(input: {
       scheduledFor: applyQuietHours(draft.scheduledFor, draft.priority, prefs.quietHours),
     }];
   });
+}
+
+/** Extracts which discovery item ids just got a draft for this plan, so the sweep can add them
+ * to that plan's notified-ids digest and never re-fire the same "○○ 떴어" push again. */
+export function discoveryIdsFromDrafts(drafts: NotificationDraft[], planId: string): string[] {
+  const prefix = `discovery:${planId}:`;
+  return drafts.filter((draft) => draft.kind === "discovery_event" && draft.dedupeKey.startsWith(prefix)).map((draft) => draft.dedupeKey.slice(prefix.length));
 }
 
 export function secretRelatedItemIds(plan: DajeongPlan): Set<string> {

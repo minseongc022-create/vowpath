@@ -457,6 +457,17 @@ model DajeongWeatherDigest {
   @@map("dajeong_weather_digests")
 }
 
+/** Which discovery(발견) item ids a plan has already been notified about — without this, the
+ * proactive-suggestion sweep would re-fire the same "○○ 떴어" push every 60s for as long as the
+ * event stays within its notify window (worthNotifying stays true for up to 14 days). */
+model DajeongDiscoveryDigest {
+  planId      String   @id
+  notifiedIds Json
+  updatedAt   DateTime @updatedAt
+
+  @@map("dajeong_discovery_digests")
+}
+
 model DajeongPushSubscription {
   id        String   @id @default(cuid())
   personId  String

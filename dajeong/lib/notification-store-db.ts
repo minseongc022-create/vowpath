@@ -143,6 +143,7 @@ export async function unregisterPlan(planId: string): Promise<void> {
   await prisma.$transaction([
     prisma.dajeongRegisteredPlan.deleteMany({ where: { planId } }),
     prisma.dajeongWeatherDigest.deleteMany({ where: { planId } }),
+    prisma.dajeongDiscoveryDigest.deleteMany({ where: { planId } }),
   ]);
 }
 
@@ -166,6 +167,19 @@ export async function setWeatherDigest(planId: string, digest: WeatherDigestEntr
     where: { planId },
     create: { planId, digest: digest as unknown as object },
     update: { digest: digest as unknown as object },
+  });
+}
+
+export async function getDiscoveryDigest(planId: string): Promise<string[]> {
+  const row = await prisma.dajeongDiscoveryDigest.findUnique({ where: { planId } });
+  return row ? (row.notifiedIds as string[]) : [];
+}
+
+export async function setDiscoveryDigest(planId: string, notifiedIds: string[]): Promise<void> {
+  await prisma.dajeongDiscoveryDigest.upsert({
+    where: { planId },
+    create: { planId, notifiedIds: notifiedIds as unknown as object },
+    update: { notifiedIds: notifiedIds as unknown as object },
   });
 }
 

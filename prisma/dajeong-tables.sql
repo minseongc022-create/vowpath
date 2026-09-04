@@ -95,6 +95,15 @@ CREATE TABLE "dajeong_weather_digests" (
 );
 
 -- CreateTable
+CREATE TABLE "dajeong_discovery_digests" (
+    "planId" TEXT NOT NULL,
+    "notifiedIds" JSONB NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "dajeong_discovery_digests_pkey" PRIMARY KEY ("planId")
+);
+
+-- CreateTable
 CREATE TABLE "dajeong_push_subscriptions" (
     "id" TEXT NOT NULL,
     "personId" TEXT NOT NULL,

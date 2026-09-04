@@ -109,6 +109,18 @@ export function checkinCheckoutCopy(input: { kind: "checkin" | "checkout"; title
   };
 }
 
+/**
+ * worthNotifying()이 official(기관 등록)이고 종료까지 14일 이내인 것만 통과시키므로, 여기서
+ * 추정(inferred) 문구는 다루지 않는다 — 화제성만으로 먼저 찔러 알리지 않는다는 원칙 그대로다.
+ */
+export function discoveryEventCopy(input: { title: string; region: string; daysLeft?: number }): { title: string; body: string } {
+  const deadline = input.daysLeft != null && input.daysLeft <= 3 ? ` 이제 ${input.daysLeft}일 남았어.` : "";
+  return {
+    title: `${input.region}에서 ‘${input.title}’ 하고 있어`,
+    body: `기관에 등록된 기간 한정 행사야.${deadline} 한번 가볼래?`,
+  };
+}
+
 const CONTENT_HIDDEN_BODY: Record<NotificationKind, string> = {
   departure: "하루위드에서 확인할 게 있어.",
   prep_deadline: "하루위드에서 확인할 게 있어.",
@@ -117,6 +129,7 @@ const CONTENT_HIDDEN_BODY: Record<NotificationKind, string> = {
   homebound: "하루위드에서 확인할 게 있어.",
   reservation_risk: "하루위드에서 확인할 게 있어.",
   checkin_checkout: "하루위드에서 확인할 게 있어.",
+  discovery_event: "하루위드에서 확인할 게 있어.",
 };
 
 /** Level-2 privacy: replace both title and body with a generic line before the notification is

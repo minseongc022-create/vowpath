@@ -7,6 +7,7 @@ import {
   applyQuietHours,
   computeNotificationDrafts,
   defaultNotificationPreferences,
+  discoveryIdsFromDrafts,
   kstToUtc,
   secretRelatedItemIds,
   weatherDigestFor,
@@ -24,6 +25,7 @@ function baseInput(plan, overrides = {}) {
     now: new Date(),
     prefs: defaultNotificationPreferences("person_A"),
     previousWeatherDigest: [],
+    previousNotifiedDiscoveryIds: [],
     ownerSecretItemIds: new Set(),
     ...overrides,
   };
@@ -231,4 +233,68 @@ test("masterEnabled이 false면 어떤 알림도 생성되지 않는다", () => 
   const prefs = { ...defaultNotificationPreferences("person_A"), masterEnabled: false };
   const drafts = computeNotificationDrafts(baseInput(plan, { prefs }));
   assert.equal(drafts.length, 0);
+});
+
+// ── 발견(discovery) 알림 — "요즘 뜨는 것" ────────────────────────────────────
+
+function discoveredEvent(overrides = {}) {
+  return {
+    id: "culture-1",
+    title: "경복궁 야간개장",
+    source: "culture_data",
+    sourceLabel: "문화데이터광장 등록 정보",
+    confidence: "official",
+    region: "서울",
+    startDate: "2026-09-01",
+    endDate: "2026-09-10",
+    signals: [],
+    checkedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+test("[TEST 30] 기관 등록 행사가 14일 이내로 다가오면 알림이 생성된다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent()] };
+  const now = new Date("2026-09-08T09:00:00+09:00"); // 종료까지 2일 남음
+  const drafts = computeNotificationDrafts(baseInput(plan, { now }));
+  const discovery = drafts.find((draft) => draft.kind === "discovery_event");
+  assert.ok(discovery, "발견 알림이 생성되어야 한다");
+  assert.match(discovery.body, /2일/);
+  assert.equal(discovery.dedupeKey, `discovery:${plan.id}:culture-1`);
+});
+
+test("아직 넉넉히 남은(14일 초과) 행사는 알리지 않는다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent({ endDate: "2026-12-31" })] };
+  const now = new Date("2026-09-05T09:00:00+09:00");
+  const drafts = computeNotificationDrafts(baseInput(plan, { now }));
+  assert.equal(drafts.some((draft) => draft.kind === "discovery_event"), false);
+});
+
+test("추정(inferred) 항목은 화제성만으로 먼저 알리지 않는다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent({ confidence: "inferred", startDate: undefined, endDate: undefined })] };
+  const now = new Date("2026-09-05T09:00:00+09:00");
+  const drafts = computeNotificationDrafts(baseInput(plan, { now }));
+  assert.equal(drafts.some((draft) => draft.kind === "discovery_event"), false);
+});
+
+test("이미 알린 발견 항목은 다시 알리지 않는다 — 종료 전까지 매 스윕마다 반복되면 안 된다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent()] };
+  const now = new Date("2026-09-05T09:00:00+09:00");
+  const drafts = computeNotificationDrafts(baseInput(plan, { now, previousNotifiedDiscoveryIds: ["culture-1"] }));
+  assert.equal(drafts.some((draft) => draft.kind === "discovery_event"), false);
+});
+
+test("proactiveSuggestions 토글이 꺼져 있으면 발견 알림을 만들지 않는다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent()] };
+  const now = new Date("2026-09-05T09:00:00+09:00");
+  const prefs = { ...defaultNotificationPreferences("person_A"), categories: { ...defaultNotificationPreferences("person_A").categories, proactiveSuggestions: false } };
+  const drafts = computeNotificationDrafts(baseInput(plan, { now, prefs }));
+  assert.equal(drafts.some((draft) => draft.kind === "discovery_event"), false);
+});
+
+test("discoveryIdsFromDrafts: 방금 생성된 발견 알림 draft에서 항목 id만 뽑아낸다", () => {
+  const plan = { ...birthdayPlan(), discoveredEvents: [discoveredEvent(), discoveredEvent({ id: "culture-2", endDate: "2026-12-31" })] };
+  const now = new Date("2026-09-05T09:00:00+09:00");
+  const drafts = computeNotificationDrafts(baseInput(plan, { now }));
+  assert.deepEqual(discoveryIdsFromDrafts(drafts, plan.id), ["culture-1"]);
 });

@@ -37,6 +37,8 @@ export const listRegisteredPlans: typeof dbStore.listRegisteredPlans = (...args)
 export const getRegisteredPlan: typeof dbStore.getRegisteredPlan = (...args) => backend().getRegisteredPlan(...args);
 export const getWeatherDigest: typeof dbStore.getWeatherDigest = (...args) => backend().getWeatherDigest(...args);
 export const setWeatherDigest: typeof dbStore.setWeatherDigest = (...args) => backend().setWeatherDigest(...args);
+export const getDiscoveryDigest: typeof dbStore.getDiscoveryDigest = (...args) => backend().getDiscoveryDigest(...args);
+export const setDiscoveryDigest: typeof dbStore.setDiscoveryDigest = (...args) => backend().setDiscoveryDigest(...args);
 export const reconcileNotifications: typeof dbStore.reconcileNotifications = (...args) => backend().reconcileNotifications(...args);
 export const dueNotifications: typeof dbStore.dueNotifications = (...args) => backend().dueNotifications(...args);
 export const markSent: typeof dbStore.markSent = (...args) => backend().markSent(...args);

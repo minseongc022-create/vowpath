@@ -25,10 +25,11 @@ type Store = {
   notifications: Record<string, DajeongNotification>;
   registeredPlans: Record<string, RegisteredPlan>;
   weatherDigests: Record<string, WeatherDigestEntry[]>;
+  discoveryDigests: Record<string, string[]>;
 };
 
 function defaultStore(): Store {
-  return { subscriptions: {}, preferences: {}, notifications: {}, registeredPlans: {}, weatherDigests: {} };
+  return { subscriptions: {}, preferences: {}, notifications: {}, registeredPlans: {}, weatherDigests: {}, discoveryDigests: {} };
 }
 
 function normalizeStore(raw: Partial<Store>): Store {
@@ -39,6 +40,7 @@ function normalizeStore(raw: Partial<Store>): Store {
     notifications: raw.notifications ?? base.notifications,
     registeredPlans: raw.registeredPlans ?? base.registeredPlans,
     weatherDigests: raw.weatherDigests ?? base.weatherDigests,
+    discoveryDigests: raw.discoveryDigests ?? base.discoveryDigests,
   };
 }
 
@@ -148,6 +150,7 @@ export async function unregisterPlan(planId: string): Promise<void> {
   const store = await loadStore();
   delete store.registeredPlans[planId];
   delete store.weatherDigests[planId];
+  delete store.discoveryDigests[planId];
   await saveStore(store);
 }
 
@@ -171,6 +174,19 @@ export async function getWeatherDigest(planId: string): Promise<WeatherDigestEnt
 export async function setWeatherDigest(planId: string, digest: WeatherDigestEntry[]): Promise<void> {
   const store = await loadStore();
   store.weatherDigests[planId] = digest;
+  await saveStore(store);
+}
+
+// ── Discovery digest (which discovery item ids we've already notified about) ───────────
+
+export async function getDiscoveryDigest(planId: string): Promise<string[]> {
+  const store = await loadStore();
+  return store.discoveryDigests[planId] ?? [];
+}
+
+export async function setDiscoveryDigest(planId: string, notifiedIds: string[]): Promise<void> {
+  const store = await loadStore();
+  store.discoveryDigests[planId] = notifiedIds;
   await saveStore(store);
 }
 
