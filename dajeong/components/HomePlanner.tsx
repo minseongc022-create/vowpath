@@ -246,7 +246,6 @@ export function HomePlanner() {
           ))}
 
           {searchStage ? <div className="dj-home-message dj-home-assistant dj-home-searching"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><p>{searchStage}</p><i><b /><b /><b /></i></div></div> : null}
-          {!loading && quickReplies.length ? <div className="dj-chat-quick-replies">{quickReplies.map((reply) => <button type="button" key={reply} onClick={() => analyze(undefined, reply)}>{reply}</button>)}</div> : null}
           {error ? <div className="dj-home-message dj-home-assistant dj-home-error"><span className="dj-home-avatar">!</span><div><p>{error}</p></div></div> : null}
           <div ref={conversationEndRef} aria-hidden="true" />
         </section>

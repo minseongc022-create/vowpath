@@ -16,6 +16,7 @@ import type {
 } from "./types";
 
 const REGIONS = ["성수", "강남", "홍대", "연남", "여의도", "잠실", "광화문", "종로", "용산", "이태원", "서울", "인천", "수원", "성남", "분당", "가평", "춘천", "강릉", "속초", "전주", "여수", "경주", "부산", "대구", "대전", "광주", "제주"];
+const BROAD_REGIONS = ["서울", "인천", "부산", "대구", "대전", "광주", "수원", "성남", "제주"];
 const MOODS: ExperienceMood[] = ["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"];
 const CATEGORIES: PlanCategory[] = ["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"];
 const QUESTION_KEYS: Exclude<PlanningQuestionKey, null>[] = ["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave", "availabilityTime", "density"];
@@ -160,6 +161,22 @@ function regionIn(text: string): string | undefined {
   return REGIONS.find((region) => text.includes(region));
 }
 
+function hasBatchim(word: string): boolean {
+  const ch = word.trim().at(-1);
+  if (!ch) return false;
+  const code = ch.charCodeAt(0) - 0xac00;
+  if (code < 0 || code > 11171) return false;
+  return code % 28 !== 0;
+}
+
+function topicParticle(word: string): string {
+  return hasBatchim(word) ? "은" : "는";
+}
+
+function regionNeedsNarrowing(draft: PlanRequest): boolean {
+  return Boolean(draft.region && BROAD_REGIONS.includes(draft.region) && !draft.explicitUnknowns?.includes("regionNarrowed"));
+}
+
 function recipientIn(text: string): string | undefined {
   if (/남자친구|남친/.test(text)) return "남자친구";
   if (/여자친구|여친/.test(text)) return "여자친구";
@@ -291,7 +308,13 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
       : inferredScope === "single" && ["flower", "gift", "cake"].includes(category ?? "activity") ? "product_search"
         : inferredScope === "single" ? "place_search" : "day_plan";
   const memory = mergeMemory(previous.personMemoryUpdate, memoryUpdateFrom(fullText));
-  const explicitUnknowns = unique([...(previous.explicitUnknowns ?? []), ...(explicitNoMustHave(fullText) ? ["mustHave"] : [])]);
+  const resolvedRegion = currentQuestion === "departure" ? previous.region : foundRegion ?? previous.region ?? (REGIONS.some((region) => fullText.includes(region)) ? parsedAll.region : undefined);
+  const regionNarrowedNow = Boolean(currentQuestion === "region" && resolvedRegion && BROAD_REGIONS.includes(resolvedRegion) && previous.region && BROAD_REGIONS.includes(previous.region));
+  const explicitUnknowns = unique([
+    ...(previous.explicitUnknowns ?? []),
+    ...(explicitNoMustHave(fullText) ? ["mustHave"] : []),
+    ...(regionNarrowedNow ? ["regionNarrowed"] : []),
+  ]);
   const arrivalTime = timeAfter(latest, /도착|도착하는|제주에\s*가는/) ?? previous.arrivalTime;
   const returnDepartureTime = timeAfter(latest, /돌아가는|돌아올|복귀|출발하는/) ?? previous.returnDepartureTime;
   const lodgingPreference = /오션\s*뷰|바다\s*뷰/.test(latest) ? "오션뷰"
@@ -317,7 +340,7 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     ...previous,
     request: fullText,
     recipient: foundRecipient ?? previous.recipient ?? (parsedAll.recipient !== "함께할 사람" ? parsedAll.recipient : undefined),
-    region: currentQuestion === "departure" ? previous.region : foundRegion ?? previous.region ?? (REGIONS.some((region) => fullText.includes(region)) ? parsedAll.region : undefined),
+    region: resolvedRegion,
     departureRegion: currentQuestion === "departure" && foundRegion ? foundRegion : previous.departureRegion,
     budget: latestBudget ?? previous.budget,
     targetDate,
@@ -356,7 +379,10 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
   if (currentQuestion && isUndecided(latest)) {
     if (currentQuestion === "date") draft.targetDate = nextSaturday();
     if (currentQuestion === "tripLength") Object.assign(draft, { planScope: "trip", tripDays: 2, tripNights: 1, checkInTime: "15:00", checkOutTime: "11:00" });
-    if (currentQuestion === "region") draft.region = draft.planScope === "trip" ? "가평" : "서울";
+    if (currentQuestion === "region") {
+      draft.region = draft.planScope === "trip" ? "가평" : "서울";
+      draft.explicitUnknowns = unique([...(draft.explicitUnknowns ?? []), "regionNarrowed"]);
+    }
     if (currentQuestion === "budget") draft.budget = draft.planScope === "trip" ? 600_000 : 250_000;
     if (currentQuestion === "preference") {
       draft.preferences = unique([...(draft.preferences ?? []), "쉽게 찾기 어려운 특별한 경험"]);
@@ -465,9 +491,13 @@ function substantivePreference(draft: PlanRequest): boolean {
 export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQuestionKey, null>[] {
   const situation = parseSituation(draft);
   if (situation.planScope === "single") {
+    const isGiftLike = ["gift", "flower", "cake"].includes(draft.singleCategory ?? "");
     const questions: Exclude<PlanningQuestionKey, null>[] = [];
-    if (!draft.region) questions.push("region");
+    if (isGiftLike && !draft.recipient) questions.push("recipient");
+    if (!draft.region || regionNeedsNarrowing(draft)) questions.push("region");
     if (situation.requestKind === "reservation" && !draft.targetDate) questions.push("date");
+    if (!draft.budget) questions.push("budget");
+    if (!substantivePreference(draft)) questions.push("preference");
     return questions;
   }
   if (situation.planScope === "trip") {
@@ -499,14 +529,29 @@ export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQu
 
 function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): { reply: string; quickReplies: string[] } {
   const recipient = parseSituation(draft).recipient;
-  if (key === "recipient") return { reply: "좋아! 이번 하루는 누구와 함께 보내고 싶어?", quickReplies: ["혼자예요", "여자친구와 둘이요", "친구들과 가요"] };
+  if (key === "recipient") {
+    if (draft.planScope === "single" && ["gift", "flower", "cake"].includes(draft.singleCategory ?? "")) {
+      return { reply: "누구에게 줄 거야? 받는 사람을 알려주면 그 사람 취향에 맞게 찾아볼게.", quickReplies: ["여자친구", "부모님", "친구"] };
+    }
+    return { reply: "좋아! 이번 하루는 누구와 함께 보내고 싶어?", quickReplies: ["혼자예요", "여자친구와 둘이요", "친구들과 가요"] };
+  }
   if (key === "tripLength") return { reply: "좋지, 제대로 여행으로 짜볼게. 며칠 정도 갈 생각이야?", quickReplies: ["당일치기", "1박 2일", "2박 3일"] };
   if (key === "date") return { reply: "언제로 생각하고 있어? 날짜를 아직 못 정했다면 이번 주말처럼 말해도 돼.", quickReplies: ["오늘", "이번 토요일", "일주일 뒤"] };
   if (key === "departure") return { reply: "어디에서 출발해? 출발 시간까지 무리 없게 맞춰볼게.", quickReplies: ["서울에서 출발", "인천에서 출발", "부산에서 출발"] };
-  if (key === "region") return { reply: "어느 지역에서 찾을까? 아직 미정이면 생활권이나 출발지만 말해줘도 돼.", quickReplies: ["서울 안에서 추천해줘", "성수 쪽", "제주"] };
+  if (key === "region") {
+    if (draft.region && BROAD_REGIONS.includes(draft.region)) {
+      return { reply: `${draft.region}${topicParticle(draft.region)} 넓어서 그런데, 좀 더 좁혀서 말해줄 수 있어? 동네나 역 이름 정도면 충분해. 지금 있는 곳 근처가 좋은지, 가려는 곳 근처가 좋은지도 알려줘.`, quickReplies: [] };
+    }
+    return { reply: "어느 지역에서 찾을까? 지금 있는 곳 근처인지, 가려는 곳 근처인지도 함께 알려줘.", quickReplies: ["성수 쪽", "지금 있는 곳 근처", "제주"] };
+  }
   if (key === "partySize") return { reply: "모두 몇 명이 함께 가? 좌석과 비용을 인원에 맞출게.", quickReplies: ["둘이 가요", "3명이에요", "4명이에요"] };
-  if (key === "budget") return { reply: draft.planScope === "trip" ? "숙소와 이동까지 포함해서 전체 예산은 어느 정도로 볼까?" : "전체 예산은 어느 정도로 생각해? 그 안에서 특별함은 최대한 살릴게.", quickReplies: ["15만원 안으로", "30만원 정도", "숙소까지 100만원"] };
-  if (key === "preference") return { reply: `${recipient}와 어떤 느낌으로 보내고 싶어? 힐링, 액티비티, 전시, 맛있는 음식처럼 떠오르는 것만 말해줘.`, quickReplies: ["힐링과 액티비티 둘 다", "신비롭고 이색적으로", "조용하고 로맨틱하게"] };
+  if (key === "budget") return { reply: draft.planScope === "trip" ? "숙소와 이동까지 포함해서 전체 예산은 어느 정도로 볼까?" : "예산은 어느 정도로 생각해? 그 안에서 제일 좋은 걸로 찾아볼게.", quickReplies: ["15만원 안으로", "30만원 정도", "숙소까지 100만원"] };
+  if (key === "preference") {
+    if (draft.planScope === "single") {
+      return { reply: "어떤 스타일이나 분위기가 좋아? 로맨틱하게, 심플하게, 고급스럽게처럼 떠오르는 대로 말해줘.", quickReplies: ["로맨틱하고 감성적으로", "고급스럽고 특별하게", "실용적이고 심플하게"] };
+    }
+    return { reply: `${recipient}와 어떤 느낌으로 보내고 싶어? 힐링, 액티비티, 전시, 맛있는 음식처럼 떠오르는 것만 말해줘.`, quickReplies: ["힐링과 액티비티 둘 다", "신비롭고 이색적으로", "조용하고 로맨틱하게"] };
+  }
   if (key === "lodgingPreference") return { reply: "숙소에서 가장 중요한 건 뭐야? 뷰, 위치, 조용함처럼 한 가지만 말해줘도 돼.", quickReplies: ["오션뷰", "위치와 청결", "조용한 감성 숙소"] };
   if (key === "arrivalTime") return { reply: "첫날 도착은 몇 시쯤이야? 도착 직후부터 무리 없게 짤게.", quickReplies: ["오전 11시", "오후 3시", "아직 몰라"] };
   if (key === "returnTime") return { reply: "마지막 날 돌아가는 비행기나 기차는 몇 시쯤이야? 공항·역 이동 시간도 비워둘게.", quickReplies: ["오후 3시", "오후 6시", "아직 몰라"] };

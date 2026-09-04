@@ -331,10 +331,46 @@ test("식당과 꽃 요청은 각각 하나의 목적만 유지한다", () => {
   const flower = applyDeterministicConversation([{ role: "user", text: "여친 줄 꽃다발 예약하고 싶어." }], {});
   assert.equal(restaurant.planScope, "single");
   assert.equal(restaurant.singleCategory, "meal");
-  assert.deepEqual(missingPlanningQuestions(restaurant), []);
+  assert.deepEqual(missingPlanningQuestions(restaurant), ["budget", "preference"]);
   assert.equal(flower.planScope, "single");
   assert.equal(flower.singleCategory, "flower");
   assert.equal(flower.requestKind, "reservation");
+  assert.equal(flower.recipient, "여자친구");
+  assert.ok(missingPlanningQuestions(flower).includes("budget"));
+});
+
+test("선물/식당처럼 단일 항목 검색도 예산을 묻기 전엔 준비 완료로 넘어가지 않는다", () => {
+  const gift = applyDeterministicConversation([{ role: "user", text: "성수에서 여자친구한테 줄 선물 찾아줘" }], {});
+  assert.deepEqual(missingPlanningQuestions(gift).sort(), ["budget", "preference"]);
+  const withBudget = applyDeterministicConversation(
+    [{ role: "user", text: "성수에서 여자친구한테 줄 선물 찾아줘" }, { role: "assistant", text: "예산은 어느 정도로 생각해?" }, { role: "user", text: "10만원 정도, 로맨틱한 걸로" }],
+    { ...gift },
+    "budget",
+  );
+  assert.equal(withBudget.budget, 100_000);
+  assert.deepEqual(missingPlanningQuestions(withBudget), []);
+});
+
+test("넓은 지역(인천 등)만 말하면 동네를 한 번 더 물어본다", () => {
+  const first = applyDeterministicConversation([{ role: "user", text: "인천에서 맛있는 식당 찾아줘" }], {});
+  assert.equal(first.region, "인천");
+  assert.ok(missingPlanningQuestions(first).includes("region"));
+  const narrowed = applyDeterministicConversation(
+    [{ role: "user", text: "인천에서 맛있는 식당 찾아줘" }, { role: "assistant", text: "인천은 넓은데 동네를 알려줄 수 있어?" }, { role: "user", text: "성수" }],
+    { ...first },
+    "region",
+  );
+  assert.equal(narrowed.region, "성수");
+  assert.ok(!missingPlanningQuestions(narrowed).includes("region"));
+
+  const stillBroad = applyDeterministicConversation(
+    [{ role: "user", text: "인천에서 맛있는 식당 찾아줘" }, { role: "assistant", text: "인천은 넓은데 동네를 알려줄 수 있어?" }, { role: "user", text: "그냥 인천이요" }],
+    { ...first },
+    "region",
+  );
+  assert.equal(stillBroad.region, "인천");
+  assert.ok(stillBroad.explicitUnknowns.includes("regionNarrowed"));
+  assert.ok(!missingPlanningQuestions(stillBroad).includes("region"));
 });
 
 test("생일이라는 이유만으로 요청하지 않은 꽃·선물·케이크를 끼워 넣지 않는다", () => {
