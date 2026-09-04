@@ -12,9 +12,13 @@ import type { DiscoveryItem, DiscoverySource } from "./types";
  *      전시·공연·축제의 기간이 시작일~종료일로 등록돼 있다. "며칠만 하는 것"을 정확히 아는
  *      유일한 경로라, 여기서 온 날짜만 화면에서 단정한다.
  *
- *   2) 네이버 검색 API(지역·블로그)
+ *   2) 네이버 검색 API(지역·블로그) — NAVER API HUB
  *      아직 기관 데이터에 없는 신상 가게는 "최근에 블로그 글이 몰린다"는 신호로만 추린다.
  *      이건 추정이라 confidence: "inferred" 로 표시하고, 기간·가격을 지어내지 않는다.
+ *      네이버가 예전 개발자센터(openapi.naver.com)에서 검색 API를 빼서 NAVER Cloud
+ *      Platform의 API HUB(naverapihub.apigw.ntruss.com)로 옮겼다. 인증 헤더도
+ *      X-Naver-Client-Id → X-NCP-APIGW-API-KEY-ID 로 바뀌었다. 응답 필드명은
+ *      title/link/description/postdate(블로그), title/address/mapx/mapy(지역)로 유지된다.
  *
  * 키가 없으면 각 함수는 조용히 빈 배열을 준다 — 카카오·구글 탐색과 같은 방식이라,
  * 키를 넣기 전에도 앱은 그대로 돌고 넣는 순간 켜진다.
@@ -217,9 +221,9 @@ export async function fetchNaverLocal(params: { query: string; limit?: number })
 
   // 지역 검색은 display 최대가 5다. 더 달라고 하면 오류로 돌아온다.
   const search = new URLSearchParams({ query, display: String(Math.min(5, params.limit ?? 5)), sort: "comment" });
-  const body = await fetchText(`https://openapi.naver.com/v1/search/local.json?${search.toString()}`, {
-    "X-Naver-Client-Id": credentials.id,
-    "X-Naver-Client-Secret": credentials.secret,
+  const body = await fetchText(`https://naverapihub.apigw.ntruss.com/search/v1/local?${search.toString()}`, {
+    "X-NCP-APIGW-API-KEY-ID": credentials.id,
+    "X-NCP-APIGW-API-KEY": credentials.secret,
   });
   if (!body) return [];
 
@@ -269,9 +273,9 @@ export async function fetchNaverBlogBuzz(params: {
   if (!credentials || !query) return [];
 
   const search = new URLSearchParams({ query, display: "30", sort: "date" });
-  const body = await fetchText(`https://openapi.naver.com/v1/search/blog.json?${search.toString()}`, {
-    "X-Naver-Client-Id": credentials.id,
-    "X-Naver-Client-Secret": credentials.secret,
+  const body = await fetchText(`https://naverapihub.apigw.ntruss.com/search/v1/blog?${search.toString()}`, {
+    "X-NCP-APIGW-API-KEY-ID": credentials.id,
+    "X-NCP-APIGW-API-KEY": credentials.secret,
   });
   if (!body) return [];
 
@@ -326,9 +330,9 @@ export async function probeSourceShape(source: DiscoverySource, query: string): 
     const credentials = naverSearchCredentials();
     if (!credentials) return { ok: false, sampleKeys: [], itemCount: 0 };
     const path = source === "naver_local" ? "local" : "blog";
-    body = await fetchText(`https://openapi.naver.com/v1/search/${path}.json?query=${encodeURIComponent(query)}&display=5`, {
-      "X-Naver-Client-Id": credentials.id,
-      "X-Naver-Client-Secret": credentials.secret,
+    body = await fetchText(`https://naverapihub.apigw.ntruss.com/search/v1/${path}?query=${encodeURIComponent(query)}&display=5`, {
+      "X-NCP-APIGW-API-KEY-ID": credentials.id,
+      "X-NCP-APIGW-API-KEY": credentials.secret,
     });
   }
   if (!body) return { ok: false, sampleKeys: [], itemCount: 0 };
