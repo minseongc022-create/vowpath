@@ -179,7 +179,7 @@ function TimelineItem({
                 <span className="dj-self-chip">♡ 직접 준비하는 항목</span>
               ) : (
                 <a href={item.href} target="_blank" rel="noreferrer" className="dj-btn dj-btn-secondary dj-connect-link">
-                  사진·리뷰 더 보기 <ArrowIcon size={16} />
+                  {item.reality?.freshness === "reference" ? "지도에서 가게 찾아보기" : "사진·리뷰 더 보기"} <ArrowIcon size={16} />
                 </a>
               )}
               <button type="button" className="dj-change-button dj-item-change-button" onClick={() => setOpen((value) => !value)}>
@@ -619,29 +619,6 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         <div><ShieldIcon size={19} /><span>예약 확인</span><strong>{plan.items.filter((item) => item.reservationRequired).length}곳 필요</strong></div>
       </div>
 
-      <section className="dj-revision-studio">
-        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
-        <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
-          {messages.slice(-16).map((message) => (
-            <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>
-              {message.role === "assistant" ? <span className="dj-chat-avatar"><SparkleIcon size={13} /></span> : null}
-              <p>{message.text}{message.status === "searching" ? <i className="dj-thinking-dots"><b /><b /><b /></i> : null}</p>
-            </div>
-          ))}
-          {proposal ? (
-            <div className="dj-proposal-actions">
-              <p>{proposal.reason}</p>
-              <div><button type="button" onClick={acceptProposal}>이 순서로 바꿀게요</button><button type="button" onClick={keepCurrentOrder}>지금 순서 유지</button></div>
-            </div>
-          ) : null}
-        </div>
-        <form className="dj-revision-form" onSubmit={(event) => revise(event)}>
-          <input value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="예: 엄마가 매운 걸 못 드셔. 식사와 동선을 자연스럽게 다시 맞춰줘" aria-label="계획 수정 요청" />
-          <button type="submit" disabled={revising || instruction.trim().length < 2}>{revising ? <span className="dj-spinner dj-spinner-coral" /> : <ArrowIcon size={18} />}<span>조정</span></button>
-        </form>
-        <div className="dj-revision-examples">{revisionExamples.map((example) => <button key={example} type="button" onClick={() => revise(undefined, example)} disabled={revising}>{example}</button>)}</div>
-        {revisionMessage ? <span className="dj-sr-only" role="status">{revisionMessage}</span> : null}
-      </section>
 
       <div className="dj-plan-layout">
         <section className="dj-plan-main">
@@ -703,6 +680,30 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           )}
         </aside>
       </div>
+
+      <section className="dj-revision-studio">
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
+        <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
+          {messages.slice(-16).map((message) => (
+            <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>
+              {message.role === "assistant" ? <span className="dj-chat-avatar"><SparkleIcon size={13} /></span> : null}
+              <p>{message.text}{message.status === "searching" ? <i className="dj-thinking-dots"><b /><b /><b /></i> : null}</p>
+            </div>
+          ))}
+          {proposal ? (
+            <div className="dj-proposal-actions">
+              <p>{proposal.reason}</p>
+              <div><button type="button" onClick={acceptProposal}>이 순서로 바꿀게요</button><button type="button" onClick={keepCurrentOrder}>지금 순서 유지</button></div>
+            </div>
+          ) : null}
+        </div>
+        <form className="dj-revision-form" onSubmit={(event) => revise(event)}>
+          <input value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="예: 엄마가 매운 걸 못 드셔. 식사와 동선을 자연스럽게 다시 맞춰줘" aria-label="계획 수정 요청" />
+          <button type="submit" disabled={revising || instruction.trim().length < 2}>{revising ? <span className="dj-spinner dj-spinner-coral" /> : <ArrowIcon size={18} />}<span>조정</span></button>
+        </form>
+        <div className="dj-revision-examples">{revisionExamples.map((example) => <button key={example} type="button" onClick={() => revise(undefined, example)} disabled={revising}>{example}</button>)}</div>
+        {revisionMessage ? <span className="dj-sr-only" role="status">{revisionMessage}</span> : null}
+      </section>
 
       <div className="dj-honesty-note"><ShieldIcon size={20} /><div><strong>추천과 실제 확정을 분명히 나눕니다</strong><p>{plan.notice}</p></div></div>
     </div>

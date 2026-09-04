@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import { createDajeongPlan, replacePlanItem, restorePlanVersion, restoreReferencedCandidate, reviseDajeongPlan } from "../../dajeong/lib/plan-engine.ts";
 import { applyDeterministicConversation, continuePlanningConversation, missingPlanningQuestions } from "../../dajeong/lib/planning-brain.ts";
 import { analyzeSituation, parseSituation } from "../../dajeong/lib/situation.ts";
-import { chainNameFor, haversineKm, rankRealPlaceCandidates } from "../../dajeong/lib/place-utils.ts";
+import { chainNameFor, haversineKm, kakaoCategoryMatches, rankRealPlaceCandidates } from "../../dajeong/lib/place-utils.ts";
+import { createManualDajeongPlan, manualDefaults } from "../../dajeong/lib/manual-plan.ts";
 import { handleExecutionInstruction } from "../../dajeong/lib/execution-conversation.ts";
 import { applyProviderQuote, approvePayment, prepareReservationOrder, recordProviderExecutionResult, requestPaymentReview } from "../../dajeong/lib/reservation-engine.ts";
 import { isIsolatedProductPath } from "../../lib/shell-route.ts";
@@ -317,7 +318,8 @@ test("하루위드 멀티턴 여행 대화는 9턴의 조건을 잃지 않고 �
 
 test("한 문장에 제공한 날짜·동행·지역·예산·교통·선호·비선호를 다시 묻지 않는다", () => {
   const draft = applyDeterministicConversation([{ role: "user", text: "다음주 금요일 여자친구랑 서울에서 15만원 안으로 차 없이 놀고 싶어. 전시는 좋아하고 공방은 싫어." }], {});
-  assert.deepEqual(missingPlanningQuestions(draft), []);
+  // 하루 코스에는 식사가 들어가므로 "몇 시에 먹을지"는 아직 물어야 한다 — 나머지는 다시 묻지 않는다.
+  assert.deepEqual(missingPlanningQuestions(draft), ["mealTime"]);
   assert.equal(draft.budget, 150_000);
   assert.equal(draft.transport, "public_transit");
   assert.ok(draft.preferences.includes("전시"));
@@ -331,7 +333,7 @@ test("식당과 꽃 요청은 각각 하나의 목적만 유지한다", () => {
   const flower = applyDeterministicConversation([{ role: "user", text: "여친 줄 꽃다발 예약하고 싶어." }], {});
   assert.equal(restaurant.planScope, "single");
   assert.equal(restaurant.singleCategory, "meal");
-  assert.deepEqual(missingPlanningQuestions(restaurant), ["budget", "preference"]);
+  assert.deepEqual(missingPlanningQuestions(restaurant), ["budget", "mealTime", "preference"]);
   assert.equal(flower.planScope, "single");
   assert.equal(flower.singleCategory, "flower");
   assert.equal(flower.requestKind, "reservation");
@@ -685,4 +687,66 @@ test("현실 일정 J: 사용자가 꼭 간다고 고정한 장소는 일반 재
   const revised = reviseDajeongPlan(locked, "너무 평범한데 더 특별하게 바꿔줘").plan;
   assert.equal(revised.items.find((item) => item.id === activity.id).title, activity.title);
   assert.equal(revised.items.find((item) => item.id === activity.id).placeLocked, true);
+});
+
+test("꽃집을 찾을 때 구청·장례식장은 후보에서 걸러진다", () => {
+  // 실제로 겪은 문제: "인천 꽃집"을 찾았는데 미추홀구청이 후보로 올라왔다.
+  assert.equal(kakaoCategoryMatches("가정,생활 > 꽃집,꽃배달", "봄날플라워", "flower"), true);
+  assert.equal(kakaoCategoryMatches("사회,공공기관 > 행정기관 > 구청", "인천 미추홀구청", "flower"), false);
+  assert.equal(kakaoCategoryMatches("의료,건강 > 장례식장", "○○장례식장 화환", "flower"), false);
+});
+
+test("업종 그룹코드가 맞으면 식당·카페로 인정한다", () => {
+  assert.equal(kakaoCategoryMatches("음식점 > 양식 > 파스타", "리스토란테", "meal", "FD6"), true);
+  assert.equal(kakaoCategoryMatches("음식점 > 카페 > 커피전문점", "동네커피", "cafe", "CE7"), true);
+  assert.equal(kakaoCategoryMatches("사회,공공기관 > 행정기관", "주민센터", "meal", "PO3"), false);
+});
+
+test("평점을 아는 곳과 모르는 곳을 함께 줘도 낮은 평점은 밀린다", () => {
+  const base = { address: "서울 성동구 성수일로 10", openNow: null, openingHours: [], businessStatus: "operational", mapsUrl: "https://place.map.kakao.com/1", checkedAt: new Date().toISOString(), latitude: 37.54, longitude: 127.05 };
+  const ranked = rankRealPlaceCandidates([
+    { ...base, id: "bad", name: "평점 낮은 집", rating: 3.2, reviewCount: 400, source: "google_places", sourceLabel: "Google" },
+    { ...base, id: "good", name: "평점 좋은 집", rating: 4.6, reviewCount: 320, source: "google_places", sourceLabel: "Google" },
+    { ...base, id: "kakao", name: "카카오만 아는 집", phoneNumber: "02-1234-5678", source: "kakao_local", sourceLabel: "카카오맵 등록 정보" },
+  ], undefined, "meal", 80_000, 50_000);
+  assert.equal(ranked[0].id, "good");
+  assert.equal(ranked.some((place) => place.id === "bad"), false);
+});
+
+test("직접 고른 장소로 만든 계획도 시간순으로 정렬되고 합계가 맞는다", () => {
+  const defaults = manualDefaults("meal");
+  assert.ok(defaults.durationMinutes > 0);
+  const plan = createManualDajeongPlan({
+    request: "직접 만든 계획",
+    region: "성수",
+    budget: 200_000,
+    picks: [
+      { placeId: "b", name: "저녁 식당", address: "성수동 2가", category: "meal", time: "19:00", durationMinutes: 90, price: 80_000, mapsUrl: "https://place.map.kakao.com/2" },
+      { placeId: "a", name: "오후 카페", address: "성수동 1가", category: "cafe", time: "15:00", durationMinutes: 60, price: 20_000, mapsUrl: "https://place.map.kakao.com/1" },
+    ],
+  });
+  assert.equal(plan.items.length, 2);
+  assert.equal(plan.items[0].title, "오후 카페");
+  assert.equal(plan.items[1].title, "저녁 식당");
+  // 직접 정한 시간은 스케줄러가 옮기지 않는다.
+  assert.equal(plan.items[0].time, "15:00");
+  assert.equal(plan.items[1].time, "19:00");
+  assert.equal(plan.total, 100_000);
+  assert.equal(plan.budgetRemaining, 100_000);
+  assert.equal(plan.items[0].reality.detailsUrl, "https://place.map.kakao.com/1");
+});
+
+test("식사 시간과 선물 픽업 시간을 묻고, 모른다고 하면 다시 묻지 않는다", () => {
+  const meal = applyDeterministicConversation([{ role: "user", text: "성수에서 분위기 좋은 식당 찾아줘" }], {});
+  assert.ok(missingPlanningQuestions(meal).includes("mealTime"));
+
+  const answered = applyDeterministicConversation(
+    [{ role: "user", text: "성수에서 분위기 좋은 식당 찾아줘" }, { role: "assistant", text: "식사는 몇 시쯤이 좋아?" }, { role: "user", text: "아무때나" }],
+    { ...meal },
+    "mealTime",
+  );
+  assert.ok(!missingPlanningQuestions(answered).includes("mealTime"));
+
+  const flower = applyDeterministicConversation([{ role: "user", text: "성수에서 여친 줄 꽃다발 예약하고 싶어" }], {});
+  assert.ok(missingPlanningQuestions(flower).includes("pickupTime"));
 });

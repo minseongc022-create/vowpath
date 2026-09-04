@@ -18,6 +18,8 @@ const examples = [
   { key: "gift", title: "선물", prompt: "여자친구 선물 같이 골라줘", tone: "dj-prompt-gift", icon: <HeartIcon size={21} /> },
 ];
 
+const THINKING = "생각 중";
+
 type HomeConversationEntry = {
   id: string;
   role: "user" | "assistant";
@@ -91,14 +93,8 @@ export function HomePlanner() {
     setLoading("plan");
     setError("");
     setQuickReplies([]);
-    setSearchStage(result.understanding.situation.planScope === "trip" ? "숙소와 실제 장소를 함께 찾고 있어요" : "취향에 맞는 실제 장소를 찾고 있어요");
-    const timer = window.setInterval(() => {
-      setSearchStage((current) => current.includes("실제 장소") || current.includes("숙소")
-        ? "사진·리뷰·영업 정보와 가격을 확인하고 있어요"
-        : current.includes("사진")
-          ? "체크인과 일정 사이 이동이 자연스럽게 이어지는지 맞추고 있어요"
-          : "예산 안에서 하루의 하이라이트를 고르고 있어요");
-    }, 1500);
+    // 진행 문구를 길게 늘어놓지 않는다 — 기다리는 사람에게 필요한 건 "지금 하고 있다"는 신호뿐이다.
+    setSearchStage(THINKING);
     try {
       const remembered = getPersonProfile(result.understanding.situation.recipient);
       const payload: PlanRequest = {
@@ -128,7 +124,6 @@ export function HomePlanner() {
       setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
       setSearchStage("");
     } finally {
-      window.clearInterval(timer);
       setLoading(null);
     }
   }
@@ -137,7 +132,7 @@ export function HomePlanner() {
     if (!completedPlan) return;
     const currentPlan = completedPlan;
     setLoading("plan");
-    setSearchStage("지금 계획을 기억하면서 말씀하신 부분을 이해하고 있어요");
+    setSearchStage(THINKING);
     setError("");
     try {
       const response = await fetch("/api/dajeong/plans/revise", {
@@ -172,7 +167,7 @@ export function HomePlanner() {
       return;
     }
     setLoading("analyze");
-    setSearchStage("말씀하신 내용을 앞 대화와 함께 이해하고 있어요");
+    setSearchStage(THINKING);
     setError("");
     try {
       const response = await fetch("/api/dajeong/conversation", {
@@ -225,6 +220,7 @@ export function HomePlanner() {
       <aside className={`dj-chat-sidebar ${sidebarOpen ? "dj-sidebar-open" : ""}`}>
         <div className="dj-sidebar-head"><strong>{DAJEONG_BRAND.name}</strong><button type="button" onClick={() => setSidebarOpen(false)} aria-label="닫기">×</button></div>
         <button type="button" className="dj-new-chat" onClick={resetConversation}><PlusIcon size={19} /> 새 계획</button>
+        <Link href="/dajeong/build" className="dj-sidebar-plans"><PlusIcon size={18} /> 직접 만들기</Link>
         <Link href="/dajeong/plans" className="dj-sidebar-plans"><HeartIcon size={18} /> 내 계획 <b>{plans.length}</b></Link>
         <div className="dj-sidebar-label">최근 대화</div>
         <nav className="dj-conversation-list" aria-label="최근 계획">

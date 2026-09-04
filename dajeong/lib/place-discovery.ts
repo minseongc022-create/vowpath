@@ -1,6 +1,7 @@
 import "server-only";
 
-import { attachCuratedReality, chainNameFor, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
+import { attachCuratedReality, chainNameFor, haversineKm, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
+import { searchKakaoPlaces } from "./kakao-local";
 import { buildExperienceFlow } from "./experience";
 import { scheduleDajeongPlan } from "./schedule-engine";
 import type { DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption, PrepCategory, PrepItem } from "./types";
@@ -520,6 +521,41 @@ export function realPlaceDiscoveryEnabled(): boolean {
   return true;
 }
 
+/**
+ * 같은 가게가 출처별로 따로 잡히면 하나로 합친다 — 카카오는 "진짜 존재하는 가게"를,
+ * 구글은 평점·리뷰를 안다. 이름과 좌표(150m 이내)가 맞으면 같은 곳으로 본다.
+ */
+function mergeSources(kakao: RealPlaceCandidate[], google: RealPlaceCandidate[]): RealPlaceCandidate[] {
+  if (!google.length) return kakao;
+  if (!kakao.length) return google;
+  const simplify = (value: string) => value.replace(/[\s·,()]/g, "").toLowerCase();
+  const merged = kakao.map((place) => {
+    const match = google.find((other) => {
+      const near = (haversineKm(place, other) ?? 9) < 0.15;
+      const sameName = simplify(other.name).includes(simplify(place.name)) || simplify(place.name).includes(simplify(other.name));
+      return near && sameName;
+    });
+    if (!match) return place;
+    return {
+      ...place,
+      rating: match.rating,
+      reviewCount: match.reviewCount,
+      reviewHighlights: match.reviewHighlights,
+      reviewAuthors: match.reviewAuthors,
+      editorialSummary: match.editorialSummary,
+      priceLevel: match.priceLevel,
+      openNow: match.openNow,
+      openingHours: match.openingHours.length ? match.openingHours : place.openingHours,
+      photoUrl: place.photoUrl ?? match.photoUrl,
+      websiteUrl: place.websiteUrl ?? match.websiteUrl,
+      sourceLabel: "카카오맵 등록 정보 · 구글 평점 확인",
+      dataQuality: (place.dataQuality ?? 0) + (match.dataQuality ?? 0),
+    };
+  });
+  const unmatched = google.filter((other) => !merged.some((place) => (haversineKm(place, other) ?? 9) < 0.15));
+  return [...merged, ...unmatched];
+}
+
 export async function searchRealPlaces(params: {
   region: string;
   category: PlanCategory;
@@ -527,12 +563,15 @@ export async function searchRealPlaces(params: {
   near?: Coordinates;
 }): Promise<RealPlaceCandidate[]> {
   if (params.category === "moment") return [];
-  const [google, osm] = await Promise.all([
-    searchGooglePlaces(params),
-    searchOpenStreetMap(params.region, params.category, params.near),
+  const near = params.near ?? await geocodeRegion(params.region);
+  const [kakao, google] = await Promise.all([
+    searchKakaoPlaces({ ...params, near }),
+    searchGooglePlaces({ ...params, near }),
   ]);
-  if (google.length) return google;
-  return osm;
+  const combined = mergeSources(kakao, google);
+  if (combined.length) return combined;
+  // 두 상권 출처가 모두 비었을 때만 OSM을 본다 — 한국 소상공인 커버리지가 얇아 마지막 수단이다.
+  return searchOpenStreetMap(params.region, params.category, near);
 }
 
 function itemCoordinates(item?: PlanItem): Coordinates | undefined {
@@ -579,10 +618,12 @@ function recalculate(plan: DajeongPlan, items: PlanItem[]): DajeongPlan {
 }
 
 export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promise<DajeongPlan> {
-  const googleSearchPromise = Promise.all(plan.items.map((item) => {
+  const center = await geocodeRegion(plan.situation.region);
+  // 항목마다 실제 상권 출처(카카오+구글)를 먼저 본다. 여기서 나오는 게 진짜 가게다.
+  const liveSearchPromise = Promise.all(plan.items.map((item) => {
     if (item.handoffKind === "self" || item.category === "moment") return Promise.resolve([] as RealPlaceCandidate[]);
     const preferenceQuery = searchQueryForItem(plan, item);
-    return searchGooglePlaces({ region: plan.situation.region, category: item.category, query: preferenceQuery });
+    return searchRealPlaces({ region: plan.situation.region, category: item.category, query: preferenceQuery, near: center });
   }));
   const searchableCategories = plan.items
     .filter((item) => item.handoffKind !== "self" && item.category !== "moment")
@@ -590,7 +631,7 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
   const osmSearchPromise = searchableCategories.length
     ? searchOpenStreetMapBatch(plan.situation.region, searchableCategories)
     : Promise.resolve(new Map<PlanCategory, RealPlaceCandidate[]>());
-  const [googleSearches, osmSearches] = await Promise.all([googleSearchPromise, osmSearchPromise]);
+  const [googleSearches, osmSearches] = await Promise.all([liveSearchPromise, osmSearchPromise]);
   let previous: Coordinates | undefined;
   let realPlaceCount = 0;
   const usedPlaceIds = new Set<string>();
@@ -660,7 +701,8 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
         ? hasGoogleReviewData
           ? `평점·리뷰·대표 사진을 확인할 수 있는 장소 ${realPlaceCount}곳을 동선과 예산에 맞췄어요.`
           : `실제로 등록된 장소 ${realPlaceCount}곳을 동선에 맞췄어요. 평점·리뷰·사진은 지도에서 바로 확인할 수 있어요.`
-        : "실시간 장소 탐색을 사용할 수 없어 기본 후보를 표시했어요.",
+        // 못 찾았을 때는 "탐색 중"처럼 얼버무리지 않는다 — 아래 후보가 실제 가게가 아니라는 뜻이다.
+        : "이번 조건에 맞는 실제 가게를 아직 찾지 못했어요. 아래는 참고용 기본 후보라 실제 가게가 아니고, 지역을 좁히거나 조건을 바꿔서 다시 찾아볼 수 있어요.",
     },
   };
 }

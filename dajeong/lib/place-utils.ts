@@ -23,7 +23,7 @@ export type RealPlaceCandidate = {
   websiteUrl?: string;
   phoneNumber?: string;
   photoUrl?: string;
-  source: "google_places" | "openstreetmap";
+  source: "google_places" | "kakao_local" | "openstreetmap";
   sourceLabel: string;
   checkedAt: string;
   dataQuality?: number;
@@ -76,6 +76,65 @@ export function estimatePlacePrice(category: PlanCategory, priceLevel: number | 
   return ranges[category][level] ?? fallback;
 }
 
+/** 카테고리별 검색어와, 결과가 정말 그 업종인지 판별할 패턴. */
+export const KAKAO_CATEGORY_SEARCH: Record<PlanCategory, { keywords: string[]; groupCode?: string; accept: RegExp; reject?: RegExp }> = {
+  flower: {
+    keywords: ["꽃집", "플라워샵", "꽃다발"],
+    accept: /꽃|플라워|florist|flower/i,
+    reject: /장례|상조|화환.*장례|납골/,
+  },
+  gift: {
+    keywords: ["소품샵", "선물가게", "편집샵"],
+    accept: /소품|선물|기프트|공예|수공예|생활용품|잡화|문구|팬시|편집/,
+    reject: /장례|상조|중고|철물/,
+  },
+  cake: {
+    keywords: ["케이크", "베이커리", "디저트 카페"],
+    groupCode: "CE7",
+    accept: /제과|베이커리|케이크|디저트|빵/,
+  },
+  meal: {
+    keywords: ["맛집"],
+    groupCode: "FD6",
+    accept: /음식점|한식|양식|일식|중식|퓨전|다이닝|고기|해물|국수|분식/,
+    reject: /배달만|포장전문|편의점/,
+  },
+  cafe: {
+    keywords: ["카페"],
+    groupCode: "CE7",
+    accept: /카페|커피|디저트|찻집|티하우스/,
+  },
+  lodging: {
+    keywords: ["호텔", "펜션", "스테이"],
+    groupCode: "AD5",
+    accept: /숙박|호텔|펜션|리조트|게스트하우스|모텔|스테이/,
+  },
+  activity: {
+    keywords: ["전시관", "체험", "미술관"],
+    groupCode: "CT1",
+    accept: /문화|전시|미술|박물|공연|체험|공방|극장/,
+  },
+  view: {
+    keywords: ["전망대", "공원", "명소"],
+    groupCode: "AT4",
+    accept: /관광|명소|전망|공원|산|해변|하천|테마파크/,
+  },
+  moment: { keywords: [], accept: /^$/ },
+};
+
+/**
+ * 카카오가 돌려준 결과가 정말 그 업종인지 본다. 키워드가 스치기만 해도 결과를 주기 때문에
+ * (예: "꽃집"으로 구청이 잡히는 경우) 이 검사를 통과 못 하면 후보에서 뺀다 — 엉뚱한 곳을
+ * 그럴듯하게 보여주는 것보다 후보가 비는 편이 낫다.
+ */
+export function kakaoCategoryMatches(categoryName: string | undefined, placeName: string | undefined, category: PlanCategory, groupCode?: string): boolean {
+  const rule = KAKAO_CATEGORY_SEARCH[category];
+  const haystack = `${categoryName ?? ""} ${placeName ?? ""}`;
+  if (rule.reject?.test(haystack)) return false;
+  if (rule.groupCode && groupCode === rule.groupCode) return true;
+  return rule.accept.test(haystack);
+}
+
 export function rankRealPlaceCandidates(
   candidates: RealPlaceCandidate[],
   previous: Coordinates | undefined,
@@ -86,9 +145,13 @@ export function rankRealPlaceCandidates(
   query = "",
 ): RealPlaceCandidate[] {
   const openCandidates = candidates.filter((candidate) => candidate.businessStatus !== "closed_permanently");
-  const independent = openCandidates.filter((candidate) => candidate.localIndependent !== false && !candidate.chainName);
-  const localPool = independent.length >= 4 ? independent : openCandidates;
-  const reviewed = localPool.filter((candidate) => candidate.source !== "google_places" || ((candidate.rating ?? 0) >= 4.2 && (candidate.reviewCount ?? 0) >= 20));
+  // 평점을 아는 곳 중 낮은 곳은 먼저 걷어낸다 — 평점을 모르는 곳(카카오 단독)은 여기서 벌하지 않는다.
+  const notBad = openCandidates.filter((candidate) => candidate.rating == null || candidate.rating >= 3.9);
+  const base = notBad.length ? notBad : openCandidates;
+  const independent = base.filter((candidate) => candidate.localIndependent !== false && !candidate.chainName);
+  const localPool = independent.length >= 4 ? independent : base;
+  // 평점·리뷰가 확인된 곳이 충분하면 그쪽만 쓴다("리뷰 좋은 곳"을 실제로 지키는 지점).
+  const reviewed = localPool.filter((candidate) => (candidate.rating ?? 0) >= 4.2 && (candidate.reviewCount ?? 0) >= 20);
   const pool = reviewed.length >= 3 ? reviewed : localPool;
   return [...pool]
     .sort((a, b) => {
@@ -100,9 +163,12 @@ export function rankRealPlaceCandidates(
         const openBoost = candidate.openNow === true ? 0.8 : candidate.openNow === false ? -0.25 : 0;
         const budgetPenalty = estimatedPrice > budgetShare ? (estimatedPrice - budgetShare) / Math.max(10_000, budgetShare) * 2.1 : 0;
         const distancePenalty = Math.min(4, distance) * 0.55;
+        // 평점을 아는 곳은 그 값으로, 모르는 곳(카카오 단독)은 사업자 신뢰 신호로 평가한다.
         const reviewTrust = candidate.rating != null && candidate.reviewCount != null
-          ? (candidate.rating >= 4.4 ? 2.2 : candidate.rating >= 4.2 ? 1.2 : candidate.rating < 4 ? -1.8 : 0) + Math.min(2.2, reviews * 0.55)
-          : -0.35;
+          ? (candidate.rating >= 4.4 ? 2.6 : candidate.rating >= 4.2 ? 1.4 : candidate.rating < 4 ? -1.8 : 0) + Math.min(2.4, reviews * 0.6)
+          : candidate.source === "kakao_local"
+            ? (candidate.phoneNumber ? 0.7 : 0) + (candidate.address.includes("로") || candidate.address.includes("길") ? 0.4 : 0)
+            : -0.35;
         const localBoost = candidate.localIndependent === true ? 2.2 : candidate.chainName ? -5 : 0;
         const photoBoost = candidate.photoUrl ? 0.9 : 0;
         const experienceText = [candidate.name, candidate.address, candidate.editorialSummary, ...(candidate.reviewHighlights ?? []), ...(candidate.selectionSignals ?? [])].join(" ");

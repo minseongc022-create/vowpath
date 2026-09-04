@@ -38,6 +38,7 @@ export function DajeongPlatformShell({ children }: { children: React.ReactNode }
                   </Link>
                   <nav className="dj-header-nav" aria-label="주 메뉴">
                     <Link href="/dajeong" className="dj-nav-link">새 계획</Link>
+                    <Link href="/dajeong/build" className="dj-nav-link">직접 만들기</Link>
                     <Link href="/dajeong/plans" className="dj-nav-link">내 계획</Link>
                     <Link href="/dajeong/companions" className="dj-nav-link">동반자</Link>
                     <Link href="/dajeong/notifications" className="dj-nav-link">알림</Link>

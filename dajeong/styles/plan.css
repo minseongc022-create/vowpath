@@ -99,7 +99,7 @@
 /* ── 대화로 고치기 ────────────────────────────────────────── */
 
 .dj-revision-studio {
-  margin: -24px 0 56px;
+  margin: 40px 0 8px;
   padding: 26px 30px;
   border: 1px solid var(--dj-line);
   border-radius: var(--dj-radius-lg);
@@ -526,7 +526,8 @@
 
 @media (max-width: 900px) {
   .dj-plan-layout { grid-template-columns: 1fr; gap: 28px; }
-  .dj-plan-summary { position: static; order: -1; }
+  /* 모바일에서도 일정(타임라인)이 먼저다 — 요약 카드가 위로 오면 정작 찾은 장소가 안 보인다. */
+  .dj-plan-summary { position: static; order: 0; }
   .dj-fact-row { grid-template-columns: 1fr 1fr; }
   .dj-fact-row > div:nth-child(2) { border-right: 0; }
   .dj-fact-row > div:nth-child(-n+2) { border-bottom: 1px solid var(--dj-line); }
@@ -542,7 +543,7 @@
   .dj-plan-hero p { max-width: calc(100% - 66px); font-size: 14px; }
   .dj-fact-row { margin-bottom: 36px; }
   .dj-fact-row > div { padding: 12px 14px; }
-  .dj-revision-studio { margin-top: -14px; padding: 20px 17px; border-radius: var(--dj-radius); }
+  .dj-revision-studio { margin-top: 28px; padding: 20px 17px; border-radius: var(--dj-radius); }
   .dj-concierge-chat { margin-left: -3px; margin-right: -3px; padding: 13px 11px; }
   .dj-chat-message p { max-width: 88%; }
   .dj-revision-form { grid-template-columns: 1fr 48px; }

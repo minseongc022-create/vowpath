@@ -19,7 +19,7 @@ const REGIONS = ["성수", "강남", "홍대", "연남", "여의도", "잠실", 
 const BROAD_REGIONS = ["서울", "인천", "부산", "대구", "대전", "광주", "수원", "성남", "제주"];
 const MOODS: ExperienceMood[] = ["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"];
 const CATEGORIES: PlanCategory[] = ["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"];
-const QUESTION_KEYS: Exclude<PlanningQuestionKey, null>[] = ["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave", "availabilityTime", "density"];
+const QUESTION_KEYS: Exclude<PlanningQuestionKey, null>[] = ["recipient", "date", "region", "departure", "budget", "partySize", "tripLength", "preference", "transport", "lodgingPreference", "arrivalTime", "returnTime", "mustHave", "availabilityTime", "density", "mealTime", "pickupTime"];
 
 type StructuredConversationDecision = {
   requestKind: RequestKind;
@@ -43,6 +43,8 @@ type StructuredConversationDecision = {
   lodgingIncludedInBudget: boolean | null;
   availabilityStartTime: string | null;
   availabilityEndTime: string | null;
+  mealTime: string | null;
+  pickupTime: string | null;
   scheduleDensity: ScheduleDensity | null;
   homeByTime: string | null;
   homeTravelMinutes: number | null;
@@ -86,6 +88,8 @@ const DECISION_SCHEMA: OpenAiJsonSchema = {
     lodgingIncludedInBudget: nullable({ type: "boolean" }),
     availabilityStartTime: nullable({ type: "string" }),
     availabilityEndTime: nullable({ type: "string" }),
+    mealTime: nullable({ type: "string" }),
+    pickupTime: nullable({ type: "string" }),
     scheduleDensity: nullable({ type: "string", enum: ["compact", "balanced", "relaxed"] }),
     homeByTime: nullable({ type: "string" }),
     homeTravelMinutes: nullable({ type: "number" }),
@@ -118,7 +122,7 @@ const DECISION_SCHEMA: OpenAiJsonSchema = {
     nextQuestionKey: nullable({ type: "string", enum: QUESTION_KEYS }),
     reply: { type: "string" },
   },
-  required: ["requestKind", "planScope", "singleCategory", "recipient", "region", "departureRegion", "budget", "targetDate", "partySize", "transport", "ageBand", "tripDays", "tripNights", "checkInTime", "checkOutTime", "arrivalTime", "returnDepartureTime", "lodgingPreference", "lodgingIncludedInBudget", "availabilityStartTime", "availabilityEndTime", "scheduleDensity", "homeByTime", "homeTravelMinutes", "preferences", "constraints", "desiredMoods", "requestedCategories", "excludedCategories", "explicitUnknowns", "personMemoryUpdate", "enoughInformation", "nextQuestionKey", "reply"],
+  required: ["requestKind", "planScope", "singleCategory", "recipient", "region", "departureRegion", "budget", "targetDate", "partySize", "transport", "ageBand", "tripDays", "tripNights", "checkInTime", "checkOutTime", "arrivalTime", "returnDepartureTime", "lodgingPreference", "lodgingIncludedInBudget", "availabilityStartTime", "availabilityEndTime", "mealTime", "pickupTime", "scheduleDensity", "homeByTime", "homeTravelMinutes", "preferences", "constraints", "desiredMoods", "requestedCategories", "excludedCategories", "explicitUnknowns", "personMemoryUpdate", "enoughInformation", "nextQuestionKey", "reply"],
   additionalProperties: false,
 };
 
@@ -374,6 +378,8 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     homeTravelMinutes: previous.homeTravelMinutes,
     temporaryCondition: /피곤|컨디션|발.{0,5}(아프|다쳤)|다리.{0,5}(아프|불편)/.test(latest) ? parsedLatest.temporaryCondition : previous.temporaryCondition,
     budgetUsage: /예산.{0,8}(꽉|다\s*써)|\d+\s*만\s*원.{0,8}(꽉|다\s*써)/.test(latest) ? "full" : previous.budgetUsage,
+    mealTime: currentQuestion === "mealTime" ? timeAfter(latest, /./) ?? parsedLatest.startTime ?? previous.mealTime : previous.mealTime,
+    pickupTime: currentQuestion === "pickupTime" ? timeAfter(latest, /./) ?? previous.pickupTime : previous.pickupTime,
   };
 
   if (currentQuestion && isUndecided(latest)) {
@@ -393,6 +399,9 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     if (currentQuestion === "arrivalTime") draft.arrivalTime = "12:00";
     if (currentQuestion === "returnTime") draft.returnDepartureTime = "18:00";
     if (currentQuestion === "mustHave") draft.explicitUnknowns = unique([...(draft.explicitUnknowns ?? []), "mustHave"]);
+    // "아무때나"는 유효한 대답이다 — 다시 묻지 않고 동선에 맞춰 우리가 정한다.
+    if (currentQuestion === "mealTime") draft.explicitUnknowns = unique([...(draft.explicitUnknowns ?? []), "mealTime"]);
+    if (currentQuestion === "pickupTime") draft.explicitUnknowns = unique([...(draft.explicitUnknowns ?? []), "pickupTime"]);
     if (currentQuestion === "availabilityTime") Object.assign(draft, { availabilityStartTime: "14:00", availabilityEndTime: "22:00" });
     if (currentQuestion === "density") Object.assign(draft, { scheduleDensity: "balanced", densitySpecified: true });
   }
@@ -455,6 +464,8 @@ function mergeStructuredDecision(draft: PlanRequest, decision: StructuredConvers
     lodgingIncludedInBudget: decision.lodgingIncludedInBudget ?? draft.lodgingIncludedInBudget,
     availabilityStartTime: safeTime(decision.availabilityStartTime) ?? draft.availabilityStartTime,
     availabilityEndTime: safeTime(decision.availabilityEndTime) ?? draft.availabilityEndTime,
+    mealTime: safeTime(decision.mealTime) ?? draft.mealTime,
+    pickupTime: safeTime(decision.pickupTime) ?? draft.pickupTime,
     scheduleDensity: decision.scheduleDensity ?? draft.scheduleDensity,
     densitySpecified: decision.scheduleDensity ? true : draft.densitySpecified,
     homeByTime: safeTime(decision.homeByTime) ?? draft.homeByTime,
@@ -488,6 +499,27 @@ function substantivePreference(draft: PlanRequest): boolean {
   );
 }
 
+/** 예약해 둔 물건(꽃·케이크·선물)은 "언제 찾으러 갈지"가 정해져야 실행까지 이어진다. */
+function needsPickupTime(draft: PlanRequest, situation: ReturnType<typeof parseSituation>): boolean {
+  const pickupCategory = ["flower", "cake", "gift"].includes(draft.singleCategory ?? "");
+  return pickupCategory && situation.requestKind === "reservation" && !draft.pickupTime && !draft.explicitUnknowns?.includes("pickupTime");
+}
+
+/**
+ * 먹는 자리는 몇 시인지에 따라 후보가 완전히 달라진다(브런치·런치·디너).
+ * availabilityStartTime은 파서가 기본값을 채워 넣기 때문에 "사용자가 말한 시간"의 근거가 못 된다.
+ */
+function needsMealTime(draft: PlanRequest): boolean {
+  const eating = ["meal", "cafe"].includes(draft.singleCategory ?? "");
+  return eating && !draft.mealTime && !draft.explicitUnknowns?.includes("mealTime");
+}
+
+/** 인원수는 좌석·예약 단위·1인당 예산을 함께 바꾼다. */
+function needsPartySize(draft: PlanRequest): boolean {
+  if (draft.partySize) return false;
+  return /친구들|여럿|다같이|우리끼리|모임|단체/.test(draft.request);
+}
+
 export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQuestionKey, null>[] {
   const situation = parseSituation(draft);
   if (situation.planScope === "single") {
@@ -497,7 +529,10 @@ export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQu
     if (!draft.region || regionNeedsNarrowing(draft)) questions.push("region");
     if (situation.requestKind === "reservation" && !draft.targetDate) questions.push("date");
     if (!draft.budget) questions.push("budget");
+    if (needsPartySize(draft)) questions.push("partySize");
+    if (needsMealTime(draft)) questions.push("mealTime");
     if (!substantivePreference(draft)) questions.push("preference");
+    if (needsPickupTime(draft, situation)) questions.push("pickupTime");
     return questions;
   }
   if (situation.planScope === "trip") {
@@ -506,6 +541,7 @@ export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQu
       !draft.targetDate ? "date" : null,
       !draft.region ? "region" : null,
       !draft.budget ? "budget" : null,
+      needsPartySize(draft) ? "partySize" : null,
       !draft.transport ? "transport" : null,
       situation.needsLodging && !draft.lodgingPreference ? "lodgingPreference" : null,
       !substantivePreference(draft) ? "preference" : null,
@@ -519,10 +555,12 @@ export function missingPlanningQuestions(draft: PlanRequest): Exclude<PlanningQu
     !draft.recipient ? "recipient" : null,
     !draft.targetDate ? "date" : null,
     !draft.region ? "region" : null,
+    needsPartySize(draft) ? "partySize" : null,
     needsAvailabilityWindow ? "availabilityTime" : null,
     !draft.budget ? "budget" : null,
     !draft.transport ? "transport" : null,
     !substantivePreference(draft) ? "preference" : null,
+    !draft.mealTime && !draft.explicitUnknowns?.includes("mealTime") ? "mealTime" : null,
     draft.availabilityEndTime && !draft.densitySpecified ? "density" : null,
   ].filter((value): value is Exclude<PlanningQuestionKey, null> => Boolean(value));
 }
@@ -558,6 +596,13 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
   if (key === "mustHave") return { reply: "이번 여행에서 꼭 넣고 싶은 게 하나라도 있어? 없다면 없다고 말해도 좋아.", quickReplies: ["딱히 꼭 하고 싶은 건 없어", "바다는 꼭 보고 싶어", "맛있는 식사는 꼭"] };
   if (key === "availabilityTime") return { reply: "몇 시부터 몇 시 정도 함께 놀 수 있어? 실제 귀가 이동까지 그 안에 맞출게.", quickReplies: ["오후 2시부터 10시", "저녁 5시부터 10시", "3시간 정도"] };
   if (key === "density") return { reply: "좋아. 여기저기 알차게 다닐까, 아니면 중간중간 여유 있게 놀까?", quickReplies: ["알차게", "여유롭게", "적당히 균형 있게"] };
+  if (key === "mealTime") {
+    const label = draft.singleCategory === "cafe" ? "카페" : "식사";
+    return { reply: `${label}는 몇 시쯤이 좋아? 정한 시간이 없으면 "아무때나"라고 해도 돼 — 그럼 동선에 맞춰 내가 정할게.`, quickReplies: ["12시 점심", "저녁 7시", "아무때나"] };
+  }
+  if (key === "pickupTime") {
+    return { reply: "예약해두면 언제 찾으러 갈 수 있어? 픽업 시간을 알아야 가게에 맞춰 예약해둘 수 있어.", quickReplies: ["당일 오전", "당일 오후", "아직 몰라"] };
+  }
   return { reply: "이동은 어떻게 할 생각이야? 차가 없다면 대중교통과 도보가 자연스럽게 이어지게 맞출게.", quickReplies: ["차 없어요", "렌터카", "대중교통 위주"] };
 }
 

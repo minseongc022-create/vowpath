@@ -204,7 +204,7 @@ export type HandoffKind = "search" | "gift" | "call" | "self";
 export type PlanItemStatus = "proposed" | "confirmed" | "done";
 
 export type PlaceReality = {
-  source: "google_places" | "openstreetmap" | "curated";
+  source: "google_places" | "kakao_local" | "openstreetmap" | "curated";
   sourceLabel: string;
   placeId?: string;
   address?: string;
@@ -376,6 +376,10 @@ export type PlanRequest = {
   homeTravelMinutes?: number;
   temporaryCondition?: TemporaryCondition;
   budgetUsage?: "reserve" | "full";
+  /** 밥·카페처럼 "몇 시에 먹고 싶은지"가 결과를 바꾸는 항목의 희망 시간. */
+  mealTime?: string;
+  /** 예약한 꽃·케이크·선물을 언제 찾으러 갈지. */
+  pickupTime?: string;
 };
 
 export type TransportMode = "public_transit" | "car" | "walking" | "unknown";
@@ -427,7 +431,7 @@ export type ParsedSituation = {
   homeTransportOverride?: TransportMode;
 };
 
-export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave" | "availabilityTime" | "density";
+export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave" | "availabilityTime" | "density" | "mealTime" | "pickupTime";
 
 export type PlanningQuestionKey = MissingSituationField | null;
 

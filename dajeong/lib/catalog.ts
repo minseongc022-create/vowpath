@@ -14,8 +14,12 @@ type CatalogEntry = Omit<PlanOption, "id" | "href" | "location" | "imageUrl" | "
   reservationRequired?: boolean;
 };
 
+/**
+ * 실제 가게를 아직 못 찾았을 때 여는 링크. 네이버 통합검색은 장소가 아니라 블로그 글이 뜨는
+ * 일이 많아서, 지도에서 바로 가게 목록이 보이는 카카오맵 검색으로 보낸다.
+ */
 const encodedSearch = (query: string, region: string) =>
-  `https://search.naver.com/search.naver?query=${encodeURIComponent(`${region} ${query}`)}`;
+  `https://map.kakao.com/?q=${encodeURIComponent(`${region} ${query}`)}`;
 
 const giftSearch = (query: string) =>
   `https://gift.kakao.com/search/result?query=${encodeURIComponent(query)}`;
@@ -511,7 +515,8 @@ export function getOptions(category: PlanCategory, situation: ParsedSituation): 
       href: optionHref(entry, situation),
       badge: entry.badge,
       notes: entry.notes,
-      location: entry.location ?? (entry.handoffKind === "gift" ? "온라인 · 바로 전송" : entry.handoffKind === "self" ? "직접 준비" : `${situation.region} · 실제 후보 탐색`),
+      // 실제 가게가 아직 안 붙은 상태를 "탐색 중"처럼 보이게 두면 진짜 장소로 오해한다.
+      location: entry.location ?? (entry.handoffKind === "gift" ? "온라인 · 바로 전송" : entry.handoffKind === "self" ? "직접 준비" : `${situation.region} · 실제 가게 아직 못 찾음`),
       imageUrl: entry.imageUrl ?? visuals[category].imageUrl,
       referenceImageUrl: visuals[category].imageUrl,
       imageAlt: entry.imageAlt ?? visuals[category].imageAlt,
