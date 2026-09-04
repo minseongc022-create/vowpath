@@ -164,7 +164,9 @@ export async function fetchCultureEvents(params: {
   if (params.region?.trim()) search.set("place", params.region.trim());
 
   // serviceKey는 이미 인코딩된 형태로 발급되는 경우가 많아 URLSearchParams에 넣지 않고 직접 붙인다.
-  const url = `https://apis.data.go.kr/B553457/nopenapi/rest/publicperformancedisplays/period?${search.toString()}&serviceKey=${serviceKey}`;
+  // 공식 명칭: 한국문화정보원_한눈에보는문화정보조회서비스. 문화데이터광장(culture.go.kr)이 아니라
+  // 공공데이터포털(data.go.kr)에서 신청하는 서비스라, 엔드포인트도 그쪽 규격을 따른다.
+  const url = `https://apis.data.go.kr/B553457/cultureinfo/period2?${search.toString()}&serviceKey=${serviceKey}`;
   const body = await fetchText(url);
   if (!body) return [];
 
@@ -319,7 +321,7 @@ export async function probeSourceShape(source: DiscoverySource, query: string): 
     if (!serviceKey) return { ok: false, sampleKeys: [], itemCount: 0 };
     const now = new Date();
     const until = new Date(now.getTime() + 30 * 86_400_000);
-    body = await fetchText(`https://apis.data.go.kr/B553457/nopenapi/rest/publicperformancedisplays/period?from=${yyyymmdd(now)}&to=${yyyymmdd(until)}&cPage=1&rows=5&sortStdr=1&serviceKey=${serviceKey}`);
+    body = await fetchText(`https://apis.data.go.kr/B553457/cultureinfo/period2?from=${yyyymmdd(now)}&to=${yyyymmdd(until)}&cPage=1&rows=5&sortStdr=1&serviceKey=${serviceKey}`);
   } else if (source === "naver_local" || source === "naver_blog") {
     const credentials = naverSearchCredentials();
     if (!credentials) return { ok: false, sampleKeys: [], itemCount: 0 };
