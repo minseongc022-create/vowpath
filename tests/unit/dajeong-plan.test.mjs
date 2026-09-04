@@ -10,6 +10,7 @@ import { handleExecutionInstruction } from "../../dajeong/lib/execution-conversa
 import { applyProviderQuote, approvePayment, prepareReservationOrder, recordProviderExecutionResult, requestPaymentReview } from "../../dajeong/lib/reservation-engine.ts";
 import { isIsolatedProductPath } from "../../lib/shell-route.ts";
 import { clockToMinutes, lockPlanItem, scheduleDajeongPlan, setItemDuration } from "../../dajeong/lib/schedule-engine.ts";
+import { classifyPlaceRequest, guessCategory, isSamePlaceName, stripRegionFromName } from "../../dajeong/lib/place-intent.ts";
 
 test("상황 문장에서 대상·지역·예산·제약을 읽는다", () => {
   const situation = parseSituation({
@@ -749,4 +750,91 @@ test("식사 시간과 선물 픽업 시간을 묻고, 모른다고 하면 다�
 
   const flower = applyDeterministicConversation([{ role: "user", text: "성수에서 여친 줄 꽃다발 예약하고 싶어" }], {});
   assert.ok(missingPlanningQuestions(flower).includes("pickupTime"));
+});
+
+// ── 지목 검색: "인천 까사올리브 찾아줘"에 엉뚱한 가게가 나오던 사고의 회귀 테스트 ─────────
+
+test("상호명을 지목한 말과 조건만 말한 말을 구분한다", () => {
+  const named = classifyPlaceRequest("인천 까사올리브 찾아줘");
+  assert.equal(named.kind, "specific");
+  // "찾아줘"가 검색어에 남으면 카카오는 문장 전체를 상호명처럼 보고 0건을 준다.
+  assert.equal(named.placeName, "인천 까사올리브");
+
+  const conditional = classifyPlaceRequest("조용하고 분위기 좋은 파스타집 찾아줘");
+  assert.equal(conditional.kind, "conditional");
+  assert.equal(conditional.keywords.includes("찾아줘"), false);
+
+  assert.equal(classifyPlaceRequest("카페").kind, "conditional");
+  assert.equal(classifyPlaceRequest("대림창고 가고 싶어").kind, "specific");
+  assert.equal(classifyPlaceRequest("대림창고 가고 싶어").placeName, "대림창고");
+});
+
+test("날짜·인원·관계 같은 평범한 대답을 상호명으로 오해하지 않는다", () => {
+  for (const text of ["이번 주 토요일", "둘이 가요", "여자친구랑 갈 거야", "3명이에요", "20만원 정도", "아무거나 추천해줘"]) {
+    assert.equal(classifyPlaceRequest(text).kind, "conditional", `${text}는 상호명이 아니다`);
+  }
+});
+
+test("지목한 이름과 다른 가게는 같은 가게로 인정하지 않는다", () => {
+  assert.equal(isSamePlaceName("까사올리브", "까사올리브 송도점"), true);
+  // "까사"/"카사"처럼 표기만 다른 건 같은 가게로 본다(Casa Olive). 이름이 다른 가게는 아래처럼 막는다.
+  assert.equal(isSamePlaceName("까사올리브", "카사올리브"), true);
+  assert.equal(isSamePlaceName("명동교자", "명동만두"), false);
+  assert.equal(isSamePlaceName("까사올리브", "일류짬뽕"), false);
+  assert.equal(isSamePlaceName("까사올리브", "어.참새다"), false);
+});
+
+test("지목한 이름에서 지역어를 떼어낸다", () => {
+  assert.equal(stripRegionFromName("인천 까사올리브", ["인천", "서울"]), "까사올리브");
+  assert.equal(stripRegionFromName("까사올리브", ["인천"]), "까사올리브");
+});
+
+test("자연어만으로 업종을 짚어내 카테고리 버튼을 강요하지 않는다", () => {
+  assert.equal(guessCategory("꽃다발 하나 사고 싶어"), "flower");
+  assert.equal(guessCategory("조용한 카페"), "cafe");
+  assert.equal(guessCategory("분위기 좋은 파스타집"), "meal");
+  assert.equal(guessCategory("전시 보러 가고 싶어"), "activity");
+  assert.equal(guessCategory("그냥 좋은 데"), undefined);
+});
+
+test("가게 이름을 말하면 그 이름을 기억하고 분위기를 되묻지 않는다", () => {
+  const draft = applyDeterministicConversation(
+    [{ role: "user", text: "인천 까사올리브 찾아줘" }],
+    {},
+    undefined,
+  );
+  assert.deepEqual(draft.namedPlaces, ["까사올리브"]);
+  const questions = missingPlanningQuestions(draft);
+  // 이름을 콕 집어 말한 사람에게 "어떤 분위기가 좋아?"를 묻는 건 대화가 아니라 방해다.
+  assert.equal(questions.includes("preference"), false);
+  // 넓은 지역이어도 이름으로 바로 찾으면 되니 동네를 더 좁히라고 하지 않는다.
+  assert.equal(questions.includes("region"), false);
+});
+
+test("가게 이름이 없으면 넓은 지역은 여전히 좁혀 묻는다", () => {
+  const draft = applyDeterministicConversation(
+    [{ role: "user", text: "인천에서 분위기 좋은 식당 찾아줘" }],
+    {},
+    undefined,
+  );
+  assert.deepEqual(draft.namedPlaces, []);
+  assert.equal(missingPlanningQuestions(draft).includes("region"), true);
+});
+
+test("대화 중의 평범한 대답을 상호명으로 잡아채지 않는다", () => {
+  // "렌터카", "일주일 뒤"는 질문에 대한 대답이지 가게 이름이 아니다.
+  for (const text of ["렌터카", "일주일 뒤", "오션뷰", "숙소까지 100만원"]) {
+    const draft = applyDeterministicConversation([{ role: "user", text }], {}, undefined);
+    assert.deepEqual(draft.namedPlaces, [], `${text}는 상호명이 아니다`);
+  }
+});
+
+test("한 번 말한 가게 이름은 다음 대화에서도 유지된다", () => {
+  const first = applyDeterministicConversation([{ role: "user", text: "까사올리브 예약해줘" }], {}, undefined);
+  const second = applyDeterministicConversation(
+    [{ role: "user", text: "까사올리브 예약해줘" }, { role: "user", text: "저녁 7시" }],
+    first,
+    "mealTime",
+  );
+  assert.deepEqual(second.namedPlaces, ["까사올리브"]);
 });

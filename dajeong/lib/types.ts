@@ -380,6 +380,11 @@ export type PlanRequest = {
   mealTime?: string;
   /** 예약한 꽃·케이크·선물을 언제 찾으러 갈지. */
   pickupTime?: string;
+  /**
+   * 사용자가 상호명을 콕 집어 말한 가게들("까사올리브").
+   * 조건 탐색과 달리 이건 대체 불가다 — 못 찾으면 비슷한 가게로 채우지 말고 못 찾았다고 말해야 한다.
+   */
+  namedPlaces?: string[];
 };
 
 export type TransportMode = "public_transit" | "car" | "walking" | "unknown";
@@ -429,6 +434,8 @@ export type ParsedSituation = {
   temporaryCondition: TemporaryCondition;
   budgetUsage: "reserve" | "full";
   homeTransportOverride?: TransportMode;
+  /** 사용자가 상호명으로 지목한 가게들. 대체 불가 — 없으면 없다고 말한다. */
+  namedPlaces: string[];
 };
 
 export type MissingSituationField = "recipient" | "date" | "region" | "departure" | "budget" | "partySize" | "tripLength" | "preference" | "transport" | "lodgingPreference" | "arrivalTime" | "returnTime" | "mustHave" | "availabilityTime" | "density" | "mealTime" | "pickupTime";
@@ -585,6 +592,8 @@ export type DajeongPlan = {
     checkedAt: string;
     realPlaceCount: number;
     message: string;
+    /** 사용자가 이름으로 지목했지만 실제로 찾지 못한 가게. 대신 다른 가게를 채우지 않았다는 표시다. */
+    unresolvedNamedPlaces?: string[];
   };
   schedule?: {
     density: ScheduleDensity;

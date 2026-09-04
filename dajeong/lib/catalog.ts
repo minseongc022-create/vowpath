@@ -1,5 +1,6 @@
 import type { Occasion, PlanCategory, PlanOption, ParsedSituation } from "./types";
 import { buildExperienceProfile } from "./experience";
+import { KAKAO_CATEGORY_SEARCH } from "./place-utils";
 
 type CatalogEntry = Omit<PlanOption, "id" | "href" | "location" | "imageUrl" | "imageAlt" | "reason" | "venueType" | "reservationRequired"> & {
   key: string;
@@ -17,9 +18,15 @@ type CatalogEntry = Omit<PlanOption, "id" | "href" | "location" | "imageUrl" | "
 /**
  * 실제 가게를 아직 못 찾았을 때 여는 링크. 네이버 통합검색은 장소가 아니라 블로그 글이 뜨는
  * 일이 많아서, 지도에서 바로 가게 목록이 보이는 카카오맵 검색으로 보낸다.
+ *
+ * 검색어로 카탈로그 제목("정원 한옥 독특한 건축 분위기 좋은 로컬 다이닝")을 그대로 넘기면
+ * 지도는 그 문장을 상호명처럼 찾아 0건을 준다 — 링크를 눌러도 아무것도 안 나오던 이유가 이거였다.
+ * 지도에서 실제로 결과가 나오는 짧은 업종어로만 보낸다.
  */
-const encodedSearch = (query: string, region: string) =>
-  `https://map.kakao.com/?q=${encodeURIComponent(`${region} ${query}`)}`;
+const encodedSearch = (category: PlanCategory, region: string) => {
+  const keyword = KAKAO_CATEGORY_SEARCH[category].keywords[0] ?? "";
+  return `https://map.kakao.com/?q=${encodeURIComponent(`${region} ${keyword}`.trim())}`;
+};
 
 const giftSearch = (query: string) =>
   `https://gift.kakao.com/search/result?query=${encodeURIComponent(query)}`;
@@ -494,10 +501,10 @@ const entries: Record<PlanCategory, CatalogEntry[]> = {
   ],
 };
 
-function optionHref(entry: CatalogEntry, situation: ParsedSituation): string {
+function optionHref(entry: CatalogEntry, situation: ParsedSituation, category: PlanCategory): string {
   if (entry.handoffKind === "self") return "#self";
   if (entry.handoffKind === "gift") return giftSearch(entry.query ?? entry.title);
-  return encodedSearch(entry.query ?? entry.title, situation.region);
+  return encodedSearch(category, situation.region);
 }
 
 export function getOptions(category: PlanCategory, situation: ParsedSituation): PlanOption[] {
@@ -512,7 +519,7 @@ export function getOptions(category: PlanCategory, situation: ParsedSituation): 
       durationMinutes: entry.durationMinutes,
       provider: entry.provider,
       handoffKind: entry.handoffKind,
-      href: optionHref(entry, situation),
+      href: optionHref(entry, situation, category),
       badge: entry.badge,
       notes: entry.notes,
       // 실제 가게가 아직 안 붙은 상태를 "탐색 중"처럼 보이게 두면 진짜 장소로 오해한다.

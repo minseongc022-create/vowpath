@@ -87,6 +87,10 @@ const requestSchema = z.object({
   homeTravelMinutes: z.number().int().min(0).max(300).optional(),
   temporaryCondition: z.object({ energy: z.enum(["low", "normal"]), walkingLimited: z.boolean(), notes: z.array(z.string().max(120)).max(10) }).optional(),
   budgetUsage: z.enum(["reserve", "full"]).optional(),
+  mealTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  pickupTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  // 이름으로 지목한 가게. 여기서 빠지면 서버는 사용자가 그 가게를 말했다는 사실 자체를 모른다.
+  namedPlaces: z.array(z.string().trim().min(2).max(40)).max(5).optional(),
 });
 
 export async function POST(request: Request) {

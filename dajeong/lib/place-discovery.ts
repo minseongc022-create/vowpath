@@ -1,7 +1,8 @@
 import "server-only";
 
 import { attachCuratedReality, chainNameFor, haversineKm, placeToPlanOption, rankRealPlaceCandidates, type Coordinates, type RealPlaceCandidate } from "./place-utils";
-import { searchKakaoPlaces } from "./kakao-local";
+import { findKakaoPlaceByName, searchKakaoPlaces } from "./kakao-local";
+import { isSamePlaceName } from "./place-intent";
 import { buildExperienceFlow } from "./experience";
 import { scheduleDajeongPlan } from "./schedule-engine";
 import type { DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption, PrepCategory, PrepItem } from "./types";
@@ -574,6 +575,28 @@ export async function searchRealPlaces(params: {
   return searchOpenStreetMap(params.region, params.category, near);
 }
 
+/**
+ * 사용자가 지목한 상호명이 실제로 있는 가게인지 확인한다.
+ *
+ * 조건 탐색(searchRealPlaces)과 다른 함수인 이유: 조건 탐색은 "비슷한 후보를 넓게" 모으는 게 맞지만,
+ * 지목 검색은 그러면 안 된다. "까사올리브"를 찾다가 "일류짬뽕"을 내미는 사고가 정확히 그 차이에서 났다.
+ * 여기서는 이름이 같은 것만 남기고, 없으면 빈 배열을 돌려준다.
+ */
+export async function findPlaceByName(params: { placeName: string; region?: string }): Promise<RealPlaceCandidate[]> {
+  const wanted = params.placeName.trim();
+  if (wanted.length < 2) return [];
+  const apiKey = key();
+  const near = params.region ? await geocodeRegion(params.region) : undefined;
+  const text = params.region ? `${params.region} ${wanted}` : wanted;
+  const [kakao, google] = await Promise.all([
+    findKakaoPlaceByName({ placeName: wanted, region: params.region }),
+    apiKey ? searchLegacy(apiKey, text, near) : Promise.resolve([] as RealPlaceCandidate[]),
+  ]);
+  // 구글 텍스트 검색은 이름이 달라도 "근처 비슷한 곳"을 섞어 준다. 이름이 같은 것만 남긴다.
+  const googleMatches = google.filter((place) => isSamePlaceName(wanted, place.name));
+  return mergeSources(kakao, googleMatches);
+}
+
 function itemCoordinates(item?: PlanItem): Coordinates | undefined {
   const reality = item?.reality;
   return reality?.latitude != null && reality.longitude != null
@@ -619,6 +642,16 @@ function recalculate(plan: DajeongPlan, items: PlanItem[]): DajeongPlan {
 
 export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promise<DajeongPlan> {
   const center = await geocodeRegion(plan.situation.region);
+  // 이름으로 지목한 가게가 있으면 그것부터 확인한다. 이건 조건 탐색 결과로 대체할 수 없다.
+  const namedResolutions = await Promise.all((plan.situation.namedPlaces ?? []).map(async (name) => ({
+    name,
+    places: await findPlaceByName({ placeName: name, region: plan.situation.region }),
+  })));
+  const resolvedNamed = namedResolutions.filter((entry) => entry.places.length);
+  const unresolvedNamed = namedResolutions.filter((entry) => !entry.places.length).map((entry) => entry.name);
+  // 지목한 가게를 하나도 못 찾았는데 요청이 그 가게 하나뿐이었다면, 다른 가게로 자리를 메우지 않는다.
+  const blockGenericFill = plan.situation.planScope === "single" && namedResolutions.length > 0 && resolvedNamed.length === 0;
+  let namedCursor = 0;
   // 항목마다 실제 상권 출처(카카오+구글)를 먼저 본다. 여기서 나오는 게 진짜 가게다.
   const liveSearchPromise = Promise.all(plan.items.map((item) => {
     if (item.handoffKind === "self" || item.category === "moment") return Promise.resolve([] as RealPlaceCandidate[]);
@@ -641,9 +674,19 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
       items.push({ ...item, ...attachCuratedReality(item), alternatives: item.alternatives.map(attachCuratedReality) });
       continue;
     }
+    // 지목한 가게가 있으면 그 가게가 이 자리의 정답이다. 평점 랭킹으로 밀어내지 않는다 —
+    // 사용자가 이름을 말한 가게를 "평점이 낮아서" 빼는 건 요청을 무시하는 것이다.
+    const named = namedCursor < resolvedNamed.length ? resolvedNamed[namedCursor] : undefined;
+    if (named) namedCursor += 1;
+    if (!named && blockGenericFill) {
+      items.push({ ...item, ...attachCuratedReality(item), alternatives: item.alternatives.map(attachCuratedReality) });
+      continue;
+    }
     const candidates = googleSearches[itemIndex]?.length ? googleSearches[itemIndex] : osmSearches.get(item.category) ?? [];
     const freshCandidates = candidates.filter((candidate) => !usedPlaceIds.has(candidate.id));
-    const ranked = rankRealPlaceCandidates(freshCandidates.length ? freshCandidates : candidates, previous, item.category, Math.max(item.price * 1.35, plan.budgetRemaining + item.price), item.price, plan.situation, searchQueryForItem(plan, item));
+    const ranked = named
+      ? named.places
+      : rankRealPlaceCandidates(freshCandidates.length ? freshCandidates : candidates, previous, item.category, Math.max(item.price * 1.35, plan.budgetRemaining + item.price), item.price, plan.situation, searchQueryForItem(plan, item));
     const realOptions = ranked.slice(0, 4).map((place, index) => placeToPlanOption({
       place,
       base: index === 0 ? item : item.alternatives[index % Math.max(1, item.alternatives.length)] ?? item,
@@ -697,12 +740,18 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
       sourceLabel,
       checkedAt,
       realPlaceCount,
-      message: realPlaceCount
-        ? hasGoogleReviewData
-          ? `평점·리뷰·대표 사진을 확인할 수 있는 장소 ${realPlaceCount}곳을 동선과 예산에 맞췄어요.`
-          : `실제로 등록된 장소 ${realPlaceCount}곳을 동선에 맞췄어요. 평점·리뷰·사진은 지도에서 바로 확인할 수 있어요.`
-        // 못 찾았을 때는 "탐색 중"처럼 얼버무리지 않는다 — 아래 후보가 실제 가게가 아니라는 뜻이다.
-        : "이번 조건에 맞는 실제 가게를 아직 찾지 못했어요. 아래는 참고용 기본 후보라 실제 가게가 아니고, 지역을 좁히거나 조건을 바꿔서 다시 찾아볼 수 있어요.",
+      unresolvedNamedPlaces: unresolvedNamed.length ? unresolvedNamed : undefined,
+      message: unresolvedNamed.length && !realPlaceCount
+        // 이름을 말한 가게를 못 찾았으면 그 사실만 말한다. 비슷한 가게를 대신 내밀지 않는다.
+        ? `'${unresolvedNamed.join("', '")}'${unresolvedNamed.length > 1 ? "를" : "를"} ${plan.situation.region}에서 못 찾았어. 비슷한 다른 가게로 대신 채우지 않았어. 동네나 주소를 알려주면 다시 찾아볼게.`
+        : unresolvedNamed.length
+          ? `'${unresolvedNamed.join("', '")}'는 못 찾아서 그 자리는 비워뒀어. 나머지 ${realPlaceCount}곳은 실제로 등록된 가게야.`
+          : realPlaceCount
+            ? hasGoogleReviewData
+              ? `평점·리뷰·대표 사진을 확인할 수 있는 장소 ${realPlaceCount}곳을 동선과 예산에 맞췄어.`
+              : `실제로 등록된 장소 ${realPlaceCount}곳을 동선에 맞췄어. 평점·리뷰·사진은 지도에서 바로 볼 수 있어.`
+            // 못 찾았을 때는 "탐색 중"처럼 얼버무리지 않는다 — 아래 후보가 실제 가게가 아니라는 뜻이다.
+            : "이번 조건에 맞는 실제 가게를 아직 못 찾았어. 아래는 참고용 기본 후보라 실제 가게가 아니고, 지역을 좁히거나 조건을 바꿔서 다시 찾아볼 수 있어.",
     },
   };
 }

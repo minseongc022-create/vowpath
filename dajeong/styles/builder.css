@@ -1,6 +1,6 @@
 /** 직접 만들기 화면 — 메인 대화 화면과 같은 오로라 글래스 언어. */
 
-.dj-builder-page { display: grid; gap: 16px; padding: 30px 0 60px; }
+.dj-builder-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 30px 0 60px; }
 
 .dj-builder-hero {
   padding: 32px 34px;
@@ -22,6 +22,7 @@
 .dj-builder-search-head strong { display: block; font-size: 16px; font-weight: 750; letter-spacing: -.03em; }
 .dj-builder-search-head p { margin: 5px 0 0; color: var(--dj-muted); font-size: 13px; line-height: 1.6; }
 
+.dj-builder-hint { margin: 0 0 8px; color: var(--dj-faint); font-size: 12.5px; line-height: 1.55; }
 .dj-builder-categories { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
 .dj-builder-categories .dj-chip { min-height: 38px; }
 

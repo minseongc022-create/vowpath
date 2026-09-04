@@ -1,7 +1,7 @@
 /** 동반자 · 로그인 화면 — 메인과 같은 오로라 글래스 언어. */
 
-.dj-companions-page { display: grid; gap: 18px; }
-.dj-companion-name-form { display: grid; gap: 9px; padding: 19px 21px; }
+.dj-companions-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.dj-companion-name-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 19px 21px; }
 .dj-companion-name-form label { color: var(--dj-faint); font-size: 12px; font-weight: 750; }
 .dj-companion-name-form > div { display: flex; gap: 8px; }
 .dj-companion-name-form input { flex: 1; min-width: 0; height: 46px; padding: 0 13px; border: 1px solid var(--dj-line-strong); border-radius: var(--dj-radius-xs); background: #fff; color: var(--dj-ink); font: inherit; font-size: 14px; outline: none; }
@@ -35,7 +35,7 @@
 .dj-invite-code-box p { flex-basis: 100%; margin: 4px 0 0; color: var(--dj-muted); font-size: 12px; line-height: 1.55; }
 .dj-companion-status { padding: 11px 15px; border-radius: var(--dj-radius-xs); background: var(--dj-accent-soft); color: var(--dj-accent-ink); font-size: 12px; font-weight: 700; }
 .dj-companion-empty { color: var(--dj-faint); font-size: 13px; }
-.dj-companion-list { display: grid; gap: 9px; }
+.dj-companion-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
 .dj-companion-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 19px; }
 .dj-companion-row strong { display: block; font-size: 14px; font-weight: 750; }
 .dj-companion-row span { color: var(--dj-faint); font-size: 12px; }

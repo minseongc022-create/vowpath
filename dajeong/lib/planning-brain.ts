@@ -1,5 +1,6 @@
 import { openAiStructuredCompletion, type OpenAiJsonSchema } from "@/lib/openai-chat";
 import { analyzeSituation, parseSituation } from "./situation";
+import { namedPlaceInSentence, stripRegionFromName } from "./place-intent";
 import type {
   AgeBand,
   ExperienceMood,
@@ -178,6 +179,8 @@ function topicParticle(word: string): string {
 }
 
 function regionNeedsNarrowing(draft: PlanRequest): boolean {
+  // 가게 이름을 이미 말했으면 동네를 더 좁힐 이유가 없다. 이름으로 바로 찾으면 된다.
+  if (draft.namedPlaces?.length) return false;
   return Boolean(draft.region && BROAD_REGIONS.includes(draft.region) && !draft.explicitUnknowns?.includes("regionNarrowed"));
 }
 
@@ -191,6 +194,22 @@ function recipientIn(text: string): string | undefined {
   if (/친구/.test(text)) return "친구";
   if (/혼자/.test(text)) return "나";
   return undefined;
+}
+
+/**
+ * 사용자가 상호명을 콕 집어 말했는지 본다. "인천 까사올리브 찾아줘" → "까사올리브".
+ *
+ * 지역어는 검색 지역으로 따로 쓰이니 이름에서 뗀다. 지목이 아니거나 이름이라 볼 수 없으면 undefined다 —
+ * 애매한 걸 상호명으로 우기면 있지도 않은 가게를 못 찾았다고 되묻는 더 나쁜 대화가 된다.
+ */
+function namedPlaceIn(text: string): string | undefined {
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+  const placeName = namedPlaceInSentence(trimmed);
+  if (!placeName) return undefined;
+  const name = stripRegionFromName(placeName, REGIONS);
+  if (name.length < 2 || REGIONS.includes(name)) return undefined;
+  return name.slice(0, 40);
 }
 
 function isUndecided(text: string): boolean {
@@ -378,6 +397,8 @@ export function applyDeterministicConversation(messages: PlanningChatMessage[], 
     homeTravelMinutes: previous.homeTravelMinutes,
     temporaryCondition: /피곤|컨디션|발.{0,5}(아프|다쳤)|다리.{0,5}(아프|불편)/.test(latest) ? parsedLatest.temporaryCondition : previous.temporaryCondition,
     budgetUsage: /예산.{0,8}(꽉|다\s*써)|\d+\s*만\s*원.{0,8}(꽉|다\s*써)/.test(latest) ? "full" : previous.budgetUsage,
+    // 상호명 지목은 누적한다 — 한 번 "까사올리브"라고 말했으면 뒤 대화에서도 그 가게가 목표다.
+    namedPlaces: unique([...(previous.namedPlaces ?? []), namedPlaceIn(latest) ?? null], 5),
     mealTime: currentQuestion === "mealTime" ? timeAfter(latest, /./) ?? parsedLatest.startTime ?? previous.mealTime : previous.mealTime,
     pickupTime: currentQuestion === "pickupTime" ? timeAfter(latest, /./) ?? previous.pickupTime : previous.pickupTime,
   };
@@ -492,7 +513,9 @@ function substantivePreference(draft: PlanRequest): boolean {
     && /오션|바다|뷰/.test(draft.lodgingPreference),
   );
   return Boolean(
-    draft.preferences?.some((value) => !/차량 없이|주차 가능/.test(value) && !lodgingOnlyPreference(value))
+    // 가게를 콕 집어 말한 사람에게 "어떤 분위기가 좋아?"를 묻는 건 대화가 아니라 방해다.
+    draft.namedPlaces?.length
+    || draft.preferences?.some((value) => !/차량 없이|주차 가능/.test(value) && !lodgingOnlyPreference(value))
     || draft.desiredMoods?.some((value) => !lodgingOnlyMood(value))
     || draft.personProfile?.preferences.length
     || draft.explicitUnknowns?.includes("preference"),

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { classifyPlaceRequest, isSamePlaceName } from "./place-intent";
 import { KAKAO_CATEGORY_SEARCH, chainNameFor, kakaoCategoryMatches, type Coordinates, type RealPlaceCandidate } from "./place-utils";
 import type { PlanCategory } from "./types";
 
@@ -38,7 +39,7 @@ export function kakaoLocalEnabled(): boolean {
   return Boolean(kakaoRestKey());
 }
 
-function normalize(document: KakaoDocument, category: PlanCategory, checkedAt: string): RealPlaceCandidate | null {
+function normalize(document: KakaoDocument, checkedAt: string): RealPlaceCandidate | null {
   const name = document.place_name?.trim();
   const latitude = Number(document.y);
   const longitude = Number(document.x);
@@ -103,9 +104,12 @@ export async function searchKakaoPlaces(params: {
   const rule = KAKAO_CATEGORY_SEARCH[params.category];
   if (!apiKey || params.category === "moment" || !rule.keywords.length) return [];
 
-  const userQuery = params.query?.trim();
+  // "분위기 좋은 파스타집 찾아줘"를 그대로 넣으면 카카오는 문장 전체를 상호명처럼 보고 0건을 준다.
+  // 요청 동사를 걷어낸 조건어만 남겨서 넣는다.
+  const intent = params.query?.trim() ? classifyPlaceRequest(params.query) : null;
+  const cleanedQuery = intent ? (intent.kind === "specific" ? intent.placeName : intent.keywords) : "";
   const keywords = [...new Set([
-    ...(userQuery ? [`${params.region} ${userQuery}`.trim()] : []),
+    ...(cleanedQuery ? [`${params.region} ${cleanedQuery}`.trim()] : []),
     ...rule.keywords.map((keyword) => `${params.region} ${keyword}`.trim()),
   ])].slice(0, 3);
 
@@ -123,7 +127,7 @@ export async function searchKakaoPlaces(params: {
     }
     for (const document of await requestOnce(search, apiKey)) {
       if (!kakaoCategoryMatches(document.category_name, document.place_name, params.category, document.category_group_code)) continue;
-      const candidate = normalize(document, params.category, checkedAt);
+      const candidate = normalize(document, checkedAt);
       if (!candidate || seen.has(candidate.id)) continue;
       seen.add(candidate.id);
       found.push(candidate);
@@ -132,4 +136,48 @@ export async function searchKakaoPlaces(params: {
   }
 
   return found.slice(0, params.limit ?? 18);
+}
+
+/**
+ * 사용자가 콕 집어 말한 상호명을 그 이름 그대로 확인한다.
+ *
+ * 업종 필터를 일부러 걸지 않는다 — "까사올리브"가 식당인지 카페인지 사용자는 말한 적이 없고,
+ * 업종을 잘못 짐작해 걸러내면 정작 맞는 그 가게가 사라진다. 이름이 실제로 같은지만 본다.
+ * 반경도 걸지 않는다. 지역 경계 바로 바깥에 있는 진짜 그 가게가 잘려나가기 때문에,
+ * 지역은 검색어와 아래 정렬에서만 쓴다.
+ *
+ * 못 찾으면 빈 배열을 돌려준다. 이름이 다른 가게로 자리를 메우지 않는다.
+ */
+export async function findKakaoPlaceByName(params: {
+  placeName: string;
+  region?: string;
+  limit?: number;
+}): Promise<RealPlaceCandidate[]> {
+  const apiKey = kakaoRestKey();
+  const wanted = params.placeName.trim();
+  if (!apiKey || wanted.length < 2) return [];
+
+  const region = params.region?.trim();
+  const queries = [...new Set([region ? `${region} ${wanted}` : "", wanted].filter(Boolean))];
+  const checkedAt = new Date().toISOString();
+  const seen = new Set<string>();
+  const found: RealPlaceCandidate[] = [];
+
+  for (const query of queries) {
+    const search = new URLSearchParams({ query, size: "15", sort: "accuracy" });
+    for (const document of await requestOnce(search, apiKey)) {
+      if (!isSamePlaceName(wanted, document.place_name ?? "")) continue;
+      const candidate = normalize(document, checkedAt);
+      if (!candidate || seen.has(candidate.id)) continue;
+      seen.add(candidate.id);
+      found.push(candidate);
+    }
+    if (found.length) break;
+  }
+
+  // 같은 상호의 지점이 여럿이면 사용자가 말한 지역의 지점을 먼저 보여준다.
+  const inRegion = (place: RealPlaceCandidate) => (region && place.address.includes(region) ? 1 : 0);
+  return found
+    .sort((a, b) => inRegion(b) - inRegion(a) || (b.dataQuality ?? 0) - (a.dataQuality ?? 0))
+    .slice(0, params.limit ?? 6);
 }

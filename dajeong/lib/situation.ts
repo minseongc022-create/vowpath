@@ -340,6 +340,7 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
     requestedCategories,
     excludedCategories,
     explicitUnknowns: input.explicitUnknowns ?? [],
+    namedPlaces: input.namedPlaces ?? [],
     personMemoryUpdate: input.personMemoryUpdate,
     limitedEventPriority: /오늘|이번|주말|이번 주|이번주|기간 한정|팝업|축제|야간개장|시즌/.test(text),
     personProfile: input.personProfile,

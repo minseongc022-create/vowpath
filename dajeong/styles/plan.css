@@ -443,7 +443,7 @@
 
 /* ── 오늘(당일) 화면 ──────────────────────────────────────── */
 
-.dj-today-page { max-width: 640px; display: grid; gap: 16px; margin: 0 auto; padding: 30px 0 60px; }
+.dj-today-page { max-width: 640px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0 auto; padding: 30px 0 60px; }
 .dj-today-hero {
   display: flex;
   align-items: flex-start;

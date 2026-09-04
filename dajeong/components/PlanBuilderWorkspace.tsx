@@ -22,9 +22,15 @@ type FoundPlace = {
   sourceLabel?: string;
   signals: string[];
   estimatedPrice: number;
+  category: PlanCategory;
 };
 
-const CATEGORIES: Array<{ value: PlanCategory; label: string }> = [
+/**
+ * 종류는 힌트일 뿐 거쳐야 하는 단계가 아니다. 말로 "꽃집 찾아줘"라고 하면 그걸로 끝이어야 하고,
+ * 종류를 고르는 건 결과가 엉뚱할 때 범위를 좁히는 수단으로만 남긴다. 그래서 기본값이 '알아서'다.
+ */
+const CATEGORIES: Array<{ value: PlanCategory | "auto"; label: string }> = [
+  { value: "auto", label: "알아서" },
   { value: "meal", label: "식당" },
   { value: "cafe", label: "카페" },
   { value: "activity", label: "체험·전시" },
@@ -45,7 +51,7 @@ export function PlanBuilderWorkspace() {
   const [region, setRegion] = useState("");
   const [targetDate, setTargetDate] = useState(todayIso());
   const [budget, setBudget] = useState("");
-  const [category, setCategory] = useState<PlanCategory>("meal");
+  const [category, setCategory] = useState<PlanCategory | "auto">("auto");
   const [wish, setWish] = useState("");
   const [found, setFound] = useState<FoundPlace[]>([]);
   const [searchMessage, setSearchMessage] = useState("");
@@ -70,7 +76,7 @@ export function PlanBuilderWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           region: region.trim(),
-          category,
+          category: category === "auto" ? undefined : category,
           query: wish.trim() || undefined,
           budget: Number(budget) > 0 ? Number(budget) : undefined,
         }),
@@ -87,7 +93,8 @@ export function PlanBuilderWorkspace() {
   }
 
   function addPlace(place: FoundPlace) {
-    const defaults = manualDefaults(category);
+    // 담을 때의 업종은 화면에서 고른 칩이 아니라 실제로 찾은 그 가게의 업종을 쓴다.
+    const defaults = manualDefaults(place.category);
     const nextHour = 11 + picks.length * 2;
     setPicks((current) => [...current, {
       placeId: place.id,
@@ -95,7 +102,7 @@ export function PlanBuilderWorkspace() {
       address: place.address,
       latitude: place.latitude,
       longitude: place.longitude,
-      category,
+      category: place.category,
       time: `${String(Math.min(22, nextHour)).padStart(2, "0")}:00`,
       durationMinutes: defaults.durationMinutes,
       price: place.estimatedPrice || defaults.price,
@@ -177,12 +184,13 @@ export function PlanBuilderWorkspace() {
         <div className="dj-builder-search-head">
           <span className="dj-concierge-avatar"><SparkleIcon size={18} /></span>
           <div>
-            <strong>{DAJEONG_BRAND.assistantName}에게 장소를 하나씩 찾아달라고 해보세요</strong>
-            <p>원하는 걸 그대로 말하면 실제 가게를 찾아드려요. 마음에 드는 곳만 담으면 됩니다.</p>
+            <strong>{DAJEONG_BRAND.assistantName}한테 장소를 하나씩 찾아달라고 해</strong>
+            <p>말로만 해도 돼. 가게 이름을 알면 그대로, 조건만 있으면 조건 그대로 적으면 찾아줄게.</p>
           </div>
         </div>
 
-        <div className="dj-builder-categories" role="group" aria-label="찾을 종류">
+        <p className="dj-builder-hint">결과가 엉뚱하면 종류를 골라서 범위를 좁혀. 안 골라도 돼.</p>
+        <div className="dj-builder-categories" role="group" aria-label="찾을 종류(선택)">
           {CATEGORIES.map((option) => (
             <button
               key={option.value}
@@ -201,7 +209,7 @@ export function PlanBuilderWorkspace() {
             className="dj-input"
             value={wish}
             onChange={(event) => setWish(event.target.value)}
-            placeholder="예: 조용하고 분위기 좋은 파스타집"
+            placeholder="예: 까사올리브 / 조용하고 분위기 좋은 파스타집"
             aria-label="원하는 장소 설명"
           />
           <button type="submit" className="dj-btn dj-btn-primary" disabled={searching}>
