@@ -1,3 +1,4 @@
+import { maxSelectableLevel } from "@/topik/lib/quiz/difficulty-calibration";
 import { TOPIK_QUIZ_BANK, getQuestionsBySection } from "@/topik/lib/quiz/questions";
 import { TOPIK_IBT_ORDER_BANK } from "@/topik/lib/quiz/question-bank-ibt-order";
 import type { ExamTierId } from "@/topik/lib/exams/catalog";
@@ -40,7 +41,10 @@ export function buildIbtMock(level: TopikLevel, count = mockQuestionCount("topik
   const listening = getQuestionsBySection(level, "listening", Math.ceil(count * 0.3));
   const reading = getQuestionsBySection(level, "reading", Math.ceil(count * 0.3));
   const orderCount = Math.max(2, Math.ceil(count * 0.2));
-  const orderPool = TOPIK_IBT_ORDER_BANK.filter((q) => q.level <= level);
+  const mockMax = maxSelectableLevel(level);
+  const orderPool = TOPIK_IBT_ORDER_BANK.filter(
+    (q) => q.level >= Math.max(1, level - 1) && q.level <= mockMax,
+  );
   const order = [...orderPool].sort(() => Math.random() - 0.5).slice(0, orderCount);
   const grammar = getQuestionsBySection(level, "grammar", Math.max(1, Math.ceil(count * 0.1)));
   const vocab = getQuestionsBySection(level, "vocabulary", Math.max(1, Math.ceil(count * 0.1)));
@@ -80,8 +84,9 @@ function dedupeAndFill(
     out.push(q);
   }
   if (out.length < count) {
+    const hardMax = maxSelectableLevel(maxLevel);
     const fallback = TOPIK_QUIZ_BANK.filter(
-      (q) => q.level <= maxLevel && !seen.has(q.id),
+      (q) => q.level <= hardMax && !seen.has(q.id),
     ).sort(() => Math.random() - 0.5);
     for (const q of fallback) {
       if (out.length >= count) break;
