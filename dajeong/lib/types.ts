@@ -280,6 +280,28 @@ export type DiscoveryItem = {
   checkedAt: string;
 };
 
+/**
+ * 사용자가 발견(discovery) 항목("코스에 넣어볼까?")에 "가볼래" 등으로 반응하면 만들어진다.
+ * DiscoveryItem 자체엔 전화번호·예약 URL이 없다 — 기관·블로그 데이터일 뿐 예약 채널이 아니라서다.
+ * 그래서 이 예약은 항상 "공식 정보로 직접 확인·예약해" 안내로 시작하고, 있으면 detailsUrl로 보낸다.
+ * 가짜 전화번호나 예약 성공을 만들어내지 않는다.
+ */
+export type DiscoveryBookingStatus = "interested" | "confirmed" | "cancelled";
+
+export type DiscoveryBooking = {
+  id: string;
+  discoveryItemId: string;
+  title: string;
+  place?: string;
+  startDate?: string;
+  endDate?: string;
+  detailsUrl?: string;
+  confidence: DiscoveryConfidence;
+  status: DiscoveryBookingStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ReservationCapability = "automatic" | "assisted";
 export type BookingMethod = "haruon_direct" | "external_online" | "external_platform" | "phone_only" | "walk_in" | "no_reservation" | "unsupported";
 export type ExecutionTaskKind = "reservation" | "ticket" | "purchase" | "lodging" | "transport" | "rental_car" | "logistics";
@@ -657,6 +679,8 @@ export type DajeongPlan = {
   prepDeclined?: boolean;
   /** 이 계획의 날짜·지역과 겹치는 기간 한정 행사(경복궁 야간개장류). 일정에 자동으로 넣지 않고 참고용으로만 들고 있는다. */
   discoveredEvents?: DiscoveryItem[];
+  /** 사용자가 발견 항목에 관심을 보여 예약 흐름에 올린 것들. */
+  discoveryBookings?: DiscoveryBooking[];
   notificationLevel?: "normal" | "content_hidden" | "off";
   /**
    * Whichever local identity (anonymous device id or account id) was active in this browser when

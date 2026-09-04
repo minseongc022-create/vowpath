@@ -1,6 +1,7 @@
 import type {
   BookingMethod,
   DajeongPlan,
+  DiscoveryBooking,
   ExecutionApproval,
   ExecutionTaskKind,
   PlanItem,
@@ -205,22 +206,60 @@ function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask)
   };
 }
 
+function discoveryBookingFingerprint(booking: DiscoveryBooking): string {
+  return [booking.id, booking.title, booking.status, booking.detailsUrl ?? ""].join("|");
+}
+
 /**
- * Ensures the execution order reflects the plan's current prep items (flower/cake/gift/venue),
- * without disturbing whatever scope the main-item order already has. Additive-only: when there
- * are no active prep items and no existing order, this is a no-op, so it never changes behavior
- * for plans that don't use prep at all.
+ * 발견 항목(경복궁 야간개장류)에 사용자가 관심을 보이면 여기서 예약 과제로 바꾼다.
+ * DiscoveryItem엔 전화번호도 예약 URL도 없다 — 기관·블로그 데이터일 뿐 실제 예약 채널이 아니다.
+ * 그래서 detailsUrl이 있으면 "거기서 직접 확인·예약해"로, 없으면 미지원으로 정직하게 남긴다.
+ */
+function discoveryBookingTask(plan: DajeongPlan, booking: DiscoveryBooking, previous?: ReservationTask): ReservationTask {
+  const method: BookingMethod = booking.detailsUrl ? "external_online" : "unsupported";
+  const itemFingerprint = discoveryBookingFingerprint(booking);
+  if (previous?.itemFingerprint === itemFingerprint) return previous;
+  const when = booking.startDate && booking.endDate ? `${booking.startDate}~${booking.endDate}` : "기간 미확인";
+  return {
+    id: `execute_${plan.id}_discovery_${booking.id}`,
+    itemId: booking.id,
+    title: booking.title,
+    time: "미정",
+    kind: "ticket",
+    bookingMethod: method,
+    capability: "assisted",
+    status: initialStatus(method),
+    providerLabel: methodLabel(method),
+    bookingUrl: booking.detailsUrl ?? "",
+    explanation: booking.detailsUrl
+      ? `${booking.confidence === "official" ? "기관에 등록된 정보야" : "아직 화제성으로만 확인된 정보라 날짜·운영 여부를 직접 확인해야 해"}(${when}). 실제 예약·구매는 원문 페이지에서 진행해야 해 — 하루위드가 대신 예약해주지 않아.`
+      : "이 항목은 원문 링크를 아직 확인하지 못해서 예약을 도와줄 방법이 없어. 검색해서 직접 확인해야 해.",
+    availability: "unknown",
+    price: { currency: "KRW", estimatedAmount: 0, confidence: "estimate" },
+    privacy: { requiredFields: [], approvedFields: [], purpose: `${booking.title} 확인·예약 안내` },
+    itemFingerprint,
+  };
+}
+
+/**
+ * Ensures the execution order reflects the plan's current prep items (flower/cake/gift/venue)
+ * and any discovery bookings (found events the user showed interest in), without disturbing
+ * whatever scope the main-item order already has. Additive-only: when there are no active prep
+ * items, no discovery bookings, and no existing order, this is a no-op, so it never changes
+ * behavior for plans that don't use either.
  */
 export function syncPrepReservations(plan: DajeongPlan): DajeongPlan {
   const activePrep = (plan.prep ?? []).filter((item) => item.status !== "cancelled" && item.handling !== "self_prepared");
+  const activeBookings = (plan.discoveryBookings ?? []).filter((booking) => booking.status !== "cancelled");
+  const activeIds = [...activePrep.map((item) => item.id), ...activeBookings.map((booking) => booking.id)];
   const previous = plan.execution;
   if (!previous) {
-    if (!activePrep.length) return plan;
-    return { ...plan, execution: prepareReservationOrder(plan, { targetItemIds: activePrep.map((item) => item.id), includeTravel: false }) };
+    if (!activeIds.length) return plan;
+    return { ...plan, execution: prepareReservationOrder(plan, { targetItemIds: activeIds, includeTravel: false }) };
   }
   const scope = previous.requestedScope;
   const targetItemIds = scope === "selection"
-    ? [...new Set([...previous.requestedItemIds, ...activePrep.map((item) => item.id)])]
+    ? [...new Set([...previous.requestedItemIds, ...activeIds])]
     : undefined;
   return {
     ...plan,
@@ -355,10 +394,12 @@ export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptio
   const requested = new Set(options.targetItemIds ?? []);
   const selectedItems = plan.items.filter((item) => item.reservationRequired && (!requested.size || requested.has(item.id)));
   const selectedPrep = (plan.prep ?? []).filter((item) => item.status !== "cancelled" && item.handling !== "self_prepared" && (!requested.size || requested.has(item.id)));
+  const selectedDiscoveryBookings = (plan.discoveryBookings ?? []).filter((booking) => booking.status !== "cancelled" && (!requested.size || requested.has(booking.id)));
   const previousByItem = new Map(options.previous?.tasks.map((task) => [task.itemId, task]) ?? []);
   const tasks = [
     ...selectedItems.map((item) => itemTask(plan, item, previousByItem.get(item.id))),
     ...selectedPrep.map((item) => prepTask(plan, item, previousByItem.get(item.id))),
+    ...selectedDiscoveryBookings.map((booking) => discoveryBookingTask(plan, booking, previousByItem.get(booking.id))),
   ];
   if ((options.includeTravel ?? !requested.size) && plan.situation.planScope === "trip") tasks.push(...travelTasks(plan, options.previous));
   const scopedCosts = totals(plan, tasks);
@@ -383,7 +424,7 @@ export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptio
     payableNow: costs.payableNow,
     onsiteEstimated: costs.onsiteEstimated,
     unconfirmedPriceTaskIds: costs.unconfirmedPriceTaskIds,
-    requestedItemIds: [...selectedItems.map((item) => item.id), ...selectedPrep.map((item) => item.id)],
+    requestedItemIds: [...selectedItems.map((item) => item.id), ...selectedPrep.map((item) => item.id), ...selectedDiscoveryBookings.map((booking) => booking.id)],
     requestedScope: requested.size ? "selection" : "whole_plan",
     approval,
     message: messageFor(tasks),

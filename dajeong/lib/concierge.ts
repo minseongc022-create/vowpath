@@ -14,6 +14,7 @@ import { enrichPlanWithWeather } from "./weather";
 import { applyDelayReport, applyLeaveEarly, applySegmentTransport, applySkipNext, applyStayLonger, DELAY_PATTERN, LEAVE_EARLY_PATTERN, SEGMENT_TRANSPORT_PATTERN, SKIP_NEXT_PATTERN, STAY_LONGER_PATTERN } from "./live-engine";
 import { applySecrecyInstruction } from "./secrecy-actions";
 import { applyPrepInstruction } from "./prep-conversation";
+import { applyDiscoveryInstruction } from "./discovery-conversation";
 import { classifyPaceFeedback } from "./pace";
 import { planAccessRole, redactPlanForViewer } from "./secrecy";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
@@ -644,6 +645,14 @@ async function reviseDajeongPlanWithDiscoveryCore(
   if (prepResult.handled) {
     const next = await autoPreparePrepItems(prepResult.plan, prepResult.prepItemIds);
     return { plan: next, message: prepResult.message, changedCategories: [] };
+  }
+
+  // "그거 넣어줘/가볼래" 반응 — 발견(discovery)으로 찾은 행사에 대한 관심 표시. 일정에 몰래
+  // 끼워 넣지 않고 예약(실행) 목록에 "확인·예약 필요" 항목으로만 올린다.
+  const discoveryResult = applyDiscoveryInstruction(plan, normalizedInstruction);
+  if (discoveryResult.handled) {
+    const next = syncPrepReservations(discoveryResult.plan);
+    return { plan: next, message: discoveryResult.message, changedCategories: [] };
   }
 
   // Day-of instructions ("우리 아직 밥 먹고 있어", "여기 더 있고 싶어", "집에 좀 일찍 갈래", "다음 거 빼자")

@@ -98,7 +98,7 @@ function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport:
   return (
     <article className={`dj-execution-task dj-task-${task.status}`}>
       <div className="dj-execution-task-main">
-        <div className="dj-execution-badges">{task.itemId.startsWith("prep_") ? <span className="dj-prep-badge">준비물</span> : null}<span>{task.dayNumber ? `${task.dayNumber}일차 · ` : ""}{task.time}</span><b>{METHOD_LABEL[task.bookingMethod]}</b><em>{STATUS_LABEL[task.status]}</em></div>
+        <div className="dj-execution-badges">{task.itemId.startsWith("prep_") ? <span className="dj-prep-badge">준비물</span> : null}{task.itemId.startsWith("discovery_") ? <span className="dj-prep-badge">발견한 행사</span> : null}<span>{task.dayNumber ? `${task.dayNumber}일차 · ` : ""}{task.time}</span><b>{METHOD_LABEL[task.bookingMethod]}</b><em>{STATUS_LABEL[task.status]}</em></div>
         <h3>{task.title}</h3>
         <p>{task.explanation}</p>
         <div className="dj-execution-facts">
