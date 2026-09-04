@@ -241,6 +241,45 @@ export type PlaceReality = {
   travelEstimateBasis?: "route" | "straight_line";
 };
 
+/**
+ * "지금 뜨는 것"을 찾아오는 출처.
+ *
+ * culture_data / seoul_open_data 는 정부·지자체가 직접 등록한 데이터라 기간(시작~종료)이
+ * 구조화돼 있다. naver_blog 는 그런 게 없다 — 최근에 글이 몰린다는 사실뿐이라 "화제인 것 같다"는
+ * 추정까지만 할 수 있다. 이 둘을 한 타입으로 뭉개면 추정을 확정처럼 보여주게 되므로 나눠 둔다.
+ */
+export type DiscoverySource = "culture_data" | "seoul_open_data" | "naver_local" | "naver_blog";
+
+export type DiscoveryConfidence =
+  /** 기관이 등록한 기간·장소를 그대로 옮긴 것. 날짜를 단정해도 되는 유일한 경우. */
+  | "official"
+  /** 최근 글이 몰린다는 신호로 추린 것. 기간·가격을 단정하면 안 된다. */
+  | "inferred";
+
+export type DiscoveryItem = {
+  id: string;
+  title: string;
+  source: DiscoverySource;
+  sourceLabel: string;
+  confidence: DiscoveryConfidence;
+  /** 기관 데이터에서 온 경우에만 채운다. 블로그 글에서 날짜를 짐작해 넣지 않는다. */
+  startDate?: string;
+  endDate?: string;
+  place?: string;
+  address?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+  category?: string;
+  summary?: string;
+  imageUrl?: string;
+  /** 원문으로 바로 갈 수 있는 링크. 우리가 확정 못 하는 건 사용자가 여기서 직접 본다. */
+  detailsUrl?: string;
+  /** 추정 신호를 화면에 그대로 보여주기 위한 근거("최근 2주 블로그 글 12건" 등). */
+  signals: string[];
+  checkedAt: string;
+};
+
 export type ReservationCapability = "automatic" | "assisted";
 export type BookingMethod = "haruon_direct" | "external_online" | "external_platform" | "phone_only" | "walk_in" | "no_reservation" | "unsupported";
 export type ExecutionTaskKind = "reservation" | "ticket" | "purchase" | "lodging" | "transport" | "rental_car" | "logistics";

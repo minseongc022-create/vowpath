@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { kakaoLocalEnabled, searchKakaoPlaces } from "@/dajeong/lib/kakao-local";
 import { searchRealPlaces } from "@/dajeong/lib/place-discovery";
+import { cultureDataKey, naverSearchCredentials, probeSourceShape, seoulOpenDataKey } from "@/dajeong/lib/discovery-sources";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ export async function GET(request: Request) {
       || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim()
       || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY?.trim(),
     ),
+    cultureData: Boolean(cultureDataKey()),
+    seoulOpenData: Boolean(seoulOpenDataKey()),
+    naverSearch: Boolean(naverSearchCredentials()),
   };
 
   if (url.searchParams.get("probe") !== "1") {
@@ -38,9 +42,14 @@ export async function GET(request: Request) {
 
   const region = url.searchParams.get("region")?.trim() || "성수";
   const startedAt = Date.now();
-  const [kakao, combined] = await Promise.all([
+  const [kakao, combined, cultureShape, naverLocalShape, naverBlogShape] = await Promise.all([
     searchKakaoPlaces({ region, category: "cafe" }),
     searchRealPlaces({ region, category: "cafe" }),
+    // 기관·네이버 응답의 "실제 필드 이름"을 그대로 받아 온다. 키를 넣기 전에는 확정할 수 없는
+    // 부분이라, 추측을 계속 쌓는 대신 첫 호출에서 진짜 이름을 보고 매핑을 맞추기 위함이다.
+    probeSourceShape("culture_data", region),
+    probeSourceShape("naver_local", `${region} 카페`),
+    probeSourceShape("naver_blog", `${region} 팝업`),
   ]);
   return NextResponse.json({
     config,
@@ -52,6 +61,11 @@ export async function GET(request: Request) {
       // 합쳐진 결과가 어느 출처에서 왔는지까지 보면 폴백이 도는지 바로 안다.
       combinedCount: combined.length,
       combinedSources: [...new Set(combined.map((place) => place.source))],
+      discoveryShapes: {
+        cultureData: cultureShape,
+        naverLocal: naverLocalShape,
+        naverBlog: naverBlogShape,
+      },
     },
   });
 }
