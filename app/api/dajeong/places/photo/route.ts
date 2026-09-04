@@ -22,10 +22,10 @@ export async function GET(request: Request) {
   const source = url.searchParams.get("source");
   const ref = url.searchParams.get("ref")?.trim() ?? "";
   if (!key || !ref || ref.length > 1500 || !["new", "legacy"].includes(source ?? "")) {
-    return NextResponse.json({ error: "사진을 찾지 못했어요." }, { status: 404 });
+    return NextResponse.json({ error: "사진을 찾지 못했어." }, { status: 404 });
   }
   if (source === "new" && !/^places\/[^/]+\/photos\/[^/]+$/.test(ref)) {
-    return NextResponse.json({ error: "잘못된 사진 경로예요." }, { status: 400 });
+    return NextResponse.json({ error: "잘못된 사진 경로야." }, { status: 400 });
   }
   const target = source === "new"
     ? `https://places.googleapis.com/v1/${ref}/media?maxWidthPx=1200&key=${encodeURIComponent(key)}`
@@ -45,8 +45,8 @@ export async function GET(request: Request) {
         },
       });
     }
-    return NextResponse.json({ error: "사진을 불러오지 못했어요." }, { status: 404 });
+    return NextResponse.json({ error: "사진을 불러오지 못했어." }, { status: 404 });
   } catch {
-    return NextResponse.json({ error: "사진을 불러오지 못했어요." }, { status: 404 });
+    return NextResponse.json({ error: "사진을 불러오지 못했어." }, { status: 404 });
   }
 }

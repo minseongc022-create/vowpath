@@ -8,6 +8,6 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "상황을 조금만 더 자세히 적어 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "상황을 조금만 더 자세히 적어줘." }, { status: 400 });
   return NextResponse.json({ understanding: analyzeSituation(parsed.data) });
 }

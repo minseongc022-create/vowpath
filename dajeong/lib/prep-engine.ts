@@ -51,10 +51,10 @@ export function createPrepOfferMessage(): string {
 }
 
 const TIMING_ADVICE: Record<PrepCategory, { handling: PrepHandling; note: string }> = {
-  flower: { handling: "pickup", note: "꽃은 오래 들고 다니면 시들거나 눌릴 수 있어요. 사용 직전에 픽업하거나, 식당처럼 쓸 장소로 바로 배송·사전 전달하는 방법을 더 권해요." },
-  cake: { handling: "pickup", note: "케이크는 냉장이 필요해서 하루 종일 들고 다니긴 어려워요. 사용 시점에 가깝게 픽업하거나 매장에 배송을 맡기는 걸 권해요." },
-  gift: { handling: "self_prepared", note: "부피가 있는 선물이면 하루 전에 미리 준비해두면 당일 동선이 훨씬 편해요." },
-  event_booking: { handling: "unknown", note: "장소·업체 예약은 실제 가능 여부를 먼저 확인해야 확정으로 표시할 수 있어요." },
+  flower: { handling: "pickup", note: "꽃은 오래 들고 다니면 시들거나 눌릴 수 있어. 사용 직전에 픽업하거나, 식당처럼 쓸 장소로 바로 배송·사전 전달하는 방법을 더 권해." },
+  cake: { handling: "pickup", note: "케이크는 냉장이 필요해서 하루 종일 들고 다니긴 어려워. 사용 시점에 가깝게 픽업하거나 매장에 배송을 맡기는 걸 권해." },
+  gift: { handling: "self_prepared", note: "부피가 있는 선물이면 하루 전에 미리 준비해두면 당일 동선이 훨씬 편해." },
+  event_booking: { handling: "unknown", note: "장소·업체 예약은 실제 가능 여부를 먼저 확인해야 확정으로 표시할 수 있어." },
   custom: { handling: "unknown", note: "" },
 };
 
@@ -65,17 +65,17 @@ export function recommendHandling(category: PrepCategory): { handling: PrepHandl
 export function suggestPrepCategories(situation: ParsedSituation): Array<{ category: PrepCategory; reason: string }> {
   const suggestions: Array<{ category: PrepCategory; reason: string }> = [];
   if (situation.occasion === "proposal") {
-    suggestions.push({ category: "flower", reason: "프로포즈 장면에 자주 곁들여요" });
-    suggestions.push({ category: "gift", reason: "반지·편지처럼 특별한 준비가 필요할 수 있어요" });
+    suggestions.push({ category: "flower", reason: "프로포즈 장면에 자주 곁들여" });
+    suggestions.push({ category: "gift", reason: "반지·편지처럼 특별한 준비가 필요할 수 있어" });
     return suggestions;
   }
   if (situation.occasion === "birthday" || /주년|기념일|100일|200일|300일/.test(situation.occasionLabel)) {
-    suggestions.push({ category: "flower", reason: "축하하는 날에 잘 어울려요" });
-    suggestions.push({ category: "cake", reason: "함께 축하할 케이크로 자연스러워요" });
+    suggestions.push({ category: "flower", reason: "축하하는 날에 잘 어울려" });
+    suggestions.push({ category: "cake", reason: "함께 축하할 케이크로 자연스러워" });
     return suggestions;
   }
   if (situation.occasion === "anniversary" || situation.occasion === "special") {
-    suggestions.push({ category: "flower", reason: "특별한 날의 분위기를 더해줘요" });
+    suggestions.push({ category: "flower", reason: "특별한 날의 분위기를 더해줘" });
   }
   return suggestions.slice(0, 2);
 }
@@ -122,16 +122,16 @@ export function checkPrepFeasibility(plan: DajeongPlan): string[] {
   for (const item of plan.prep ?? []) {
     if (item.status === "cancelled") continue;
     if (!isLeadTimeFeasible(item, today)) {
-      warnings.push(`${item.title}은 보통 ${item.leadTimeDays}일 전에는 주문해야 해서 지금 시점엔 어려울 수 있어요. 당일 픽업 가능한 대안으로 다시 찾아볼게요.`);
+      warnings.push(`${item.title}은 보통 ${item.leadTimeDays}일 전에는 주문해야 해서 지금 시점엔 어려울 수 있어. 당일 픽업 가능한 대안으로 다시 찾아볼게.`);
     }
     if (item.date === plan.situation.targetDate && item.time) {
       const related = item.relatedMainItemId ? plan.items.find((entry) => entry.id === item.relatedMainItemId) : undefined;
       if (related && item.time > related.time) {
-        warnings.push(`${item.title} 준비 시간이 ${related.title} 이후로 잡혀 있어요. 순서를 다시 확인해 주세요.`);
+        warnings.push(`${item.title} 준비 시간이 ${related.title} 이후로 잡혀 있어. 순서를 다시 확인해줘.`);
       }
       const deliverTarget = item.deliverToItemId ? plan.items.find((entry) => entry.id === item.deliverToItemId) : undefined;
       if (deliverTarget && item.time > deliverTarget.time) {
-        warnings.push(`${item.title}을 ${deliverTarget.title} 전에 전달하기엔 시간이 빠듯해요.`);
+        warnings.push(`${item.title}을 ${deliverTarget.title} 전에 전달하기엔 시간이 빠듯해.`);
       }
     }
   }

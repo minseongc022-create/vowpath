@@ -64,7 +64,7 @@ function manualItem(pick: ManualPick, index: number): PlanItem {
     location: pick.address,
     imageUrl: "",
     imageAlt: pick.name,
-    reason: "직접 고른 장소예요.",
+    reason: "직접 고른 장소야.",
     venueType: "mixed",
     reservationRequired,
     category: pick.category,
@@ -117,7 +117,7 @@ export function createManualDajeongPlan(input: PlanRequest & { picks: ManualPick
     sourceRequest: input.request.trim() || "직접 만든 계획",
     situation,
     title: `직접 만든 ${situation.region} 계획`,
-    summary: `직접 고른 ${items.length}곳을 시간 순서대로 담았어요. 이동 시간과 완충 시간은 자동으로 맞췄어요.`,
+    summary: `직접 고른 ${items.length}곳을 시간 순서대로 담았어. 이동 시간과 완충 시간은 자동으로 맞췄어.`,
     items,
     subtotal,
     reserve,
@@ -126,7 +126,7 @@ export function createManualDajeongPlan(input: PlanRequest & { picks: ManualPick
     budgetRemaining: reserve,
     readiness: 88,
     status: "draft",
-    notice: "직접 고르신 실제 장소로 구성했어요. 영업시간·가격·예약 가능 여부는 실행 직전에 다시 확인하며, 승인 없이 결제하지 않습니다.",
+    notice: "네가 직접 고른 실제 장소로 짰어. 영업시간·가격·예약 가능 여부는 실행 직전에 다시 확인하며, 승인 없이 결제하지 않아.",
     revisions: [],
     logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),
@@ -135,8 +135,8 @@ export function createManualDajeongPlan(input: PlanRequest & { picks: ManualPick
   const scheduled = scheduleDajeongPlan(plan);
   const withConversation = appendPlanConversation(
     scheduled,
-    input.request.trim() || "직접 계획을 만들었어요",
-    `직접 고르신 ${items.length}곳으로 계획을 만들었어요. 여기서도 말로 바꾸거나 예약 준비로 넘어갈 수 있어요.`,
+    input.request.trim() || "직접 계획을 만들었어",
+    `직접 고른 ${items.length}곳으로 계획을 만들었어. 여기서도 말로 바꾸거나 예약 준비로 넘어갈 수 있어.`,
   );
   return initializePlanVersion(withConversation);
 }

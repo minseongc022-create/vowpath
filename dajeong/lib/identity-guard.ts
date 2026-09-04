@@ -21,4 +21,4 @@ export async function verifyClaimedIdentity(claimedId: string | null | undefined
   return sessionUserId === claimedId;
 }
 
-export const IDENTITY_MISMATCH_ERROR = "본인 계정으로 로그인한 상태에서만 이 요청을 처리할 수 있어요.";
+export const IDENTITY_MISMATCH_ERROR = "본인 계정으로 로그인한 상태에서만 이 요청을 처리할 수 있어.";

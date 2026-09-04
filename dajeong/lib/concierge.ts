@@ -352,8 +352,8 @@ function proposalForWholeRoute(plan: DajeongPlan): PlanChangeProposal | undefine
   const reordered = withTimesAndTravel(plan, bestItems, plan.items.map((item) => item.time).sort());
   return {
     id: `proposal_${Date.now().toString(36)}`,
-    message: "지금 장소들은 유지하면서 이동이 덜 끊기는 순서를 찾았어요. 식사와 마지막 일정의 흐름은 건드리지 않았어요. 이 순서로 바꿀까요?",
-    reason: `직선거리 기준 예상 이동을 약 ${improvement.toFixed(1)}km 줄일 수 있어요. 실제 길찾기 시간은 출발 전에 다시 확인합니다.`,
+    message: "지금 장소들은 유지하면서 이동이 덜 끊기는 순서를 찾았어. 식사와 마지막 일정의 흐름은 건드리지 않았어. 이 순서로 바꿀까?",
+    reason: `직선거리 기준 예상 이동을 약 ${improvement.toFixed(1)}km 줄일 수 있어. 실제 길찾기 시간은 출발 전에 다시 확인해.`,
     plan: reordered,
   };
 }
@@ -366,30 +366,30 @@ function explainSelection(plan: DajeongPlan, category: PlanCategory | null, inst
     if (/예약/.test(instruction)) {
       const required = plan.items.filter((item) => item.reservationRequired);
       return required.length
-        ? `예약 확인이 필요한 곳은 ${required.map((item) => `‘${item.title}’(${item.reality?.reservationLabel || "가능 여부 확인 필요"})`).join(", ")}예요. 계획을 확정하면 한 번에 확인 순서로 정리해 드려요.`
-        : "현재 계획에는 미리 예약해야 하는 일정이 없어요.";
+        ? `예약 확인이 필요한 곳은 ${required.map((item) => `‘${item.title}’(${item.reality?.reservationLabel || "가능 여부 확인 필요"})`).join(", ")}야. 계획을 확정하면 한 번에 확인 순서로 정리해줄게.`
+        : "현재 계획에는 미리 예약해야 하는 일정이 없어.";
     }
     if (/가격|얼마|비용|예산/.test(instruction)) {
-      return `전체 예상 비용은 ${plan.total.toLocaleString("ko-KR")}원이고 예산 ${plan.budget.toLocaleString("ko-KR")}원 중 ${plan.budgetRemaining.toLocaleString("ko-KR")}원을 남겨뒀어요. 장소별 금액은 결제 직전에 다시 확인해요.`;
+      return `전체 예상 비용은 ${plan.total.toLocaleString("ko-KR")}원이고 예산 ${plan.budget.toLocaleString("ko-KR")}원 중 ${plan.budgetRemaining.toLocaleString("ko-KR")}원을 남겨뒀어. 장소별 금액은 결제 직전에 다시 확인해.`;
     }
     if (/시간|몇 시|언제/.test(instruction)) {
       return plan.items.map((item) => `${item.time} ${item.title} · 약 ${item.durationMinutes}분`).join("\n");
     }
     const realCount = plan.items.filter((item) => item.reality?.source !== "curated").length;
-    return `${plan.situation.region} 안에서 ${plan.situation.preferences.join(", ") || "전체 분위기"}, ${plan.budget.toLocaleString("ko-KR")}원 예산, 일정 사이 이동을 함께 맞췄어요. 현재 ${plan.items.length}개 일정 중 실제 지도 장소는 ${realCount}곳이고 총 예상 비용은 ${plan.total.toLocaleString("ko-KR")}원이에요.`;
+    return `${plan.situation.region} 안에서 ${plan.situation.preferences.join(", ") || "전체 분위기"}, ${plan.budget.toLocaleString("ko-KR")}원 예산, 일정 사이 이동을 함께 맞췄어. 현재 ${plan.items.length}개 일정 중 실제 지도 장소는 ${realCount}곳이고 총 예상 비용은 ${plan.total.toLocaleString("ko-KR")}원이야.`;
   }
   const item = plan.items.find((entry) => entry.category === category);
-  if (!item) return `${CATEGORY_LABEL[category]} 일정은 현재 계획에 들어 있지 않아요.`;
+  if (!item) return `${CATEGORY_LABEL[category]} 일정은 현재 계획에 들어 있지 않아.`;
   const reality = item.reality;
   const facts = [
     `${item.time}부터 약 ${item.durationMinutes}분 일정`,
     reality?.address || item.location || null,
     item.reason,
-    reality?.rating ? `평점 ${reality.rating.toFixed(1)}${reality.reviewCount ? `, 리뷰 ${reality.reviewCount.toLocaleString("ko-KR")}개` : ""}` : "평점과 리뷰는 지도에서 확인해야 해요",
+    reality?.rating ? `평점 ${reality.rating.toFixed(1)}${reality.reviewCount ? `, 리뷰 ${reality.reviewCount.toLocaleString("ko-KR")}개` : ""}` : "평점과 리뷰는 지도에서 확인해야 해",
     reality?.distanceFromPreviousKm != null ? `앞 일정에서 약 ${reality.distanceFromPreviousKm.toFixed(1)}km` : null,
-    reality?.priceConfidence === "provider" ? `연결된 가격대 기준 ${reality.priceLabel}` : `현재 비용은 ${reality?.priceLabel || `${item.price.toLocaleString("ko-KR")}원 예상`}이라 결제 전 확인이 필요해요`,
-    reality?.openNow === true ? "현재 영업 중" : reality?.openNow === false ? "현재는 영업 종료" : "방문 시간 영업 여부는 다시 확인해야 해요",
-    reality?.reservationLabel || (item.reservationRequired ? "예약 가능 여부를 확인해야 해요" : "예약 없이 방문하는 일정이에요"),
+    reality?.priceConfidence === "provider" ? `연결된 가격대 기준 ${reality.priceLabel}` : `현재 비용은 ${reality?.priceLabel || `${item.price.toLocaleString("ko-KR")}원 예상`}이라 결제 전 확인이 필요해`,
+    reality?.openNow === true ? "현재 영업 중" : reality?.openNow === false ? "현재는 영업 종료" : "방문 시간 영업 여부는 다시 확인해야 해",
+    reality?.reservationLabel || (item.reservationRequired ? "예약 가능 여부를 확인해야 해" : "예약 없이 방문하는 일정이야"),
   ].filter((value): value is string => Boolean(value));
   return `‘${item.title}’ 선택 근거는 ${facts.join(" · ")}`;
 }
@@ -433,8 +433,8 @@ function proposalForRoute(plan: DajeongPlan, changedIndex: number, category: Pla
   const reordered = withTimesAndTravel(plan, best.items, plan.items.map((item) => item.time).sort());
   return {
     id: `proposal_${Date.now().toString(36)}`,
-    message: `${CATEGORY_LABEL[category]} 후보는 마음에 들 만하지만 지금 순서로는 이동이 길어져요. 동선이 자연스럽도록 일정 순서를 함께 바꿀까요?`,
-    reason: `예상 이동거리를 약 ${best.improvement.toFixed(1)}km 줄일 수 있어요. 실제 교통 상황은 지도에서 마지막으로 확인합니다.`,
+    message: `${CATEGORY_LABEL[category]} 후보는 마음에 들 만하지만 지금 순서로는 이동이 길어져. 동선이 자연스럽도록 일정 순서를 함께 바꿀까?`,
+    reason: `예상 이동거리를 약 ${best.improvement.toFixed(1)}km 줄일 수 있어. 실제 교통 상황은 지도에서 마지막으로 확인해.`,
     plan: reordered,
   };
 }
@@ -484,7 +484,7 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
   if (asksUnlock && target) {
     next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === target.id ? { ...item, placeLocked: false, timeLocked: false, lockReason: undefined } : item) });
     changed.add(target.category);
-    details.push(`${target.title}의 사용자 고정을 해제했어요.`);
+    details.push(`${target.title}의 사용자 고정을 해제했어.`);
   }
   if (asksDuration && target) {
     const explicit = updates?.durationMinutes ?? durationMinutesInInstruction(instruction);
@@ -492,7 +492,7 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
     const duration = explicit ?? (/빨리\s*(봐|보고)|짧게/.test(instruction) ? range?.minimumMinutes ?? Math.max(20, target.durationMinutes - 20) : range?.leisurelyMinutes ?? target.durationMinutes + 30);
     next = setItemDuration(next, target.id, duration);
     changed.add(target.category);
-    details.push(`${target.title} 체류시간을 ${duration}분으로 맞추고 뒤 일정을 연쇄 조정했어요.`);
+    details.push(`${target.title} 체류시간을 ${duration}분으로 맞추고 뒤 일정을 연쇄 조정했어.`);
   }
   if (asksBuffer) {
     const bufferTarget = target ?? next.items.find((item) => item.category === "meal");
@@ -500,7 +500,7 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
       const buffer = updates?.bufferAfterMinutes ?? 30;
       next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === bufferTarget.id ? { ...item, bufferAfterMinutes: Math.max(item.bufferAfterMinutes ?? 0, buffer) } : item) });
       changed.add(bufferTarget.category);
-      details.push(`${bufferTarget.title} 다음에 최소 30분의 숨 돌릴 여유를 뒀어요.`);
+      details.push(`${bufferTarget.title} 다음에 최소 30분의 숨 돌릴 여유를 뒀어.`);
     }
   }
   if (asksLock) {
@@ -509,20 +509,20 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
       const lockTime = updates?.lockTime === true || /시간.{0,8}(유지|꼭)/.test(instruction);
       next = scheduleDajeongPlan({ ...next, items: next.items.map((item) => item.id === lockTarget.id ? { ...item, placeLocked: true, timeLocked: lockTime || item.timeLocked, lockReason: instruction.slice(0, 120) } : item) });
       changed.add(lockTarget.category);
-      details.push(`${lockTarget.title}은 사용자가 해제하기 전까지 유지하는 강한 조건으로 고정했어요.`);
+      details.push(`${lockTarget.title}은 사용자가 해제하기 전까지 유지하는 강한 조건으로 고정했어.`);
     }
   }
   if (asksDensity) {
     const density = updates?.scheduleDensity ?? (/여유|널널|천천히|쉬엄/.test(instruction) ? "relaxed" as const : "compact" as const);
     next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, scheduleDensity: density, densitySpecified: true } });
     next.items.forEach((item) => changed.add(item.category));
-    details.push(density === "compact" ? "최소 체류시간을 침범하지 않는 선에서 공백과 이동을 줄였어요." : "장소 수와 이동 부담을 줄이고 체류·완충시간을 늘렸어요.");
+    details.push(density === "compact" ? "최소 체류시간을 침범하지 않는 선에서 공백과 이동을 줄였어." : "장소 수와 이동 부담을 줄이고 체류·완충시간을 늘렸어.");
   }
   if (asksCondition) {
     const walkingLimited = updates?.temporaryCondition === "walking_limited" || /발.{0,5}아프/.test(instruction);
     next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, temporaryCondition: { energy: "low", walkingLimited: walkingLimited || next.situation.temporaryCondition.walkingLimited, notes: [...new Set([...next.situation.temporaryCondition.notes, instruction.slice(0, 100)])] } } });
     next.items.forEach((item) => changed.add(item.category));
-    details.push("오늘 컨디션에만 적용해 이동 강도를 낮추고 휴식 여유를 늘렸어요. 장기 취향에는 저장하지 않았어요.");
+    details.push("오늘 컨디션에만 적용해 이동 강도를 낮추고 휴식 여유를 늘렸어. 장기 취향에는 저장하지 않았어.");
   }
   if (asksHome) {
     const parsed = parseSituation({ request: instruction, homeTravelMinutes: next.situation.homeTravelMinutes });
@@ -530,13 +530,13 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
     if (homeByTime) {
       next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, homeByTime } });
       next.items.forEach((item) => changed.add(item.category));
-      details.push(`${homeByTime} 장소 종료가 아니라 예상 귀가 기준으로 마지막 일정을 역산했어요.`);
+      details.push(`${homeByTime} 장소 종료가 아니라 예상 귀가 기준으로 마지막 일정을 역산했어.`);
     }
   }
   if (asksAvailability) {
     next = scheduleDajeongPlan({ ...next, situation: { ...next.situation, startTime: updates?.availabilityStartTime ?? next.situation.startTime, availabilityEndTime: updates?.availabilityEndTime ?? next.situation.availabilityEndTime } });
     next.items.forEach((item) => changed.add(item.category));
-    details.push(`${next.situation.startTime}${next.situation.availabilityEndTime ? `~${next.situation.availabilityEndTime}` : "부터"} 가용시간 안으로 다시 맞췄어요.`);
+    details.push(`${next.situation.startTime}${next.situation.availabilityEndTime ? `~${next.situation.availabilityEndTime}` : "부터"} 가용시간 안으로 다시 맞췄어.`);
   }
   if (asksWeather) {
     const checked = await enrichPlanWithWeather(next);
@@ -544,7 +544,7 @@ async function applyScheduleInstruction(plan: DajeongPlan, instruction: string, 
       ? checked
       : scheduleDajeongPlan({ ...checked, schedule: { ...checked.schedule!, weather: weatherContextFromUser(instruction) } });
     next.items.forEach((item) => changed.add(item.category));
-    details.push(next.schedule?.weather.status === "verified" ? "시간대별 실제 예보와 도보 노출을 확인해 영향받는 일정만 다시 배치했어요." : "말해준 날씨를 이번 일정 조건으로 반영했지만, 외부 예보로 확인된 사실처럼 표시하지 않았어요.");
+    details.push(next.schedule?.weather.status === "verified" ? "시간대별 실제 예보와 도보 노출을 확인해 영향받는 일정만 다시 배치했어." : "말해준 날씨를 이번 일정 조건으로 반영했지만, 외부 예보로 확인된 사실처럼 표시하지 않았어.");
   }
   return { plan: next, message: details.join(" "), categories: [...changed] };
 }
@@ -688,7 +688,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
   if (/처음.{0,8}(걸|계획|상태).{0,8}(돌아|복원)|처음으로\s*돌아/.test(normalizedInstruction)) {
     const initial = plan.versions?.[0];
     if (initial) {
-      const message = "처음 만들었던 계획으로 돌아왔어요. 시간표·장소·예산도 모두 그 상태로 복원했어요.";
+      const message = "처음 만들었던 계획으로 돌아왔어. 시간표·장소·예산도 모두 그 상태로 복원했어.";
       const restored = appendPlanConversation(syncPrepReservations(restorePlanVersion(plan, initial, normalizedInstruction)), normalizedInstruction, message);
       return { plan: restored, message, changedCategories: [...new Set([...plan.items.map((item) => item.category), ...restored.items.map((item) => item.category)])] };
     }
@@ -697,7 +697,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
     const versions = plan.versions ?? [];
     const previous = versions.at(-2) ?? versions[0];
     if (previous) {
-      const message = "바로 이전 계획으로 돌아왔어요. 화면의 일정과 총비용도 함께 복원했어요.";
+      const message = "바로 이전 계획으로 돌아왔어. 화면의 일정과 총비용도 함께 복원했어.";
       const restored = appendPlanConversation(syncPrepReservations(restorePlanVersion(plan, previous, normalizedInstruction)), normalizedInstruction, message);
       return { plan: restored, message, changedCategories: [...new Set([...plan.items.map((item) => item.category), ...restored.items.map((item) => item.category)])] };
     }
@@ -705,7 +705,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
   if (/아까.{0,8}(두\s*번째|2\s*번째).{0,8}(좋|선택|걸로)/.test(normalizedInstruction)) {
     const restoredCandidate = restoreReferencedCandidate(plan, normalizedInstruction);
     if (restoredCandidate) {
-      const message = `아까 봤던 두 번째 후보 ‘${restoredCandidate.title}’로 돌아왔어요. 다른 일정은 그대로예요.`;
+      const message = `아까 봤던 두 번째 후보 ‘${restoredCandidate.title}’로 돌아왔어. 다른 일정은 그대로야.`;
       return { plan: addRevision(restoredCandidate.plan, normalizedInstruction, message, [restoredCandidate.category]), message, changedCategories: [restoredCandidate.category] };
     }
   }
@@ -721,7 +721,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
       const shifted = plan.items.map((item) => (item.dayNumber ?? 1) === shiftedDay ? { ...item, time: shiftClock(item.time, 60) } : item);
       const next = withTimesAndTravel(plan, shifted);
       const categories = [...new Set(affected.map((item) => item.category))];
-      const message = `${shiftedDay}일차 시작을 한 시간 늦추고 그날 시간표와 이동 흐름을 함께 다시 맞췄어요.`;
+      const message = `${shiftedDay}일차 시작을 한 시간 늦추고 그날 시간표와 이동 흐름을 함께 다시 맞췄어.`;
       return { plan: addRevision(next, normalizedInstruction, message, categories), message, changedCategories: categories };
     }
   }
@@ -791,7 +791,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
     const routeProposal = changedIndex >= 0
       ? proposalForRoute(contextualPlan, changedIndex, target as PlanCategory)
       : proposalForWholeRoute(contextualPlan);
-    const message = routeProposal?.message ?? "현재 순서가 장소 사이 이동을 가장 적게 만드는 흐름이에요. 식사 시간과 마지막 일정도 지금 그대로 두는 편이 자연스러워요.";
+    const message = routeProposal?.message ?? "현재 순서가 장소 사이 이동을 가장 적게 만드는 흐름이야. 식사 시간과 마지막 일정도 지금 그대로 두는 편이 자연스러워.";
     const recorded = appendPlanConversation(contextualPlan, instruction, message);
     const proposal = routeProposal ? { ...routeProposal, plan: { ...routeProposal.plan, conversation: recorded.conversation } } : undefined;
     return { plan: recorded, message, changedCategories: [], proposal, profileUpdate };
@@ -805,28 +805,28 @@ async function reviseDajeongPlanWithDiscoveryCore(
     if (updated.total > updated.budget) updated = reviseDajeongPlan(updated, "분위기를 최대한 유지하면서 전체 비용을 줄여줘", { recordConversation: false }).plan;
     const changed = shouldRefreshPlaces ? updated.items.map((item) => item.category) : [];
     const details = [
-      intent.updates.region ? `지역을 ${updated.situation.region}(으)로 바꾸고 장소를 다시 찾았어요.` : null,
-      intent.updates.budget ? `전체 예산은 ${updated.budget.toLocaleString("ko-KR")}원으로 맞췄어요.` : null,
-      intent.updates.targetDate ? `날짜는 ${updated.situation.targetDate}로 바꿨어요.` : null,
-      intent.updates.transport ? "이동수단을 전체 동선에 반영했어요." : null,
-      intent.preferences.length ? `${intent.preferences.join(", ")} 취향을 기억하고 전체 후보를 다시 비교했어요.` : null,
-      intent.constraints.length ? `${intent.constraints.join(", ")} 조건은 이후 수정에서도 계속 지킬게요.` : null,
+      intent.updates.region ? `지역을 ${updated.situation.region}(으)로 바꾸고 장소를 다시 찾았어.` : null,
+      intent.updates.budget ? `전체 예산은 ${updated.budget.toLocaleString("ko-KR")}원으로 맞췄어.` : null,
+      intent.updates.targetDate ? `날짜는 ${updated.situation.targetDate}로 바꿨어.` : null,
+      intent.updates.transport ? "이동수단을 전체 동선에 반영했어." : null,
+      intent.preferences.length ? `${intent.preferences.join(", ")} 취향을 기억하고 전체 후보를 다시 비교했어.` : null,
+      intent.constraints.length ? `${intent.constraints.join(", ")} 조건은 앞으로 고칠 때도 계속 지킬게.` : null,
     ].filter((value): value is string => Boolean(value));
-    const message = details.join(" ") || "말씀하신 조건을 전체 일정에 반영했어요.";
+    const message = details.join(" ") || "네가 말한 조건을 전체 일정에 반영했어.";
     return { plan: addRevision(updated, instruction, message, changed), message, changedCategories: changed, profileUpdate };
   }
 
   if (!target || ["remove", "indoor"].includes(intent.action)) {
     const fallback = reviseDajeongPlan(contextualPlan, instruction);
     if (fallback.changedCategories.length) return { ...fallback, profileUpdate };
-    const message = "말씀하신 뜻을 일정에 연결할 대상을 아직 확실히 고르지 못했어요. 장소 이름이나 ‘두 번째 일정’, ‘저녁 이후’처럼 편한 방식으로 가리켜 주세요.";
+    const message = "방금 말한 걸 어느 일정에 붙일지 아직 확실하지 않아. 장소 이름이나 ‘두 번째 일정’, ‘저녁 이후’처럼 편한 방식으로 가리켜 줘.";
     return { plan: appendPlanConversation(contextualPlan, instruction, message), message, changedCategories: [], profileUpdate };
   }
 
   if (intent.action === "cheaper") {
     const fallback = reviseDajeongPlan(contextualPlan, instruction);
     if (fallback.changedCategories.length) {
-      return { ...fallback, message: `${fallback.message} 실제 후보의 표시 가격과 링크에서 결제 전 금액을 다시 확인해 주세요.`, profileUpdate };
+      return { ...fallback, message: `${fallback.message} 실제 후보의 표시 가격과 링크에서 결제 전 금액을 다시 확인해줘.`, profileUpdate };
     }
   }
 
@@ -836,7 +836,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
     : contextualPlan.items.findIndex((item) => item.category === target && (!requestedDay || item.dayNumber === requestedDay));
   const existing = existingIndex >= 0 ? contextualPlan.items[existingIndex] : undefined;
   if (existing?.placeLocked && !/고정.{0,8}해제|꼭.{0,6}(안\s*가|해제)|바꿔도\s*돼/.test(normalizedInstruction)) {
-    const message = `‘${existing.title}’은 꼭 유지할 장소로 고정되어 있어요. 바꾸려면 “이 장소 고정 해제해줘”라고 말해 주세요.`;
+    const message = `‘${existing.title}’은 꼭 유지할 장소로 고정되어 있어. 바꾸려면 “이 장소 고정 해제해줘”라고 말해줘.`;
     return { plan: appendPlanConversation(contextualPlan, normalizedInstruction, message), message, changedCategories: [], profileUpdate };
   }
   const base = existing ?? getOptions(target, contextualPlan.situation)[0];
@@ -849,14 +849,14 @@ async function reviseDajeongPlanWithDiscoveryCore(
       const reference = attachCuratedReality(base);
       let next = withTimesAndTravel(contextualPlan, [...contextualPlan.items, { ...createAddedItem(contextualPlan, target, reference), alternatives: getOptions(target, contextualPlan.situation).filter((option) => option.id !== base.id).map(attachCuratedReality) }]);
       const message = target === "lodging"
-        ? `숙소 체크인을 일정에 넣었어요. 다만 지금은 실제 숙소 검색 연결이 없어 특정 숙소를 확정하지 않고, ${intent.preferences.join(", ") || "말씀하신 조건"}에 맞는 후보 탐색 기준으로 표시했어요. 지도 연결이 준비되면 실제 객실·후기·가격으로 바로 바뀝니다.`
-        : `${CATEGORY_LABEL[target]}을 일정에 넣었어요. 지금은 실시간 장소 검색 결과가 없어 실제 후보 확정 전 탐색 기준으로 표시합니다.`;
+        ? `숙소 체크인을 일정에 넣었어. 다만 지금은 실제 숙소 검색 연결이 없어 특정 숙소를 확정하지 않고, ${intent.preferences.join(", ") || "네가 말한 조건"}에 맞는 후보 탐색 기준으로만 표시했어. 지도 연결이 붙으면 실제 객실·후기·가격으로 바로 바뀌어.`
+        : `${CATEGORY_LABEL[target]}을 일정에 넣었어. 지금은 실시간 장소 검색 결과가 없어 실제 후보 확정 전 탐색 기준으로 표시해.`;
       next = addRevision(next, instruction, message, [target]);
       return { plan: next, message, changedCategories: [target], searchedRealPlaces: 0, profileUpdate };
     }
     const fallback = reviseDajeongPlan(contextualPlan, instruction);
-    if (fallback.changedCategories.length) return { ...fallback, message: `${fallback.message} 다만 지금은 실시간 장소 검색 결과가 없어 기본 후보로 조정했어요.`, searchedRealPlaces: 0, profileUpdate };
-    const message = `${plan.situation.region}에서 조건에 맞는 실제 후보를 지금 확인하지 못했어요. 지역이나 원하는 분위기를 조금 다르게 말해 주세요.`;
+    if (fallback.changedCategories.length) return { ...fallback, message: `${fallback.message} 다만 지금은 실시간 장소 검색 결과가 없어 기본 후보로 조정했어.`, searchedRealPlaces: 0, profileUpdate };
+    const message = `${plan.situation.region}에서 조건에 맞는 실제 후보를 지금 확인하지 못했어. 지역이나 원하는 분위기를 조금 다르게 말해줘.`;
     return { plan: appendPlanConversation(contextualPlan, instruction, message), message, changedCategories: [], searchedRealPlaces: 0, profileUpdate };
   }
 
@@ -884,8 +884,8 @@ async function reviseDajeongPlanWithDiscoveryCore(
 
   let next = withTimesAndTravel(contextualPlan, nextItems);
   const message = existing
-    ? `${CATEGORY_LABEL[target]}만 실제 장소 ‘${selected.title}’로 바꿨어요. 나머지 일정과 조건은 그대로 두었습니다.`
-    : `동선 가까이에 실제 장소 ‘${selected.title}’를 새 일정으로 넣었어요.`;
+    ? `${CATEGORY_LABEL[target]}만 실제 장소 ‘${selected.title}’로 바꿨어. 나머지 일정과 조건은 그대로 뒀어.`
+    : `동선 가까이에 실제 장소 ‘${selected.title}’를 새 일정으로 넣었어.`;
   const routeProposal = proposalForRoute(next, changedIndex, target);
   const responseMessage = routeProposal?.message ?? message;
   next = addRevision(next, instruction, responseMessage, [target]);
@@ -896,7 +896,7 @@ async function reviseDajeongPlanWithDiscoveryCore(
       sourceLabel: selected.reality?.sourceLabel ?? "장소 탐색 서비스",
       checkedAt: new Date().toISOString(),
       realPlaceCount: Math.max(next.discovery?.realPlaceCount ?? 0, next.items.filter((item) => item.reality && item.reality.source !== "curated").length),
-      message: "수정 요청에 맞춰 실제 장소를 다시 탐색했어요.",
+      message: "수정 요청에 맞춰 실제 장소를 다시 탐색했어.",
     },
   };
 

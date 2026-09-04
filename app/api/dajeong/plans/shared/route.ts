@@ -7,14 +7,14 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const viewerId = params.get("viewerId")?.trim();
   const planId = params.get("planId")?.trim();
-  if (!viewerId) return NextResponse.json({ error: "viewerId가 필요해요." }, { status: 400 });
+  if (!viewerId) return NextResponse.json({ error: "viewerId가 필요해." }, { status: 400 });
   if (!(await verifyClaimedIdentity(viewerId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
 
   if (planId) {
     const record = await getSharedPlanRecord(planId);
     const plan = record ? redactPlanForViewer(record.plan, viewerId) : null;
     // Same 404 whether the plan is missing or the viewer just isn't a participant.
-    if (!record || !plan) return NextResponse.json({ error: "이 계획을 찾을 수 없어요." }, { status: 404 });
+    if (!record || !plan) return NextResponse.json({ error: "이 계획을 찾을 수 없어." }, { status: 404 });
     return NextResponse.json({ plan, version: record.version, isOwner: record.ownerId === viewerId });
   }
 

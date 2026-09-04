@@ -32,10 +32,10 @@ export async function reviseAnyPlan(
     });
     const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; message?: string; changedCategories?: PlanCategory[]; proposal?: PlanRevisionResult["proposal"]; version?: number; error?: string; conflict?: boolean };
     if (!response.ok) {
-      if (data.conflict && data.plan) return { plan: { ...data.plan, sharedVersion: data.version }, message: data.error ?? "충돌이 발생했어요.", changedCategories: [], conflict: true, version: data.version };
-      throw new Error(data.error || "계획을 조정하지 못했어요.");
+      if (data.conflict && data.plan) return { plan: { ...data.plan, sharedVersion: data.version }, message: data.error ?? "충돌이 발생했어.", changedCategories: [], conflict: true, version: data.version };
+      throw new Error(data.error || "계획을 조정하지 못했어.");
     }
-    if (!data.plan) throw new Error("계획을 조정하지 못했어요.");
+    if (!data.plan) throw new Error("계획을 조정하지 못했어.");
     return { plan: { ...data.plan, sharedVersion: data.version }, message: data.message ?? "", changedCategories: data.changedCategories ?? [], proposal: data.proposal, version: data.version };
   }
   const response = await fetch("/api/dajeong/plans/revise", {
@@ -44,7 +44,7 @@ export async function reviseAnyPlan(
     body: JSON.stringify({ plan, instruction, targetCategory, targetItemId }),
   });
   const data = await response.json().catch(() => ({})) as PlanRevisionResult & { error?: string };
-  if (!response.ok || !data.plan) throw new Error((data as { error?: string }).error || "계획을 조정하지 못했어요.");
+  if (!response.ok || !data.plan) throw new Error((data as { error?: string }).error || "계획을 조정하지 못했어.");
   return data;
 }
 

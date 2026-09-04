@@ -101,12 +101,12 @@ export async function POST(request: Request) {
   try {
     json = await request.json();
   } catch {
-    return NextResponse.json({ error: "요청 내용을 읽지 못했어요." }, { status: 400 });
+    return NextResponse.json({ error: "요청 내용을 읽지 못했어." }, { status: 400 });
   }
 
   const parsed = requestSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "상황을 다섯 글자 이상 적고 예산을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "상황을 다섯 글자 이상 적고 예산을 확인해줘." }, { status: 400 });
   }
 
   const discovered = await enrichDajeongPlanWithRealPlaces(createDajeongPlan(parsed.data));

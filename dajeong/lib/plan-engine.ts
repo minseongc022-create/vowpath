@@ -439,7 +439,7 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     sourceRequest: input.request.trim(),
     situation,
     title: scopeTitle,
-    summary: `${urgencyText} ${situation.region}에서 ${transportText}, ${situation.startTime}${situation.availabilityEndTime ? `~${situation.availabilityEndTime}` : "부터"} 실제로 따라갈 수 있는 ${mood} 흐름으로 구성했어요.`,
+    summary: `${urgencyText} ${situation.region}에서 ${transportText}, ${situation.startTime}${situation.availabilityEndTime ? `~${situation.availabilityEndTime}` : "부터"} 실제로 따라갈 수 있는 ${mood} 흐름으로 짰어.`,
     items,
     subtotal,
     reserve,
@@ -448,13 +448,13 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     budgetRemaining: reserve,
     readiness: Math.min(96, 74 + (situation.urgency === "planned" ? 18 : situation.urgency === "soon" ? 12 : 6)),
     status: "draft",
-    notice: "현재 화면의 장소는 조건에 맞는 탐색 방향입니다. 가격·영업·좌석은 연결된 서비스에서 최종 확인되며, 하루위드는 사용자 승인 없이 예약하거나 결제하지 않습니다.",
+    notice: "지금 화면의 장소는 조건에 맞는 탐색 방향이야. 가격·영업·좌석은 연결된 서비스에서 마지막에 확인하고, 네 승인 없이는 예약하거나 결제하지 않아.",
     revisions: [],
     logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),
   };
   const scheduled = scheduleDajeongPlan(createdPlan);
-  const withConversation = appendPlanConversation(scheduled, input.request.trim(), "말씀하신 조건을 기억하고 체류시간·이동·완충시간까지 함께 살펴 계획을 준비했어요.");
+  const withConversation = appendPlanConversation(scheduled, input.request.trim(), "말한 조건을 기억하고 체류시간·이동·완충시간까지 같이 보면서 계획을 짰어.");
   const askPrep = shouldOfferPrepCheck(situation);
   const withPrepOffer = askPrep ? appendAssistantNote({ ...withConversation, prepAsked: true }, createPrepOfferMessage()) : withConversation;
   return initializePlanVersion(withPrepOffer);
@@ -549,35 +549,35 @@ export function reviseDajeongPlan(
   const instruction = rawInstruction.trim();
   const target = targetCategory(instruction);
   let next = plan;
-  let message = "요청을 이해했지만 안전하게 바꿀 수 있는 항목을 찾지 못했어요. 식당·카페·야경처럼 바꿀 대상을 함께 말해 주세요.";
+  let message = "요청을 이해했지만 안전하게 바꿀 수 있는 항목을 찾지 못했어. 식당·카페·야경처럼 바꿀 대상을 함께 말해줘.";
 
   if (target && /빼|제외|없애|삭제/.test(instruction)) {
     const locked = plan.items.some((item) => item.category === target && item.placeLocked);
     next = locked ? plan : recalculate(plan, plan.items.filter((item) => item.category !== target));
-    message = locked ? `${CATEGORY_LABEL[target]}은 사용자가 꼭 유지해 달라고 고정한 일정이에요. 먼저 고정을 해제해 주세요.` : `${CATEGORY_LABEL[target]} 일정을 빼고 남은 동선과 예산을 다시 계산했어요.`;
+    message = locked ? `${CATEGORY_LABEL[target]}은 사용자가 꼭 유지해 달라고 고정한 일정이야. 먼저 고정을 해제해줘.` : `${CATEGORY_LABEL[target]} 일정을 빼고 남은 동선과 예산을 다시 계산했어.`;
   } else if (target && /넣|추가|더해/.test(instruction) && !plan.items.some((item) => item.category === target)) {
     next = addCategory(plan, target);
-    message = next === plan ? `남은 예산 안에서는 ${CATEGORY_LABEL[target]}을 추가하기 어려워요. 예산을 늘리거나 다른 항목을 가볍게 해주세요.` : `${CATEGORY_LABEL[target]}을 기존 흐름에 자연스럽게 추가했어요.`;
+    message = next === plan ? `남은 예산 안에서는 ${CATEGORY_LABEL[target]}을 추가하기 어려워. 예산을 늘리거나 다른 항목을 가볍게 해줘.` : `${CATEGORY_LABEL[target]}을 기존 흐름에 자연스럽게 추가했어.`;
   } else if (/실내|비가|비 와|추워|더워/.test(instruction)) {
     let updated = plan;
     plan.items.filter((item) => item.venueType === "outdoor").forEach((item) => { updated = replaceBy(updated, item.category, "indoor"); });
     const constraints = Array.from(new Set([...(updated.situation.constraints ?? []), "실내 위주"]));
     next = recalculate(updated, updated.items, { ...updated.situation, indoorPreference: true, constraints });
-    message = "야외 비중을 줄이고 실내에서 이어지는 선택으로 바꿨어요.";
+    message = "야외 비중을 줄이고 실내에서 이어지는 선택으로 바꿨어.";
   } else if (/싸게|저렴|예산.*줄|비용.*줄/.test(instruction)) {
     const targets = target ? [target] : plan.items.map((item) => item.category);
     targets.forEach((category) => { next = replaceBy(next, category, "cheaper"); });
-    message = target ? `${CATEGORY_LABEL[target]}만 더 가벼운 선택으로 바꿨어요.` : `분위기를 해치지 않는 선에서 총비용을 ${Math.max(0, plan.total - next.total).toLocaleString("ko-KR")}원 줄였어요.`;
+    message = target ? `${CATEGORY_LABEL[target]}만 더 가벼운 선택으로 바꿨어.` : `분위기를 해치지 않는 선에서 총비용을 ${Math.max(0, plan.total - next.total).toLocaleString("ko-KR")}원 줄였어.`;
   } else if (/특별|고급|기억에 남|프리미엄/.test(instruction)) {
     const targets = target ? [target] : (["activity", "meal", "view"] as PlanCategory[]);
     targets.forEach((category) => { next = replaceBy(next, category, "premium"); });
-    message = "남은 예산을 넘지 않으면서 경험의 특별함이 커지는 항목을 우선했어요.";
+    message = "남은 예산을 넘지 않으면서 경험의 특별함이 커지는 항목을 우선했어.";
   } else if (target && /바꿔|다른|별로|싫어/.test(instruction)) {
     next = replaceBy(plan, target, "different");
-    message = `${CATEGORY_LABEL[target]}만 다른 분위기의 선택으로 바꿨어요. 나머지 일정은 그대로예요.`;
+    message = `${CATEGORY_LABEL[target]}만 다른 분위기의 선택으로 바꿨어. 나머지 일정은 그대로야.`;
   } else if (/야경/.test(instruction)) {
     next = addCategory(plan, "view");
-    message = next === plan ? "이미 마지막에 야경 일정이 들어가 있어요." : "마지막에 야경을 넣고 전체 시간을 다시 정리했어요.";
+    message = next === plan ? "이미 마지막에 야경 일정이 들어가 있어." : "마지막에 야경을 넣고 전체 시간을 다시 정리했어.";
   }
 
   const timeMatch = instruction.match(/(\d{1,2})(?::(\d{2}))?\s*시/);
@@ -586,7 +586,7 @@ export function reviseDajeongPlan(
     if (/오후|저녁/.test(instruction) && hour < 12) hour += 12;
     const time = `${String(Math.min(23, hour)).padStart(2, "0")}:${timeMatch[2] ?? "00"}`;
     next = recalculate(next, next.items.map((item) => item.category === target ? { ...item, time } : item));
-    message = `${CATEGORY_LABEL[target]} 시간을 ${time}로 옮기고 시간순으로 다시 정리했어요.`;
+    message = `${CATEGORY_LABEL[target]} 시간을 ${time}로 옮기고 시간순으로 다시 정리했어.`;
   }
 
   const changed = changedCategories(plan, next);

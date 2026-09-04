@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "공유에 필요한 정보를 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "공유에 필요한 정보를 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.ownerId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const result = await shareplan(parsed.data.plan as DajeongPlan, parsed.data.ownerId, parsed.data.ownerName, parsed.data.companionId, parsed.data.companionName);
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });

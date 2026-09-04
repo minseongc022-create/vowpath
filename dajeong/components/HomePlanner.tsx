@@ -108,7 +108,7 @@ export function HomePlanner() {
         body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; error?: string };
-      if (!response.ok || !data.plan) throw new Error(data.error || "계획을 만들지 못했어요. 방금 답변을 그대로 한 번 더 보내 주세요.");
+      if (!response.ok || !data.plan) throw new Error(data.error || "계획을 못 만들었어. 방금 답을 그대로 한 번만 더 보내줄래?");
       rememberPersonProfile(data.plan.situation, {
         ageBand: data.plan.situation.ageBand,
         preferences: data.plan.situation.preferences,
@@ -118,10 +118,10 @@ export function HomePlanner() {
       savePlan(data.plan);
       setPlans(listPlans());
       setCompletedPlan(data.plan);
-      setConversation((current) => [...current, homeEntry("assistant", "후보와 동선을 다 정했어요. 마음에 들지 않는 부분은 여기서 바로 말로 바꿀 수도 있어요.", data.plan)]);
+      setConversation((current) => [...current, homeEntry("assistant", "후보랑 동선 다 정했어. 마음에 안 드는 데는 여기서 바로 말로 바꿔도 돼.", data.plan)]);
       setSearchStage("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
+      setError(err instanceof Error ? err.message : "잠시 후에 다시 해볼래?");
       setSearchStage("");
     } finally {
       setLoading(null);
@@ -141,7 +141,7 @@ export function HomePlanner() {
         body: JSON.stringify({ plan: currentPlan, instruction: nextRequest }),
       });
       const result = await response.json().catch(() => ({})) as PlanRevisionResult & { error?: string };
-      if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
+      if (!response.ok || !result.plan) throw new Error(result.error || "계획을 못 고쳤어.");
       savePlan(result.plan);
       if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
       setPlans(listPlans());
@@ -149,7 +149,7 @@ export function HomePlanner() {
       setConversation((current) => [...current, homeEntry("assistant", result.message, result.plan)]);
     } catch (err) {
       setCompletedPlan(currentPlan);
-      setError(err instanceof Error ? err.message : "잠시 후 다시 말해 주세요.");
+      setError(err instanceof Error ? err.message : "잠시 후에 다시 말해줄래?");
     } finally {
       setSearchStage("");
       setLoading(null);
@@ -180,7 +180,7 @@ export function HomePlanner() {
         }),
       });
       const result = await response.json().catch(() => ({})) as PlanningConversationResult & { error?: string };
-      if (!response.ok || !result.understanding) throw new Error(result.error || "말씀하신 내용을 이해하지 못했어요.");
+      if (!response.ok || !result.understanding) throw new Error(result.error || "방금 말한 걸 잘 못 알아들었어.");
       const remembered = getPersonProfile(result.understanding.situation.recipient);
       const nextDraft = remembered && !result.draft.personProfile ? { ...result.draft, personProfile: remembered } : result.draft;
       const nextResult = { ...result, draft: nextDraft };
@@ -191,7 +191,7 @@ export function HomePlanner() {
       setSearchStage("");
       if (result.ready) await createPlan(nextResult);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "잠시 후 다시 말해 주세요.");
+      setError(err instanceof Error ? err.message : "잠시 후에 다시 말해줄래?");
       setSearchStage("");
     } finally {
       setLoading((current) => current === "analyze" ? null : current);
@@ -202,7 +202,7 @@ export function HomePlanner() {
     event?.preventDefault();
     const nextRequest = (value ?? request).trim();
     if (!nextRequest) {
-      setError("편하게 한마디만 말해 주세요. 하루위드가 이어서 물어볼게요.");
+      setError("편하게 한마디만 해줘. 이어서 내가 물어볼게.");
       return;
     }
     void sendMessage(nextRequest);
@@ -226,10 +226,10 @@ export function HomePlanner() {
         <nav className="dj-conversation-list" aria-label="최근 계획">
           {plans.length ? plans.slice(0, 12).map((plan) => (
             <Link key={plan.id} href={`/dajeong/plan/${plan.id}`} onClick={() => setSidebarOpen(false)}><strong>{plan.title}</strong><span>{displayDate(plan.situation.targetDate)} · {plan.situation.region}</span></Link>
-          )) : <p>아직 준비한 계획이 없어요.</p>}
+          )) : <p>아직 만든 계획이 없어.</p>}
         </nav>
         <div className="dj-sidebar-foot">
-          <p><SparkleIcon size={14} /> 발견부터 실행 준비까지 한 대화에서 이어가요.</p>
+          <p><SparkleIcon size={14} /> 찾는 것부터 예약 준비까지 한 대화에서 이어가.</p>
         </div>
       </aside>
       {sidebarOpen ? <button className="dj-sidebar-backdrop" type="button" aria-label="대화 목록 닫기" onClick={() => setSidebarOpen(false)} /> : null}
@@ -238,8 +238,8 @@ export function HomePlanner() {
         <header className="dj-chat-topbar">
           <button className="dj-mobile-sidebar-button" type="button" onClick={() => setSidebarOpen(true)} aria-label="대화 목록 열기"><span /><span /><span /></button>
           <div className="dj-greeting">
-            <strong>{knownName ? `${knownName}님` : "반가워요"}</strong>
-            <small>좋은 하루가 될 거예요!</small>
+            <strong>{knownName ? `${knownName}님` : "반가워"}</strong>
+            <small>좋은 하루가 될 거야!</small>
           </div>
           <div className="dj-topbar-actions">
             <ThemePicker />
@@ -251,14 +251,14 @@ export function HomePlanner() {
           <div className="dj-home-hero">
             <div className="dj-hero-title">
               <span className="dj-hero-orb"><SparkleIcon size={25} /></span>
-              <h1>어떤 하루가 필요하세요?</h1>
+              <h1>어떤 하루가 필요해?</h1>
             </div>
-            <p>정해진 게 없어도 괜찮아요. 누구와 무엇을 하고 싶은지만 말하면 제가 필요한 것을 하나씩 여쭤볼게요.</p>
+            <p>정해진 게 없어도 괜찮아. 누구랑 뭘 하고 싶은지만 말하면 나머지는 내가 하나씩 물어볼게.</p>
           </div>
 
           {!conversation.length ? (
             <div className="dj-prompt-suggestions">
-              <p>이렇게 물어보세요!</p>
+              <p>이렇게 말해봐!</p>
               <div className="dj-prompt-grid">
                 {examples.map((example) => (
                   <button key={example.key} type="button" onClick={() => setRequest(example.prompt)}>
@@ -286,10 +286,10 @@ export function HomePlanner() {
         <div className="dj-home-composer-wrap">
           <form className="dj-home-composer" onSubmit={(event) => analyze(event)}>
             <button type="button" className="dj-composer-plus" onClick={resetConversation} aria-label="새 계획 시작"><PlusIcon size={20} /></button>
-            <textarea value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={handleComposerKey} placeholder={pendingQuestion ? "대답을 편하게 말해 주세요" : "어떤 하루가 필요한지 말해 주세요"} aria-label={`${DAJEONG_BRAND.assistantName}에게 상황 말하기`} rows={1} />
+            <textarea value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={handleComposerKey} placeholder={pendingQuestion ? "편하게 대답해줘" : "어떤 하루가 필요한지 말해줘"} aria-label={`${DAJEONG_BRAND.assistantName}에게 상황 말하기`} rows={1} />
             <button type="submit" className="dj-composer-send" disabled={Boolean(loading) || request.trim().length < 1} aria-label="보내기"><ArrowUpIcon size={20} /></button>
           </form>
-          <p><InfoIcon size={13} /> 실제 장소와 리뷰를 확인하고, 결제·예약은 금액 확인 후 승인받아요.</p>
+          <p><InfoIcon size={13} /> 실제 장소와 리뷰를 확인하고, 결제·예약은 금액을 보여주고 네 승인을 받은 뒤에만 해.</p>
         </div>
       </main>
     </div>

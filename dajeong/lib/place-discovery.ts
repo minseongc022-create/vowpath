@@ -143,8 +143,8 @@ function shortReview(value?: string): string | undefined {
 function selectionSignals(candidate: { rating?: number; reviewCount?: number; photoUrl?: string; localIndependent?: boolean }): string[] {
   return [
     candidate.localIndependent ? "로컬 매장" : null,
-    candidate.rating != null && candidate.rating >= 4.4 ? "평점이 특히 높아요" : null,
-    candidate.reviewCount != null && candidate.reviewCount >= 100 ? "리뷰가 충분해요" : null,
+    candidate.rating != null && candidate.rating >= 4.4 ? "평점이 특히 높아" : null,
+    candidate.reviewCount != null && candidate.reviewCount >= 100 ? "리뷰가 충분해" : null,
     candidate.photoUrl ? "실제 대표 사진" : null,
   ].filter((value): value is string => Boolean(value));
 }
@@ -734,7 +734,7 @@ export async function enrichDajeongPlanWithRealPlaces(plan: DajeongPlan): Promis
       : "partial";
   return {
     ...recalculate(plan, items),
-    notice: "장소명과 주소는 지도 데이터를 기준으로 하고, 실제 평점·리뷰·대표 사진이 연결된 경우에만 화면에 표시합니다. 가격·영업·예약은 변동될 수 있어 실행 직전에 다시 확인하며, 승인 없이 결제하지 않습니다.",
+    notice: "장소명과 주소는 지도 데이터를 기준으로 하고, 실제 평점·리뷰·대표 사진이 연결된 경우에만 화면에 표시해. 가격·영업·예약은 변동될 수 있어 실행 직전에 다시 확인하며, 승인 없이 결제하지 않아.",
     discovery: {
       status,
       sourceLabel,

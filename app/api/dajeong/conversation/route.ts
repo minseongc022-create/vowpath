@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (limited) return NextResponse.json(limited, { status: 429 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "말씀하신 내용을 다시 한 번 보내 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "방금 말한 내용을 한 번만 다시 보내줄래?" }, { status: 400 });
   try {
     const result = await continuePlanningConversation({
       messages: parsed.data.messages,
@@ -27,6 +27,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch {
-    return NextResponse.json({ error: "대화를 이어가지 못했어요. 방금 답변을 한 번만 다시 보내 주세요." }, { status: 500 });
+    return NextResponse.json({ error: "대화를 이어가지 못했어. 방금 답변을 한 번만 다시 보내줘." }, { status: 500 });
   }
 }

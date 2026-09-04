@@ -85,7 +85,7 @@ export function buildExperienceProfile(
     photoValueScore,
     journeyRole,
     highlightReason: journeyRole === "highlight"
-      ? `하루의 마지막에 ${traits[0] ?? "가장 인상적인 장면"}을 남기도록 배치했어요.`
+      ? `하루의 마지막에 ${traits[0] ?? "가장 인상적인 장면"}을 남기게 배치했어.`
       : undefined,
     limited: limitedMention ? { label: "운영 기간 확인 필요", status: "candidate" } : undefined,
   };
@@ -110,7 +110,7 @@ export function buildExperienceFlow(items: PlanItem[]): NonNullable<DajeongPlan[
     : mostSpecial;
   return {
     labels,
-    narrative: `${labels.join(" → ")}의 흐름으로, 비슷한 경험이 반복되지 않게 하루를 설계했어요.`,
+    narrative: `${labels.join(" → ")}의 흐름으로, 비슷한 경험이 반복되지 않게 하루를 짰어.`,
     highlightItemId: highlight?.id,
   };
 }

@@ -19,7 +19,7 @@ const schema = z.object({
  */
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const plan = parsed.data.plan as DajeongPlan;
   await registerPlanForNotifications(plan, parsed.data.personId);
@@ -31,10 +31,10 @@ const deleteSchema = z.object({ personId: z.string().trim().min(1).max(80), plan
 
 export async function DELETE(request: Request) {
   const parsed = deleteSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const registered = await getRegisteredPlan(parsed.data.planId);
-  if (registered && registered.ownerId !== parsed.data.personId) return NextResponse.json({ error: "이 계획을 등록 해제할 권한이 없어요." }, { status: 403 });
+  if (registered && registered.ownerId !== parsed.data.personId) return NextResponse.json({ error: "이 계획을 등록 해제할 권한이 없어." }, { status: 403 });
   await unregisterPlan(parsed.data.planId);
   return NextResponse.json({ ok: true });
 }

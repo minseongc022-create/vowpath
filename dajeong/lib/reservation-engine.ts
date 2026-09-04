@@ -102,20 +102,20 @@ function initialStatus(method: BookingMethod): ReservationTaskStatus {
 
 function explanation(method: BookingMethod): string {
   return {
-    haruon_direct: "연결된 제공자에서 실제 가능 여부와 정확한 금액을 받은 뒤 승인 단계로 넘어가요.",
-    external_online: "업체 공식 페이지에서 가능 여부와 최종 금액을 직접 확인해야 해요. 페이지를 여는 것만으로 예약되지는 않아요.",
-    external_platform: "외부 예약 플랫폼에서 가능 여부와 최종 금액을 확인해야 해요. 하루위드에는 아직 완료 결과가 자동으로 돌아오지 않아요.",
-    phone_only: "전화로 가능 여부를 확인해야 해요. 현재 하루위드는 직접 통화하지 않으므로 통화 문구를 준비해 드려요.",
-    walk_in: "별도 예약 없이 방문하는 방식이에요. 방문 직전 영업 상태와 대기를 다시 확인하세요.",
-    no_reservation: "예약이 필요 없는 일정이에요. 방문 시간의 운영 여부만 확인하면 돼요.",
-    unsupported: "예약 방식이나 공식 실행 경로를 아직 확인하지 못했어요. 검색 링크를 열었다고 완료로 처리하지 않아요.",
+    haruon_direct: "연결된 제공자에서 실제 가능 여부와 정확한 금액을 받은 뒤 승인 단계로 넘어가.",
+    external_online: "업체 공식 페이지에서 가능 여부와 최종 금액을 직접 확인해야 해. 페이지를 여는 것만으로 예약되지는 않아.",
+    external_platform: "외부 예약 플랫폼에서 가능 여부와 최종 금액을 확인해야 해. 하루위드에는 아직 완료 결과가 자동으로 돌아오지 않아.",
+    phone_only: "전화로 가능 여부를 확인해야 해. 현재 하루위드는 직접 통화하지 않으므로 통화 문구를 준비해 줄게.",
+    walk_in: "별도 예약 없이 방문하는 방식이야. 방문 직전 영업 상태와 대기를 다시 확인해.",
+    no_reservation: "예약이 필요 없는 일정이야. 방문 시간의 운영 여부만 확인하면 돼.",
+    unsupported: "예약 방식이나 공식 실행 경로를 아직 확인하지 못했어. 검색 링크를 열었다고 완료로 처리하지 않아.",
   }[method];
 }
 
 function phoneScript(plan: DajeongPlan, item: PlanItem): string {
   const day = item.dayNumber && plan.situation.planScope === "trip" ? `${item.dayNumber}일차 ` : "";
   const product = item.category === "flower" ? "꽃다발 픽업" : item.category === "cake" ? "케이크 픽업" : "예약";
-  return `안녕하세요. ${plan.situation.targetDate} ${day}${item.time}쯤 ${plan.situation.partySize}명 ${product}이 가능한지 문의드립니다. 가능하다면 정확한 가격, 취소 조건과 준비할 정보를 알려주세요.`;
+  return `안녕하세요. ${plan.situation.targetDate} ${day}${item.time}쯤 ${plan.situation.partySize}명 ${product}이 가능한지 문의드립니다. 가능하다면 정확한 가격과 취소 조건, 미리 준비할 정보를 알려주세요.`;
 }
 
 function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask): ReservationTask {
@@ -171,7 +171,7 @@ function prepFingerprint(item: PrepItem, method: BookingMethod): string {
 
 function prepPhoneScript(item: PrepItem): string {
   const when = item.time ? `${item.date} ${item.time}쯤` : `${item.date}쯤`;
-  return `안녕하세요. ${when} ${item.title} 준비(주문/예약)가 가능한지 문의드립니다. 가능하다면 정확한 가격, 픽업·배송 조건과 준비할 정보를 알려주세요.`;
+  return `안녕하세요. ${when} ${item.title} 준비(주문/예약)가 가능한지 문의드립니다. 가능하다면 정확한 가격과 픽업·배송 조건, 미리 준비할 정보를 알려주세요.`;
 }
 
 function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask): ReservationTask {
@@ -267,7 +267,7 @@ function travelTasks(plan: DajeongPlan, previous?: ReservationOrder): Reservatio
     time: plan.situation.arrivalTime ?? "00:00",
     dayNumber: 1,
     title: `${plan.situation.region} 도착편 확인`,
-    explanation: `${arrival} 도착을 일정 기준으로 사용 중이에요. 실제 항공·교통편의 예매와 지연 정보는 아직 연결되지 않았어요.`,
+    explanation: `${arrival} 도착을 일정 기준으로 사용 중이야. 실제 항공·교통편의 예매와 지연 정보는 아직 연결되지 않았어.`,
   }));
   let pickupId: string | undefined;
   if (plan.situation.transport === "car") {
@@ -275,7 +275,7 @@ function travelTasks(plan: DajeongPlan, previous?: ReservationOrder): Reservatio
       time: plan.situation.arrivalTime ?? "00:00",
       dayNumber: 1,
       title: "렌터카 수령 조건 확인",
-      explanation: "도착 뒤 60분을 수하물 수령·셔틀·계약·차량 인수에 확보했어요. 실제 업체와 가격은 아직 선택되지 않았어요.",
+      explanation: "도착 뒤 60분을 수하물 수령·셔틀·계약·차량 인수에 확보했어. 실제 업체와 가격은 아직 선택되지 않았어.",
       dependsOn: [`travel_${plan.id}_arrival`],
     });
     pickupId = pickup.id;
@@ -295,7 +295,7 @@ function travelTasks(plan: DajeongPlan, previous?: ReservationOrder): Reservatio
       time: plan.situation.returnDepartureTime ? subtractMinutes(plan.situation.returnDepartureTime, 120) : "00:00",
       dayNumber: lastDay,
       title: "렌터카 반납",
-      explanation: `${departure} 출발을 기준으로 주유·반납·셔틀·공항 수속 시간을 역산했어요. 실제 업체 반납 조건은 아직 확인 전이에요.`,
+      explanation: `${departure} 출발을 기준으로 주유·반납·셔틀·공항 수속 시간을 역산했어. 실제 업체 반납 조건은 아직 확인 전이야.`,
       dependsOn: pickupId ? [pickupId] : undefined,
     }));
   }
@@ -303,7 +303,7 @@ function travelTasks(plan: DajeongPlan, previous?: ReservationOrder): Reservatio
     time: plan.situation.returnDepartureTime ?? "00:00",
     dayNumber: lastDay,
     title: "귀가편 출발 확인",
-    explanation: `${departure} 출발을 일정 마감 기준으로 사용 중이에요. 실제 표·좌석·터미널은 아직 확인되지 않았어요.`,
+    explanation: `${departure} 출발을 일정 마감 기준으로 사용 중이야. 실제 표·좌석·터미널은 아직 확인되지 않았어.`,
     dependsOn: plan.situation.transport === "car" ? [`travel_${plan.id}_rental_return`] : undefined,
   }));
   return results;
@@ -344,11 +344,11 @@ function totals(plan: DajeongPlan, tasks: ReservationTask[]) {
 }
 
 function messageFor(tasks: ReservationTask[]): string {
-  if (!tasks.length) return "실행할 예약·구매 항목은 없어요. 방문 시간의 운영 여부만 다시 확인하면 돼요.";
+  if (!tasks.length) return "실행할 예약·구매 항목은 없어. 방문 시간의 운영 여부만 다시 확인하면 돼.";
   const phone = tasks.filter((task) => task.bookingMethod === "phone_only").length;
   const external = tasks.filter((task) => ["external_online", "external_platform"].includes(task.bookingMethod)).length;
   const unsupported = tasks.filter((task) => task.bookingMethod === "unsupported").length;
-  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어요.${external ? ` 외부 확인 ${external}개` : ""}${phone ? `, 직접 전화 필요 ${phone}개` : ""}${unsupported ? `, 연동 전 ${unsupported}개` : ""}. 실제 확인 전에는 예약·결제 완료로 표시하지 않아요.`;
+  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어.${external ? ` 외부 확인 ${external}개` : ""}${phone ? `, 직접 전화 필요 ${phone}개` : ""}${unsupported ? `, 연동 전 ${unsupported}개` : ""}. 실제로 확인되기 전에는 예약·결제 완료로 적지 않아.`;
 }
 
 export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptions = {}): ReservationOrder {
@@ -416,7 +416,7 @@ export function requestPaymentReview(order: ReservationOrder): ReservationOrder 
       ...order,
       updatedAt: now,
       status: "needs_information",
-      message: "결제할 항목의 정확한 가격이나 실시간 가능 여부가 아직 확인되지 않았어요. 금액을 추측해 승인받거나 결제하지 않을게요.",
+      message: "결제할 항목의 정확한 가격이나 실시간 가능 여부가 아직 확인되지 않았어. 금액을 추측해 승인받거나 결제하지 않을게.",
     };
   }
   const approval: ExecutionApproval = {
@@ -435,7 +435,7 @@ export function requestPaymentReview(order: ReservationOrder): ReservationOrder 
     status: "needs_approval",
     tasks,
     approval,
-    message: `${payable.map((task) => task.title).join(", ")} 사전결제 ${amount.toLocaleString("ko-KR")}원을 확인했어요. 항목과 금액을 보고 명시적으로 승인해야 다음 단계로 넘어갑니다.${order.unconfirmedPriceTaskIds.length ? ` 나머지 ${order.unconfirmedPriceTaskIds.length}개는 가격 확인 전이라 이번 승인에서 제외했어요.` : ""}`,
+    message: `${payable.map((task) => task.title).join(", ")} 사전결제 ${amount.toLocaleString("ko-KR")}원을 확인했어. 항목이랑 금액을 보고 분명하게 승인해야 다음으로 넘어가.${order.unconfirmedPriceTaskIds.length ? ` 나머지 ${order.unconfirmedPriceTaskIds.length}개는 가격 확인 전이라 이번 승인에서 제외했어.` : ""}`,
   };
 }
 
@@ -474,7 +474,7 @@ export function approvePayment(order: ReservationOrder, approvalText: string): R
     status: orderStatus(tasks, approval),
     tasks,
     approval,
-    message: "정확한 항목과 금액에 대한 승인을 기록했어요. 연결된 제공자가 없는 항목은 자동 결제하지 않고 공식 화면에서 사용자가 완료해야 해요.",
+    message: "정확한 항목과 금액에 대한 승인을 기록했어. 연결된 제공자가 없는 항목은 자동 결제하지 않고 공식 화면에서 사용자가 완료해야 해.",
   };
 }
 
@@ -532,7 +532,7 @@ export function applyProviderQuote(order: ReservationOrder, taskId: string, quot
     unconfirmedPriceTaskIds,
     approval,
     status: orderStatus(tasks, approval),
-    message: changedAmount ? "확인된 가격이 바뀌어 이전 승인을 무효화했어요. 새 금액을 보고 다시 승인해야 합니다." : quote.available ? "실제 제공자 견적을 받았어요. 결제 전 항목과 금액 승인이 필요합니다." : "요청한 조건으로 이용할 수 없어 이 항목만 대안을 골라야 해요.",
+    message: changedAmount ? "확인된 가격이 바뀌어 이전 승인을 무효화했어. 새 금액을 보고 다시 승인해야 해." : quote.available ? "실제 제공자 견적을 받았어. 결제 전 항목과 금액 승인이 필요해." : "요청한 조건으로 이용할 수 없어 이 항목만 대안을 골라야 해.",
   };
 }
 
@@ -557,7 +557,7 @@ export function recordProviderExecutionResult(order: ReservationOrder, taskId: s
     updatedAt: now,
     tasks,
     status: orderStatus(tasks, order.approval),
-    message: result.ok ? `${task.title} 실행 성공을 확인번호와 함께 기록했어요.` : `${task.title}만 실패했어요. 성공한 다른 항목은 그대로 두고 이 항목의 대안을 선택해야 해요.`,
+    message: result.ok ? `${task.title} 실행 성공을 확인번호와 함께 기록했어.` : `${task.title}만 실패했어. 성공한 다른 항목은 그대로 두고 이 항목의 대안을 선택해야 해.`,
   };
 }
 
@@ -570,5 +570,5 @@ export function recordUserCompleted(order: ReservationOrder, taskId: string, con
     status: entry.kind === "logistics" ? "completed" as const : entry.kind === "purchase" || entry.kind === "ticket" ? "purchased" as const : "booked" as const,
     confirmation: { source: "user_report" as const, confirmationId: `user_${now}`, confirmedAt: now, details: confirmationText },
   } : entry);
-  return { ...order, updatedAt: now, tasks, status: orderStatus(tasks, order.approval), message: `${task.title}은 사용자가 외부에서 완료했다고 확인한 상태로 기록했어요.` };
+  return { ...order, updatedAt: now, tasks, status: orderStatus(tasks, order.approval), message: `${task.title}은 사용자가 외부에서 완료했다고 확인한 상태로 기록했어.` };
 }

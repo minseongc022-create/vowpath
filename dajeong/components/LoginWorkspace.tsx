@@ -50,7 +50,7 @@ export function LoginWorkspace({ callbackUrl = "/dajeong" }: { callbackUrl?: str
       <div className="dj-login-card dj-card">
         <span className="dj-login-orb"><SparkleIcon size={20} /></span>
         <h1>{DAJEONG_BRAND.name} 로그인</h1>
-        <p>로그인하면 다른 기기에서도 계획을 이어보고, 동반자와의 연결이 더 안전하게 유지돼요.</p>
+        <p>로그인하면 다른 기기에서도 계획을 이어보고, 동반자 연결도 더 안전하게 유지돼.</p>
         <div className="dj-login-buttons">
           {providers.map((provider) => (
             <button
@@ -65,8 +65,8 @@ export function LoginWorkspace({ callbackUrl = "/dajeong" }: { callbackUrl?: str
             </button>
           ))}
         </div>
-        {!anyConfigured ? <p className="dj-login-note">아직 연결된 로그인 방법이 없어요. 관리자가 Google/카카오/네이버/토스 앱 키를 등록하면 여기서 바로 활성화돼요.</p> : null}
-        {isDemo ? <p className="dj-login-note">데모 모드 — 실제 계정 연동 없이 체험할 수 있어요.</p> : null}
+        {!anyConfigured ? <p className="dj-login-note">아직 연결된 로그인 방법이 없어. 관리자가 Google·카카오·네이버·토스 앱 키를 등록하면 여기서 바로 켜져.</p> : null}
+        {isDemo ? <p className="dj-login-note">데모 모드 — 실제 계정 연동 없이 둘러볼 수 있어.</p> : null}
         <Link href="/dajeong" className="dj-help-link">로그인 없이 계속하기 <ArrowIcon size={14} /></Link>
       </div>
     </div>

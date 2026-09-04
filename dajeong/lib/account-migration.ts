@@ -29,15 +29,15 @@ function isUniqueConflict(error: unknown): boolean {
  * wins and the anonymous one is dropped — never silently overwritten, never duplicated.
  */
 export async function claimAnonymousIdentity(anonymousId: string, accountId: string): Promise<ClaimResult> {
-  if (!isDatabaseConfigured()) return { ok: false, error: "DB가 설정되지 않아 계정 이전을 처리할 수 없어요." };
-  if (!anonymousId.trim() || anonymousId.startsWith("user_")) return { ok: false, error: "이전할 익명 데이터가 아니에요." };
+  if (!isDatabaseConfigured()) return { ok: false, error: "DB가 설정되지 않아 계정 이전을 처리할 수 없어." };
+  if (!anonymousId.trim() || anonymousId.startsWith("user_")) return { ok: false, error: "이전할 익명 데이터가 아니야." };
   const targetPersonId = `user_${accountId}`;
   if (anonymousId === targetPersonId) return { ok: true, alreadyClaimed: true };
 
   return prisma.$transaction(async (tx) => {
     const existingClaim = await tx.dajeongAnonymousClaim.findUnique({ where: { anonymousId } });
     if (existingClaim) {
-      if (existingClaim.accountId !== accountId) return { ok: false, error: "이 데이터는 이미 다른 계정으로 이전됐어요." };
+      if (existingClaim.accountId !== accountId) return { ok: false, error: "이 데이터는 이미 다른 계정으로 이전됐어." };
       return { ok: true, alreadyClaimed: true };
     }
     await tx.dajeongAnonymousClaim.create({ data: { anonymousId, accountId } });

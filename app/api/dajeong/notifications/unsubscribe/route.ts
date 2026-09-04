@@ -10,7 +10,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   await removeSubscription(parsed.data.personId, parsed.data.endpoint);
   return NextResponse.json({ ok: true });

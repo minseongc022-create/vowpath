@@ -127,7 +127,7 @@ export function ThemePicker({ className }: { className?: string }) {
               <span><PaletteIcon size={25} /></span>
               <div>
                 <strong>테마 색상 선택</strong>
-                <p>하루위드를 더 나다운 색으로 꾸며보세요.</p>
+                <p>하루위드를 더 너다운 색으로 꾸며봐.</p>
               </div>
             </div>
 

@@ -54,7 +54,7 @@ export function DajeongPlatformShell({ children }: { children: React.ReactNode }
                   <strong>{DAJEONG_BRAND.name}</strong>
                   <span>{DAJEONG_BRAND.tagline}</span>
                 </div>
-                <p>장소 정보는 확인 시점의 외부 데이터이며 가격·영업·예약 가능 여부는 실행 전에 다시 확인합니다.</p>
+                <p>장소 정보는 확인한 시점의 외부 데이터야. 가격·영업·예약 가능 여부는 실행 직전에 다시 확인해.</p>
               </footer>
             </div>
           </DajeongAuthProvider>

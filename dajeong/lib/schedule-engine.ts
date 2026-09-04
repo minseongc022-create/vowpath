@@ -188,7 +188,7 @@ function fitDurations(items: PlanItem[], windowMinutes: number, density: Schedul
 }
 
 function emptyWeather(existing?: WeatherContext): WeatherContext {
-  return existing ?? { status: "unavailable", sourceLabel: "날씨 데이터 미연결", days: [], message: "실제 예보를 확인하지 못해 날씨를 확정 조건으로 사용하지 않았어요." };
+  return existing ?? { status: "unavailable", sourceLabel: "날씨 데이터 미연결", days: [], message: "실제 예보를 확인하지 못해 날씨를 확정 조건으로 사용하지 않았어." };
 }
 
 export function scheduleDajeongPlan(plan: DajeongPlan, options: ScheduleOptions = {}): DajeongPlan {
@@ -224,7 +224,7 @@ export function scheduleDajeongPlan(plan: DajeongPlan, options: ScheduleOptions 
       let start = earliest;
       if (strongLock(seeded, item)) {
         const locked = clockToMinutes(item.time);
-        if (locked < earliest) warnings.push(`${item.title}의 고정 시간과 앞 일정이 ${earliest - locked}분 충돌해 확인이 필요해요.`);
+        if (locked < earliest) warnings.push(`${item.title}의 고정 시간과 앞 일정이 ${earliest - locked}분 충돌해 확인이 필요해.`);
         start = locked;
       }
       if (!strongLock(seeded, item) && ["meal", "view", "lodging"].includes(item.category) && clockToMinutes(item.time) > start) start = clockToMinutes(item.time);
@@ -235,18 +235,18 @@ export function scheduleDajeongPlan(plan: DajeongPlan, options: ScheduleOptions 
       cursor = end;
       previousItem = scheduledItem;
     });
-    if (cursor > clockToMinutes(window.endTime)) warnings.push(`${window.dayNumber}일차가 가용시간을 ${cursor - clockToMinutes(window.endTime)}분 넘겨 조정이 필요해요.`);
+    if (cursor > clockToMinutes(window.endTime)) warnings.push(`${window.dayNumber}일차가 가용시간을 ${cursor - clockToMinutes(window.endTime)}분 넘겨 조정이 필요해.`);
     const lateMeal = scheduled.find((item) => item.dayNumber === window.dayNumber && item.category === "meal" && clockToMinutes(item.time) > 20 * 60);
-    if (lateMeal) warnings.push(`${lateMeal.title} 식사가 ${lateMeal.time}에 시작해 늦을 수 있어요.`);
+    if (lateMeal) warnings.push(`${lateMeal.title} 식사가 ${lateMeal.time}에 시작해 늦을 수 있어.`);
     scheduled.filter((item) => item.dayNumber === window.dayNumber && item.travelFromPrevious?.weatherExposure === "high")
-      .forEach((item) => warnings.push(`${item.title} 이동은 비·눈 노출과 도보 시간을 다시 확인해야 해요.`));
+      .forEach((item) => warnings.push(`${item.title} 이동은 비·눈 노출과 도보 시간을 다시 확인해야 해.`));
   }
   const total = scheduled.reduce((sum, item) => sum + item.price, 0);
   const last = scheduled.at(-1);
   const estimatedEndTime = last?.endTime ?? plan.situation.startTime;
   const homeTravel = plan.situation.homeByTime ? defaultHomeTravel(plan) : undefined;
   const estimatedHomeArrival = homeTravel != null ? shiftClock(estimatedEndTime, homeTravel) : undefined;
-  if (plan.situation.homeByTime && estimatedHomeArrival && clockToMinutes(estimatedHomeArrival) > clockToMinutes(plan.situation.homeByTime)) warnings.push(`예상 귀가가 ${estimatedHomeArrival}라 ${plan.situation.homeByTime} 귀가 조건을 넘겨요.`);
+  if (plan.situation.homeByTime && estimatedHomeArrival && clockToMinutes(estimatedHomeArrival) > clockToMinutes(plan.situation.homeByTime)) warnings.push(`예상 귀가가 ${estimatedHomeArrival}라 ${plan.situation.homeByTime} 귀가 조건을 넘겨.`);
   return {
     ...plan,
     items: scheduled,
@@ -280,5 +280,5 @@ export function setItemDuration(plan: DajeongPlan, itemId: string, minutes: numb
 }
 
 export function weatherContextFromUser(message: string): WeatherContext {
-  return { status: "user_report", sourceLabel: "사용자 제공 정보", checkedAt: new Date().toISOString(), days: [], message: `사용자가 “${message.slice(0, 80)}”라고 알려줬어요. 실제 강수 시간과 강도는 아직 외부 예보로 확인하지 않았습니다.` };
+  return { status: "user_report", sourceLabel: "사용자 제공 정보", checkedAt: new Date().toISOString(), days: [], message: `사용자가 “${message.slice(0, 80)}”라고 알려줬어. 실제 강수 시간과 강도는 아직 외부 예보로 확인하지 않았어.` };
 }

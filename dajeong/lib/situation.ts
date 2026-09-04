@@ -386,7 +386,7 @@ export function analyzeSituation(input: PlanRequest): SituationUnderstanding {
     missing,
     confidence,
     message: missing.length === 0
-      ? "필요한 조건을 충분히 이해했어요. 바로 하루를 구성할 수 있어요."
-      : `이미 말해준 내용은 기억했어요. 계획을 정확히 맞추려면 ${missing.length}가지만 더 필요해요.`,
+      ? "필요한 조건을 충분히 이해했어. 바로 하루를 구성할 수 있어."
+      : `이미 말해준 내용은 기억했어. 계획을 정확히 맞추려면 ${missing.length}가지만 더 필요해.`,
   };
 }

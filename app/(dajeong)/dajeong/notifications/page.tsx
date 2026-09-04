@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { NotificationSettingsWorkspace } from "@/dajeong/components/NotificationSettingsWorkspace";
 import "@/dajeong/styles/plan.css";
 import "@/dajeong/styles/companions.css";
+import "@/dajeong/styles/notifications.css";
 
 export const metadata: Metadata = { title: { absolute: "알림 설정 · 하루위드" } };
 

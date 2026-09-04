@@ -53,18 +53,18 @@ function targetItems(plan: DajeongPlan, instruction: string, requestedItemId?: s
 function reservationMessage(plan: DajeongPlan): string {
   const order = plan.execution;
   const task = order?.tasks.find((entry) => order.requestedItemIds.includes(entry.itemId));
-  if (!task) return "어떤 항목을 예약할지 정확히 가리켜 주세요. 장소 이름이나 ‘첫날 저녁’처럼 말해도 돼요.";
+  if (!task) return "어떤 항목을 예약할지 정확히 가리켜 줘. 장소 이름이나 ‘첫날 저녁’처럼 말해도 돼.";
   if (task.bookingMethod === "phone_only") {
-    const number = task.phoneNumber ? ` 확인된 번호는 ${task.phoneNumber}예요.` : " 확인된 전화번호는 아직 없어요.";
-    return `${task.title}은 전화 예약이 필요해요. 아직 예약된 상태는 아니에요.${number} 실행 화면에 바로 읽을 수 있는 문의 문구를 준비했어요.`;
+    const number = task.phoneNumber ? ` 확인된 번호는 ${task.phoneNumber}야.` : " 확인된 전화번호는 아직 없어.";
+    return `${task.title}은 전화 예약이 필요해. 아직 예약된 상태는 아니야.${number} 실행 화면에 바로 읽을 수 있는 문의 문구를 준비했어.`;
   }
   if (["external_online", "external_platform"].includes(task.bookingMethod)) {
-    return `${task.title}의 ${task.providerLabel} 경로를 연결했어요. 외부 화면에서 실제 가능 여부와 최종 금액을 확인해야 하며, 링크를 여는 것만으로 예약 완료 처리하지 않아요.`;
+    return `${task.title}의 ${task.providerLabel} 경로를 연결했어. 외부 화면에서 실제 가능 여부와 최종 금액을 확인해야 하며, 링크를 여는 것만으로 예약 완료 처리하지 않아.`;
   }
   if (task.bookingMethod === "haruon_direct") {
-    return `${task.title}은 연결된 제공자에 실제 가능 여부와 가격을 확인하는 단계예요. 결과가 오면 정확한 금액을 보여드리고 다시 승인받을게요.`;
+    return `${task.title}은 연결된 제공자에 실제 가능 여부와 가격을 확인하는 단계야. 결과가 오면 정확한 금액을 보여주고 다시 승인받을게.`;
   }
-  return `${task.title}의 공식 예약 방식이나 실시간 가능 여부를 아직 확인하지 못했어요. 검색 화면을 예약 완료로 가장하지 않고, 확인 가능한 경로가 생길 때까지 ‘추가 정보 필요’로 둘게요.`;
+  return `${task.title}의 공식 예약 방식이나 실시간 가능 여부를 아직 확인하지 못했어. 검색 화면을 예약 완료로 가장하지 않고, 확인 가능한 경로가 생길 때까지 ‘추가 정보 필요’로 둘게.`;
 }
 
 export function handleExecutionInstruction(plan: DajeongPlan, instruction: string, requestedItemId?: string): ExecutionConversationResult {
@@ -80,7 +80,7 @@ export function handleExecutionInstruction(plan: DajeongPlan, instruction: strin
     return {
       handled: true,
       plan,
-      message: `좋다는 뜻은 이해했지만 결제 승인으로 받지는 않았어요. ${current.approval.amount.toLocaleString("ko-KR")}원을 어떤 항목에 결제하는지 확인한 뒤 금액을 포함해 명시적으로 승인해 주세요.`,
+      message: `좋다는 뜻은 알겠는데 결제 승인으로 받진 않았어. ${current.approval.amount.toLocaleString("ko-KR")}원을 어떤 항목에 결제하는지 확인하고, 금액까지 넣어서 분명하게 승인해줘.`,
       targetItemIds: current.requestedItemIds,
     };
   }
@@ -104,7 +104,7 @@ export function handleExecutionInstruction(plan: DajeongPlan, instruction: strin
     return {
       handled: true,
       plan,
-      message: "어떤 항목을 예약할지 정확히 가리켜 주세요. 장소 이름이나 ‘첫날 저녁’, ‘두 번째 전시’처럼 편하게 말하면 돼요.",
+      message: "어떤 항목을 예약할지 정확히 가리켜 줘. 장소 이름이나 ‘첫날 저녁’, ‘두 번째 전시’처럼 편하게 말하면 돼.",
       targetItemIds: [],
     };
   }

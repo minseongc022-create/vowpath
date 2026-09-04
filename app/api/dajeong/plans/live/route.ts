@@ -17,7 +17,7 @@ const schema = z.object({
   expectedVersion: z.number().int().optional(),
 });
 
-const NOT_FOUND = "이 계획을 찾을 수 없어요.";
+const NOT_FOUND = "이 계획을 찾을 수 없어.";
 
 /**
  * Once a plan is shared, both people can talk to the concierge about it — the same
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   if (limited) return NextResponse.json(limited, { status: 429 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "요청 내용을 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "요청 내용을 확인해줘." }, { status: 400 });
   const { planId, actorId, actorName, instruction, targetCategory, targetItemId, expectedVersion } = parsed.data;
   if (!(await verifyClaimedIdentity(actorId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: NOT_FOUND }, { status: 404 });
   }
   if (expectedVersion != null && expectedVersion !== record.version) {
-    return NextResponse.json({ error: "다른 사람이 방금 이 계획을 바꿨어요. 최신 내용을 다시 불러올게요.", conflict: true, plan: redactPlanForViewer(record.plan, actorId), version: record.version }, { status: 409 });
+    return NextResponse.json({ error: "다른 사람이 방금 이 계획을 바꿨어. 최신 내용을 다시 불러올게.", conflict: true, plan: redactPlanForViewer(record.plan, actorId), version: record.version }, { status: 409 });
   }
 
   const result = await reviseDajeongPlanWithDiscovery(record.plan, instruction, targetCategory, targetItemId, actorId);

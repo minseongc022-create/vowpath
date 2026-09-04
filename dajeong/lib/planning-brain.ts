@@ -594,7 +594,7 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
     if (draft.planScope === "single" && ["gift", "flower", "cake"].includes(draft.singleCategory ?? "")) {
       return { reply: "누구에게 줄 거야? 받는 사람을 알려주면 그 사람 취향에 맞게 찾아볼게.", quickReplies: ["여자친구", "부모님", "친구"] };
     }
-    return { reply: "좋아! 이번 하루는 누구와 함께 보내고 싶어?", quickReplies: ["혼자예요", "여자친구와 둘이요", "친구들과 가요"] };
+    return { reply: "좋아! 이번 하루는 누구와 함께 보내고 싶어?", quickReplies: ["혼자야", "여자친구랑 둘이", "친구들이랑"] };
   }
   if (key === "tripLength") return { reply: "좋지, 제대로 여행으로 짜볼게. 며칠 정도 갈 생각이야?", quickReplies: ["당일치기", "1박 2일", "2박 3일"] };
   if (key === "date") return { reply: "언제로 생각하고 있어? 날짜를 아직 못 정했다면 이번 주말처럼 말해도 돼.", quickReplies: ["오늘", "이번 토요일", "일주일 뒤"] };
@@ -605,7 +605,7 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
     }
     return { reply: "어느 지역에서 찾을까? 지금 있는 곳 근처인지, 가려는 곳 근처인지도 함께 알려줘.", quickReplies: ["성수 쪽", "지금 있는 곳 근처", "제주"] };
   }
-  if (key === "partySize") return { reply: "모두 몇 명이 함께 가? 좌석과 비용을 인원에 맞출게.", quickReplies: ["둘이 가요", "3명이에요", "4명이에요"] };
+  if (key === "partySize") return { reply: "모두 몇 명이 함께 가? 좌석과 비용을 인원에 맞출게.", quickReplies: ["둘이야", "3명이야", "4명이야"] };
   if (key === "budget") return { reply: draft.planScope === "trip" ? "숙소와 이동까지 포함해서 전체 예산은 어느 정도로 볼까?" : "예산은 어느 정도로 생각해? 그 안에서 제일 좋은 걸로 찾아볼게.", quickReplies: ["15만원 안으로", "30만원 정도", "숙소까지 100만원"] };
   if (key === "preference") {
     if (draft.planScope === "single") {
@@ -626,7 +626,7 @@ function question(key: Exclude<PlanningQuestionKey, null>, draft: PlanRequest): 
   if (key === "pickupTime") {
     return { reply: "예약해두면 언제 찾으러 갈 수 있어? 픽업 시간을 알아야 가게에 맞춰 예약해둘 수 있어.", quickReplies: ["당일 오전", "당일 오후", "아직 몰라"] };
   }
-  return { reply: "이동은 어떻게 할 생각이야? 차가 없다면 대중교통과 도보가 자연스럽게 이어지게 맞출게.", quickReplies: ["차 없어요", "렌터카", "대중교통 위주"] };
+  return { reply: "이동은 어떻게 할 생각이야? 차가 없다면 대중교통과 도보가 자연스럽게 이어지게 맞출게.", quickReplies: ["차 없어", "렌터카", "대중교통 위주"] };
 }
 
 export async function continuePlanningConversation(params: {

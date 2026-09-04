@@ -107,11 +107,11 @@ function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport:
           <span>{task.availability === "available" ? "이용 가능 확인" : task.availability === "unavailable" ? "현재 이용 불가" : "실시간 가능 여부 미확인"}</span>
         </div>
         {task.failureReason ? <p className="dj-execution-failure">{task.failureReason}</p> : null}
-        {task.proposedChange ? <p className="dj-execution-proposal">대안 제안: {task.proposedChange.time ? `${task.proposedChange.time} · ` : ""}{task.proposedChange.title ?? task.proposedChange.reason}{task.proposedChange.amount != null ? ` · ${money(task.proposedChange.amount)}` : ""} — 승인 전에는 확정하지 않아요.</p> : null}
+        {task.proposedChange ? <p className="dj-execution-proposal">대안 제안: {task.proposedChange.time ? `${task.proposedChange.time} · ` : ""}{task.proposedChange.title ?? task.proposedChange.reason}{task.proposedChange.amount != null ? ` · ${money(task.proposedChange.amount)}` : ""} — 네가 승인하기 전엔 확정 안 해.</p> : null}
         {task.confirmation ? <div className="dj-execution-confirmation"><CheckIcon size={14} /><span>{task.confirmation.source === "provider" ? "제공자 확인" : "사용자 완료 확인"} · {task.confirmation.confirmationId}</span></div> : null}
         {task.phoneScript ? (
           <div className="dj-phone-script">
-            <strong>전화할 때 이렇게 말하세요</strong>
+            <strong>전화할 때 이렇게 말하면 돼</strong>
             <p>{task.phoneScript}</p>
             <button type="button" onClick={() => onCopy(task.phoneScript ?? "")}>문구 복사</button>
           </div>
@@ -123,12 +123,12 @@ function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport:
           </div>
         ) : null}
         {task.privacy.requiredFields.length ? (
-          <div className="dj-privacy-note"><ShieldIcon size={14} /><span>예약 시 {task.privacy.requiredFields.map((field) => ({ name: "이름", phone: "전화번호", email: "이메일" })[field]).join("·")}가 필요할 수 있어요. 현재 하루위드가 업체에 전달한 개인정보는 없습니다.</span></div>
+          <div className="dj-privacy-note"><ShieldIcon size={14} /><span>예약 시 {task.privacy.requiredFields.map((field) => ({ name: "이름", phone: "전화번호", email: "이메일" })[field]).join("·")}가 필요할 수 있어. 지금까지 하루위드가 가게에 넘긴 개인정보는 없어.</span></div>
         ) : null}
       </div>
       <div className="dj-execution-task-actions">
         {link ? <a className="dj-btn dj-btn-secondary" href={link} target={link.startsWith("tel:") ? undefined : "_blank"} rel="noreferrer">{executionLinkLabel(task)} <ArrowIcon size={14} /></a> : null}
-        {canReportCompletion(task) ? <button className="dj-btn dj-btn-primary" type="button" onClick={onReport}>{task.kind === "logistics" ? "이 단계 마쳤어요" : "외부에서 완료했다고 기록"}</button> : null}
+        {canReportCompletion(task) ? <button className="dj-btn dj-btn-primary" type="button" onClick={onReport}>{task.kind === "logistics" ? "이 단계 끝냈어" : "외부에서 완료했다고 기록"}</button> : null}
       </div>
     </article>
   );
@@ -160,14 +160,14 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
     })
       .then(async (response) => {
         const data = await response.json() as { order?: ReservationOrder; error?: string };
-        if (!response.ok || !data.order) throw new Error(data.error || "실행 계획을 확인하지 못했어요.");
+        if (!response.ok || !data.order) throw new Error(data.error || "실행 계획을 못 불러왔어.");
         if (!active) return;
         const next = { ...plan, execution: data.order };
         setPlan(next);
         setReservationOrder(data.order);
         savePlan(next);
       })
-      .catch((error) => { if (active) setReservationError(error instanceof Error ? error.message : "실행 계획을 확인하지 못했어요."); })
+      .catch((error) => { if (active) setReservationError(error instanceof Error ? error.message : "실행 계획을 못 불러왔어."); })
       .finally(() => { if (active) setReservationLoading(false); });
     return () => { active = false; };
   }, [plan]);
@@ -184,7 +184,7 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
 
   function reportCompleted(task: ReservationTask) {
     if (!reservationOrder) return;
-    const details = window.prompt(task.kind === "logistics" ? "실제로 마친 내용을 짧게 적어 주세요." : "외부 예약·구매가 실제로 끝난 경우에만 확인번호나 완료 내용을 적어 주세요.");
+    const details = window.prompt(task.kind === "logistics" ? "실제로 끝낸 내용을 짧게 적어줘." : "밖에서 예약·구매를 진짜로 끝냈을 때만 확인번호나 완료 내용을 적어줘.");
     if (!details?.trim()) return;
     saveOrder(recordUserCompleted(reservationOrder, task.id, details.trim()));
   }
@@ -222,17 +222,17 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
   const complete = Boolean(reservationOrder?.tasks.length && completedTasks === reservationOrder.tasks.length);
   const nextTask = useMemo(() => reservationOrder?.tasks.find((task) => !isCompleted(task)), [reservationOrder]);
 
-  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>준비 목록을 확인하고 있어요</p></div>;
-  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>계획을 찾지 못했어요</h1><p>새로운 날을 다시 준비해 볼까요?</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기</Link></div>;
+  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>준비 목록 확인 중</p></div>;
+  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>계획을 못 찾았어</h1><p>새로 하나 만들어볼까?</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기</Link></div>;
 
   const approval = reservationOrder?.approval;
   return (
     <div className="dj-exec-page dj-container">
       <section className={`dj-exec-hero ${complete ? "dj-exec-celebrate" : ""}`}>
         <div className="dj-exec-hero-copy">
-          <span className="dj-kicker"><SparkleIcon size={15} /> {complete ? "확인된 실행 항목을 모두 마쳤어요" : "현실 실행 상태"}</span>
+          <span className="dj-kicker"><SparkleIcon size={15} /> {complete ? "확인된 실행 항목을 다 끝냈어" : "지금 실행 상태"}</span>
           <h1>{plan.title}</h1>
-          <p>{complete ? "완료 확인번호와 사용자가 직접 완료했다고 기록한 항목을 기준으로 정리했어요." : `다음 확인은 “${nextTask?.title ?? "실행 항목"}”이에요. 확인되지 않은 가격·좌석·재고는 확정처럼 표시하지 않습니다.`}</p>
+          <p>{complete ? "확인번호가 있거나 네가 직접 완료했다고 기록한 것만 정리했어." : `다음은 “${nextTask?.title ?? "실행 항목"}” 차례야. 확인 안 된 가격·좌석·재고는 확정된 것처럼 적지 않아.`}</p>
         </div>
         <div className="dj-progress-orbit"><strong>{progress}%</strong><span>{completedTasks}/{reservationOrder?.tasks.length ?? 0} 확인 완료</span></div>
       </section>
@@ -241,7 +241,7 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
         <div className="dj-exec-budget"><WalletIcon size={18} /><span>전체 예상</span><strong>{money(plan.total)}</strong><em>지금 확정 {money(reservationOrder?.payableNow ?? 0)}</em></div>
         <div>
           <button type="button" className="dj-btn dj-btn-secondary" onClick={() => downloadCalendar(plan)}><ClockIcon size={16} /> 캘린더</button>
-          <button type="button" className="dj-btn dj-btn-secondary" onClick={copySummary}>{copied ? <><CheckIcon size={16} /> 복사했어요</> : "계획 복사"}</button>
+          <button type="button" className="dj-btn dj-btn-secondary" onClick={copySummary}>{copied ? <><CheckIcon size={16} /> 복사했어</> : "계획 복사"}</button>
         </div>
       </div>
 
@@ -253,35 +253,35 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
       </section>
 
       <section className="dj-reservation-desk dj-card" aria-live="polite">
-        <div className="dj-reservation-assistant"><span><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}의 실행 계획</strong><p>{reservationLoading ? "예약 방식과 실제 실행 경로를 구분하고 있어요…" : reservationError || reservationOrder?.message || "실행 계획을 불러오는 중이에요."}</p></div></div>
+        <div className="dj-reservation-assistant"><span><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}의 실행 계획</strong><p>{reservationLoading ? "예약 방식이랑 실제 실행 경로를 나누는 중…" : reservationError || reservationOrder?.message || "실행 계획을 불러오는 중이야."}</p></div></div>
         {approval && ["requested", "reapproval_required"].includes(approval.state) ? (
           <div className="dj-payment-approval">
-            <div><ShieldIcon size={18} /><p><strong>{approval.state === "reapproval_required" ? "가격이 바뀌어 재승인이 필요해요" : "명시적 결제 승인이 필요해요"}</strong>{reservationOrder?.tasks.filter((task) => approval.taskIds.includes(task.id)).map((task) => task.title).join(", ")} · 지금 결제 {money(approval.amount)}</p></div>
+            <div><ShieldIcon size={18} /><p><strong>{approval.state === "reapproval_required" ? "가격이 바뀌어서 다시 승인받아야 해" : "결제하려면 네 승인이 필요해"}</strong>{reservationOrder?.tasks.filter((task) => approval.taskIds.includes(task.id)).map((task) => task.title).join(", ")} · 지금 결제 {money(approval.amount)}</p></div>
             <button type="button" className="dj-btn dj-btn-primary" onClick={approveExactPayment}>위 항목 {money(approval.amount)} 결제 승인</button>
           </div>
         ) : approval?.state === "granted" ? (
-          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>{money(approval.amount)} 결제 승인을 기록했어요. 아직 결제 성공은 아니에요.</strong>하루위드 직접 실행 파트너가 없는 항목은 외부 공식 화면에서 사용자가 완료하고 확인번호를 기록해야 합니다.</p></div>
+          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>{money(approval.amount)} 결제 승인은 기록했어. 아직 결제가 된 건 아니야.</strong>하루위드가 직접 처리할 수 없는 항목은 공식 예약 화면에서 네가 끝내고 확인번호를 남겨야 해.</p></div>
         ) : (
-          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>“좋네”나 “이걸로 하자”는 결제 승인이 아니에요.</strong>실제 가능 여부와 정확한 사전결제 금액이 확인된 항목만 따로 보여주고 명시적 승인을 받습니다.</p>{reservationOrder?.tasks.length ? <button type="button" onClick={reviewPayment}>결제 항목·금액 검토</button> : null}</div>
+          <div className="dj-deposit-approval"><ShieldIcon size={16} /><p><strong>“좋네”나 “이걸로 하자”는 결제 승인으로 안 봐.</strong>진짜 가능한지와 정확한 금액이 확인된 항목만 따로 보여주고, 그때 분명하게 승인받을게.</p>{reservationOrder?.tasks.length ? <button type="button" onClick={reviewPayment}>결제 항목·금액 검토</button> : null}</div>
         )}
       </section>
 
       <section className="dj-exec-layout">
         <div className="dj-execution-list">
           {reservationOrder?.tasks.map((task) => <TaskCard key={task.id} task={task} onReport={() => reportCompleted(task)} onCopy={copyText} />)}
-          {!reservationLoading && !reservationOrder?.tasks.length ? <div className="dj-card dj-no-execution"><CheckIcon size={20} /><p>예약·구매할 항목은 없어요. 방문 직전 운영 여부만 확인해 주세요.</p></div> : null}
+          {!reservationLoading && !reservationOrder?.tasks.length ? <div className="dj-card dj-no-execution"><CheckIcon size={20} /><p>예약하거나 살 건 없어. 가기 직전에 문 여는지만 확인해줘.</p></div> : null}
         </div>
         <aside className="dj-exec-help dj-card">
           <span className="dj-help-icon"><ShieldIcon size={22} /></span>
           <h2>확인된 사실만<br />실행 상태로</h2>
-          <p>링크를 연 것, 검색 결과가 보인 것, 사용자가 애매하게 긍정한 것은 예약·구매·결제 성공이 아닙니다.</p>
-          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>연결된 예약·결제 제공자가 아직 없어 외부 공식 경로와 전화 문구를 준비합니다. 제공자 확인번호가 들어온 경우에만 자동 완료 상태가 됩니다.</span></div>
-          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약에 꼭 필요하고 사용자가 전달에 동의한 경우에만 해당 업체에 최소한으로 보낼 구조입니다. 현재 자동 전달은 없습니다.</span></div>
+          <p>링크를 연 것, 검색 결과가 뜬 것, 네가 애매하게 좋다고 한 것은 예약·구매·결제가 된 게 아니야.</p>
+          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>연결된 예약·결제 제공자가 아직 없어서, 공식 예약 경로랑 전화할 때 쓸 문구를 준비해줘. 제공자 확인번호가 들어왔을 때만 자동으로 완료가 돼.</span></div>
+          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약에 꼭 필요하고 네가 동의했을 때만, 그 가게에 최소한으로 보내. 지금은 자동으로 넘기는 게 없어.</span></div>
           <Link href={`/dajeong/plan/${plan.id}`} className="dj-help-link"><RefreshIcon size={15} /> 같은 채팅에서 계획 수정</Link>
         </aside>
       </section>
 
-      {complete ? <div className="dj-complete-card"><span>실행 결과가 계획과 연결됐어요</span><blockquote>확인된 준비만 완료로 기록했습니다.</blockquote><Link href="/dajeong/plans" className="dj-btn dj-btn-secondary">내 계획 모아보기</Link></div> : null}
+      {complete ? <div className="dj-complete-card"><span>실행 결과를 계획에 붙였어</span><blockquote>확인된 것만 완료로 기록했어.</blockquote><Link href="/dajeong/plans" className="dj-btn dj-btn-secondary">내 계획 모아보기</Link></div> : null}
     </div>
   );
 }

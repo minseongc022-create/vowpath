@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "담은 장소나 기본 정보를 다시 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "담은 장소나 기본 정보를 다시 확인해줘." }, { status: 400 });
   }
   const body = parsed.data;
 
@@ -61,6 +61,6 @@ export async function POST(request: Request) {
     const withWeather = await enrichPlanWithWeather(plan).catch(() => plan);
     return NextResponse.json({ plan: withWeather });
   } catch {
-    return NextResponse.json({ error: "계획을 만들지 못했어요. 잠시 후 다시 시도해 주세요." }, { status: 500 });
+    return NextResponse.json({ error: "계획을 만들지 못했어. 잠시 후 다시 시도해줘." }, { status: 500 });
   }
 }

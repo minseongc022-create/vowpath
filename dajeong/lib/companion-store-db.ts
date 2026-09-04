@@ -102,10 +102,10 @@ export async function findLink(aId: string, bId: string): Promise<CompanionLink 
 
 export async function acceptInvite(code: string, accepterId: string, accepterName: string): Promise<{ link: CompanionLink } | { error: string }> {
   const invite = await prisma.dajeongCompanionInvite.findUnique({ where: { code: code.trim().toUpperCase() } });
-  if (!invite) return { error: "초대 코드를 찾지 못했어요." };
-  if (invite.status !== "pending") return { error: "이미 사용됐거나 취소된 초대예요." };
-  if (invite.expiresAt.getTime() < Date.now()) return { error: "초대 코드가 만료됐어요. 새 초대를 받아주세요." };
-  if (invite.fromId === accepterId) return { error: "자기 자신을 동반자로 연결할 수 없어요." };
+  if (!invite) return { error: "초대 코드를 찾지 못했어." };
+  if (invite.status !== "pending") return { error: "이미 사용됐거나 취소된 초대야." };
+  if (invite.expiresAt.getTime() < Date.now()) return { error: "초대 코드가 만료됐어. 새 초대를 받아줘." };
+  if (invite.fromId === accepterId) return { error: "자기 자신을 동반자로 연결할 수 없어." };
 
   const [memberAId, memberBId] = sortedPair(invite.fromId, accepterId);
   const trimmedName = accepterName.trim().slice(0, 20) || "동반자";
@@ -209,7 +209,7 @@ export async function listAllSharedPlans(): Promise<SharedPlanRecord[]> {
 
 export async function shareplan(plan: DajeongPlan, ownerId: string, ownerName: string, companionId: string, companionName: string): Promise<{ ok: true; record: SharedPlanRecord } | { error: string }> {
   const link = await findLink(ownerId, companionId);
-  if (!link) return { error: "연결된 동반자가 아니에요. 먼저 동반자를 연결해 주세요." };
+  if (!link) return { error: "연결된 동반자가 아니야. 먼저 동반자를 연결해줘." };
   const sharedPlan: DajeongPlan = { ...plan, ownerId, ownerName, planKind: "shared", companionId, companionName };
   const row = await prisma.dajeongSharedPlan.upsert({
     where: { planId: plan.id },
@@ -233,9 +233,9 @@ export async function publishSharedPlan(
   expectedVersion?: number,
 ): Promise<{ ok: true; record: SharedPlanRecord } | { ok: false; error: string; conflict?: SharedPlanRecord }> {
   const record = await prisma.dajeongSharedPlan.findUnique({ where: { planId } });
-  if (!record || (record.ownerId !== actorId && record.companionId !== actorId)) return { ok: false, error: "이 계획을 찾을 수 없어요." };
+  if (!record || (record.ownerId !== actorId && record.companionId !== actorId)) return { ok: false, error: "이 계획을 찾을 수 없어." };
   if (expectedVersion != null && expectedVersion !== record.version) {
-    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어요. 최신 내용을 다시 확인해 주세요.", conflict: sharedPlanFromRow(record) };
+    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어. 최신 내용을 다시 확인해줘.", conflict: sharedPlanFromRow(record) };
   }
   const nextPlan = updater(record.plan as DajeongPlan);
   const normalized: DajeongPlan = { ...nextPlan, planKind: "shared", ownerId: record.ownerId, ownerName: record.ownerName, companionId: record.companionId, companionName: record.companionName };
@@ -249,7 +249,7 @@ export async function publishSharedPlan(
   });
   if (result.count === 0) {
     const latest = await prisma.dajeongSharedPlan.findUnique({ where: { planId } });
-    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어요. 최신 내용을 다시 확인해 주세요.", conflict: latest ? sharedPlanFromRow(latest) : undefined };
+    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어. 최신 내용을 다시 확인해줘.", conflict: latest ? sharedPlanFromRow(latest) : undefined };
   }
   const updated = await prisma.dajeongSharedPlan.findUniqueOrThrow({ where: { planId } });
   return { ok: true, record: sharedPlanFromRow(updated) };

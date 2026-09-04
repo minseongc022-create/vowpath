@@ -21,10 +21,10 @@ function chatMessage(role: ConciergeMessage["role"], text: string, status: Conci
 const PREP_STATUS_LABEL: Record<string, string> = { suggested: "제안됨", confirmed: "준비 확정", ordered: "주문 완료", ready: "준비 완료", picked_up: "픽업 완료", delivered: "전달 완료", cancelled: "취소됨" };
 
 const quickActions = [
-  { label: "여기 더 있고 싶어요", text: "여기 더 있고 싶어" },
-  { label: "많이 늦어지고 있어요", text: "생각보다 많이 늦어지고 있어" },
-  { label: "다음 거 그냥 뺄래요", text: "다음 거 그냥 빼자" },
-  { label: "집에 좀 일찍 갈래요", text: "집에 좀 일찍 갈래" },
+  { label: "여기 더 있고 싶어", text: "여기 더 있고 싶어" },
+  { label: "많이 늦어지고 있어", text: "생각보다 많이 늦어지고 있어" },
+  { label: "다음 거 그냥 뺄래", text: "다음 거 그냥 빼자" },
+  { label: "집에 좀 일찍 갈래", text: "집에 좀 일찍 갈래" },
 ];
 
 export function TodayWorkspace({ planId }: { planId: string }) {
@@ -112,23 +112,23 @@ export function TodayWorkspace({ planId }: { planId: string }) {
     if (!plan || trimmed.length < 2 || busy) return;
     setBusy(true);
     setInstruction("");
-    const searching = chatMessage("assistant", "지금 상황을 반영해서 남은 일정을 확인하고 있어요…", "searching");
+    const searching = chatMessage("assistant", "지금 상황을 반영해서 남은 일정을 확인하고 있어…", "searching");
     setMessages((current) => [...current, chatMessage("user", trimmed), searching]);
     try {
       const result = await reviseAnyPlan(plan, identity.id, identity.name, trimmed);
       setPlan(result.plan);
       if (planRole(result.plan, identity.id) !== "companion") savePlan(result.plan);
-      setMessages((current) => current.map((message) => message.id === searching.id ? { ...message, text: result.message || (result.conflict ? "다른 사람이 방금 바꿨어요. 최신 내용을 다시 불러왔어요." : "확인했어요."), status: "done" as const } : message));
+      setMessages((current) => current.map((message) => message.id === searching.id ? { ...message, text: result.message || (result.conflict ? "다른 사람이 방금 바꿨어. 최신 내용으로 다시 불러왔어." : "확인했어."), status: "done" as const } : message));
     } catch (error) {
-      const text = error instanceof Error ? error.message : "잠시 후 다시 말해 주세요.";
+      const text = error instanceof Error ? error.message : "잠시 후에 다시 말해줄래?";
       setMessages((current) => current.map((message) => message.id === searching.id ? { ...message, text, status: "error" } : message));
     } finally {
       setBusy(false);
     }
   }
 
-  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>오늘 일정을 불러오고 있어요</p></div>;
-  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>이 계획을 찾지 못했어요</h1><p>공유가 해제되었거나 이 기기에서 볼 수 없는 계획일 수 있어요.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기</Link></div>;
+  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>오늘 일정을 불러오는 중</p></div>;
+  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>이 계획을 못 찾았어</h1><p>공유가 해제됐거나 이 기기에서는 볼 수 없는 계획일 수 있어.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기</Link></div>;
 
   const role = planRole(plan, myId);
   const snapshot: LiveSnapshot = buildLiveSnapshot(plan, nowClock);
@@ -143,7 +143,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
         <div>
           <span className="dj-kicker"><ClockIcon size={15} /> 오늘 일정 · {nowClock}</span>
           <h1>{plan.title}</h1>
-          <p>{role === "companion" ? `${plan.ownerName ?? "동반자"}님이 공유한 오늘의 일정이에요.` : "지금 무엇을 하면 되는지만 빠르게 볼 수 있어요."}</p>
+          <p>{role === "companion" ? `${plan.ownerName ?? "동반자"}님이 공유한 오늘 일정이야.` : "지금 뭘 하면 되는지만 빠르게 볼 수 있어."}</p>
         </div>
         {role !== "solo" ? <span className={`dj-role-chip dj-role-${role}`}>{role === "owner" ? `${plan.companionName ?? "동반자"}와 공유 중` : "공유받은 계획"}</span> : null}
       </section>
@@ -160,7 +160,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
       ) : null}
 
       {snapshot.allDone ? (
-        <div className="dj-complete-card"><span>오늘 일정을 모두 마쳤어요</span><blockquote>수고했어요. 남은 하루도 편하게 보내세요.</blockquote></div>
+        <div className="dj-complete-card"><span>오늘 일정 다 끝냈어</span><blockquote>수고했어. 남은 하루도 편하게 보내.</blockquote></div>
       ) : (
         <>
           {snapshot.current ? (
@@ -168,12 +168,12 @@ export function TodayWorkspace({ planId }: { planId: string }) {
               <span className="dj-today-label">지금</span>
               <div className="dj-today-current-head"><CategoryIcon category={snapshot.current.category} size={22} /><h2>{snapshot.current.title}</h2></div>
               <p>{snapshot.current.time} ~ {snapshot.current.endTime ?? "종료 시간 계산 중"} · {snapshot.current.reality?.address || snapshot.current.location}</p>
-              {snapshot.runningLateMinutes > 0 ? <span className="dj-today-delay">예정보다 약 {snapshot.runningLateMinutes}분 길어지고 있어요</span> : null}
+              {snapshot.runningLateMinutes > 0 ? <span className="dj-today-delay">예정보다 약 {snapshot.runningLateMinutes}분 길어지는 중</span> : null}
             </article>
           ) : (
             <article className="dj-today-current dj-today-between dj-card">
               <span className="dj-today-label">지금</span>
-              <p>{snapshot.next ? `${snapshot.next.title}로 이동하는 시간이에요.` : "오늘 남은 일정을 확인하고 있어요."}</p>
+              <p>{snapshot.next ? `${snapshot.next.title}로 이동할 시간이야.` : "오늘 남은 일정을 보는 중이야."}</p>
             </article>
           )}
 
@@ -201,7 +201,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
           ) : null}
 
           {snapshot.weatherNote ? <div className="dj-weather-banner dj-weather-user_report"><div><strong>날씨 변화</strong><p>{snapshot.weatherNote}</p></div></div> : null}
-          {snapshot.prepReminders.length ? <div className="dj-schedule-warnings"><strong>미리 확인하면 좋아요</strong>{snapshot.prepReminders.map((reminder) => <p key={reminder}>{reminder}</p>)}</div> : null}
+          {snapshot.prepReminders.length ? <div className="dj-schedule-warnings"><strong>미리 챙기면 좋은 것</strong>{snapshot.prepReminders.map((reminder) => <p key={reminder}>{reminder}</p>)}</div> : null}
 
           {snapshot.remaining.length ? (
             <section className="dj-today-remaining">
@@ -220,7 +220,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
       )}
 
       <section className="dj-revision-studio">
-        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}에게 지금 상황을 말해 주세요</strong><p>지연, 연장, 조기 귀가처럼 오늘 바뀌는 것만 다시 계산해요.</p></div></div>
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}한테 지금 상황을 말해줘</strong><p>늦어짐, 연장, 일찍 귀가처럼 오늘 바뀌는 것만 다시 계산할게.</p></div></div>
         <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
           {messages.slice(-12).map((message) => (
             <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>

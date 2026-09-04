@@ -63,7 +63,7 @@ export function PlanBuilderWorkspace() {
   async function findPlaces(event?: FormEvent) {
     event?.preventDefault();
     if (!region.trim()) {
-      setError("어느 지역에서 찾을지 먼저 알려주세요.");
+      setError("어느 지역에서 찾을지 먼저 알려줘.");
       return;
     }
     setSearching(true);
@@ -82,11 +82,11 @@ export function PlanBuilderWorkspace() {
         }),
       });
       const data = await response.json().catch(() => ({})) as { places?: FoundPlace[]; message?: string; error?: string };
-      if (!response.ok) throw new Error(data.error || "장소를 찾지 못했어요.");
+      if (!response.ok) throw new Error(data.error || "장소를 못 찾았어.");
       setFound(data.places ?? []);
       setSearchMessage(data.message ?? "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
+      setError(err instanceof Error ? err.message : "잠시 후에 다시 해볼래?");
     } finally {
       setSearching(false);
     }
@@ -138,11 +138,11 @@ export function PlanBuilderWorkspace() {
         }),
       });
       const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; error?: string };
-      if (!response.ok || !data.plan) throw new Error(data.error || "계획을 만들지 못했어요.");
+      if (!response.ok || !data.plan) throw new Error(data.error || "계획을 못 만들었어.");
       savePlan(data.plan);
       router.push(`/dajeong/plan/${data.plan.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
+      setError(err instanceof Error ? err.message : "잠시 후에 다시 해볼래?");
       setSaving(false);
     }
   }
@@ -156,11 +156,11 @@ export function PlanBuilderWorkspace() {
       <section className="dj-builder-hero dj-animate">
         <div>
           <span className="dj-kicker"><SparkleIcon size={15} /> 내가 고르는 하루</span>
-          <h1>직접 계획을 짜 보세요</h1>
+          <h1>직접 계획을 짜 봐</h1>
           <p>
-            가고 싶은 곳이 이미 있다면 여기서 직접 담으면 돼요. 장소가 떠오르지 않을 땐
-            {" "}{DAJEONG_BRAND.assistantName}에게 하나씩 찾아달라고 하세요. 시간과 순서는 전부 직접 정할 수 있고,
-            다 담으면 예약 준비까지 그대로 이어집니다.
+            가고 싶은 곳이 이미 있으면 여기서 직접 담으면 돼. 떠오르는 데가 없으면
+            {" "}{DAJEONG_BRAND.assistantName}한테 하나씩 찾아달라고 해. 시간과 순서는 전부 네가 정하고,
+            다 담으면 예약 준비까지 그대로 이어져.
           </p>
         </div>
       </section>
@@ -250,7 +250,7 @@ export function PlanBuilderWorkspace() {
         </div>
 
         {picks.length === 0 ? (
-          <p className="dj-builder-empty">아직 담은 장소가 없어요. 위에서 찾아 담으면 여기에 시간 순서대로 쌓입니다.</p>
+          <p className="dj-builder-empty">아직 담은 데가 없어. 위에서 찾아 담으면 여기에 시간 순서대로 쌓여.</p>
         ) : (
           <div className="dj-builder-pick-list">
             {picks.map((pick, index) => (
@@ -283,7 +283,7 @@ export function PlanBuilderWorkspace() {
         <button type="button" className="dj-btn dj-btn-primary dj-builder-finish" onClick={finish} disabled={!picks.length || saving || !region.trim()}>
           {saving ? "계획 만드는 중" : "이 계획으로 만들기"} <ArrowIcon size={17} />
         </button>
-        <p className="dj-builder-trust">만들고 나면 자동 계획과 똑같이 말로 고치고, 예약 준비까지 이어서 진행할 수 있어요.</p>
+        <p className="dj-builder-trust">만들고 나면 자동 계획이랑 똑같이 말로 고치고, 예약 준비까지 이어서 할 수 있어.</p>
       </section>
     </div>
   );

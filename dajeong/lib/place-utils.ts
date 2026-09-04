@@ -214,7 +214,7 @@ export function placeToPlanOption(params: {
   const reservationRequired = ["activity", "meal", "lodging", "cake", "flower"].includes(category);
   const openText = place.openNow === true ? "현재 영업 중" : place.openNow === false ? "현재 영업 종료" : "영업 여부 확인 필요";
   const distanceText = distance == null ? "" : ` · 이전 일정에서 약 ${distance.toFixed(distance < 1 ? 1 : 0)}km`;
-  const reason = `${place.localIndependent ? "이 동네만의 분위기" : `${situation.region} 안의 접근성`}, 이동 동선과 ${situation.budget.toLocaleString("ko-KR")}원 예산을 함께 고려했어요.${place.rating ? ` 평점 ${place.rating.toFixed(1)}와 리뷰 신뢰도도 반영했어요.` : ""}`;
+  const reason = `${place.localIndependent ? "이 동네만의 분위기" : `${situation.region} 안의 접근성`}, 이동 동선과 ${situation.budget.toLocaleString("ko-KR")}원 예산을 같이 봤어.${place.rating ? ` 평점 ${place.rating.toFixed(1)}와 리뷰 신뢰도도 반영했어.` : ""}`;
   const optionForExperience = {
     ...base,
     title: place.name,

@@ -82,7 +82,7 @@ function TimelineItem({
   const [localProposal, setLocalProposal] = useState<PlanChangeProposal | null>(null);
   const localChatRef = useRef<HTMLDivElement>(null);
   const [localMessages, setLocalMessages] = useState<ItemChatEntry[]>([
-    { id: "welcome", role: "assistant", text: `지금 선택한 ‘${item.title}’을 기준으로 찾아볼게요. 원하는 분위기나 음식, 가격을 평소 말하듯 알려주세요.` },
+    { id: "welcome", role: "assistant", text: `지금 고른 ‘${item.title}’을 기준으로 찾아볼게. 원하는 분위기나 음식, 가격을 평소 말하듯 얘기해줘.` },
   ]);
   const allOptions = useMemo(() => [item, ...item.alternatives], [item]);
   const reservationLabel = item.reality?.reservationLabel ?? (item.reservationRequired ? "예약 확인 필요" : "예약 없이 가능");
@@ -100,7 +100,7 @@ function TimelineItem({
     const text = localInstruction.trim();
     if (text.length < 2 || localLoading) return;
     const searchingId = `local_${Date.now().toString(36)}`;
-    setLocalMessages((current) => [...current, { id: `${searchingId}_user`, role: "user", text }, { id: searchingId, role: "assistant", text: "말씀하신 느낌에 맞는 실제 후보와 리뷰, 앞뒤 동선을 같이 확인하고 있어요.", status: "searching" }]);
+    setLocalMessages((current) => [...current, { id: `${searchingId}_user`, role: "user", text }, { id: searchingId, role: "assistant", text: "말한 느낌에 맞는 실제 후보랑 리뷰, 앞뒤 동선을 같이 보는 중이야.", status: "searching" }]);
     setLocalInstruction("");
     setLocalProposal(null);
     setLocalLoading(true);
@@ -109,7 +109,7 @@ function TimelineItem({
       setLocalMessages((current) => current.map((message) => message.id === searchingId ? { ...message, text: result.message, status: undefined } : message));
       setLocalProposal(result.proposal ?? null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "잠시 후 다시 말해 주세요.";
+      const message = error instanceof Error ? error.message : "잠시 후에 다시 말해줄래?";
       setLocalMessages((current) => current.map((entry) => entry.id === searchingId ? { ...entry, text: message, status: "error" } : entry));
     } finally {
       setLocalLoading(false);
@@ -173,7 +173,7 @@ function TimelineItem({
               {item.reality?.distanceFromPreviousKm != null ? <span><MapPinIcon size={14} /> 앞 일정에서 약 {item.reality.distanceFromPreviousKm.toFixed(1)}km</span> : null}
             </div>
             {item.reality?.reviewHighlights?.length ? <div className="dj-review-glance"><strong>Google 지도 실제 리뷰</strong>{item.reality.reviewHighlights.slice(0, 2).map((review, index) => <p key={`${item.id}-review-${index}`}>“{review}” <small>— {item.reality?.reviewAuthors?.[index] || "지도 이용자"}</small></p>)}</div> : item.reality?.editorialSummary ? <div className="dj-review-glance"><strong>장소 한눈에 보기</strong><p>{item.reality.editorialSummary}</p></div> : null}
-            <div className="dj-plan-reason"><SparkleIcon size={15} /><p><strong>{highlight ? "이 하루의 하이라이트인 이유" : "당신에게 맞춰 고른 이유"}</strong>{item.reason || "전체 흐름과 예산을 함께 고려했어요."}{item.experience?.highlightReason ? ` ${item.experience.highlightReason}` : ""}</p></div>
+            <div className="dj-plan-reason"><SparkleIcon size={15} /><p><strong>{highlight ? "이 하루의 하이라이트인 이유" : "너한테 맞춰 고른 이유"}</strong>{item.reason || "전체 흐름이랑 예산을 같이 봤어."}{item.experience?.highlightReason ? ` ${item.experience.highlightReason}` : ""}</p></div>
             <div className="dj-plan-actions">
               {item.handoffKind === "self" ? (
                 <span className="dj-self-chip">♡ 직접 준비하는 항목</span>
@@ -202,11 +202,11 @@ function TimelineItem({
                 </div>
                 <div className="dj-item-chat" aria-live="polite" ref={localChatRef}>
                   {localMessages.slice(-10).map((message) => <div key={message.id} className={`dj-item-chat-${message.role} ${message.status ? `dj-item-chat-${message.status}` : ""}`}><p>{message.text}{message.status === "searching" ? <i className="dj-thinking-dots"><b /><b /><b /></i> : null}</p></div>)}
-                  {localProposal ? <div className="dj-item-route-proposal"><p>{localProposal.reason}</p><button type="button" onClick={() => { onApplyProposal(localProposal); setLocalMessages((current) => [...current, { id: `applied_${Date.now()}`, role: "assistant", text: "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요." }]); setLocalProposal(null); }}>추천 순서로 바꿔줘</button><button type="button" onClick={() => setLocalProposal(null)}>지금 순서 유지</button></div> : null}
+                  {localProposal ? <div className="dj-item-route-proposal"><p>{localProposal.reason}</p><button type="button" onClick={() => { onApplyProposal(localProposal); setLocalMessages((current) => [...current, { id: `applied_${Date.now()}`, role: "assistant", text: "좋아. 이동이 덜 끊기게 순서까지 바꿨어." }]); setLocalProposal(null); }}>추천 순서로 바꿔줘</button><button type="button" onClick={() => setLocalProposal(null)}>지금 순서 유지</button></div> : null}
                 </div>
                 <form className="dj-item-chat-form" onSubmit={ask}><input value={localInstruction} onChange={(event) => setLocalInstruction(event.target.value)} placeholder="예: 여긴 좋은데 더 조용하고 디저트가 맛있는 곳이면 좋겠어" aria-label={`${item.title} 대체 후보 요청`} /><button type="submit" disabled={localLoading || localInstruction.trim().length < 2}>{localLoading ? <span className="dj-spinner dj-spinner-coral" /> : <ArrowIcon size={16} />}</button></form>
                 <div className="dj-option-divider"><span>바로 고를 수 있는 후보</span></div>
-                {allOptions.map((option) => <OptionCard key={option.id} option={option} selected={option.id === item.id} onSelect={() => { onReplace(option.id); setLocalMessages((current) => [...current, { id: `picked_${Date.now()}`, role: "assistant", text: `좋아요. ‘${option.title}’으로 바꾸고 전체 비용을 다시 계산했어요.` }]); }} />)}
+                {allOptions.map((option) => <OptionCard key={option.id} option={option} selected={option.id === item.id} onSelect={() => { onReplace(option.id); setLocalMessages((current) => [...current, { id: `picked_${Date.now()}`, role: "assistant", text: `좋아. ‘${option.title}’으로 바꾸고 전체 비용도 다시 계산했어.` }]); }} />)}
               </div>
             ) : null}
           </div>
@@ -230,7 +230,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   const [revising, setRevising] = useState(false);
   const [proposal, setProposal] = useState<PlanChangeProposal | null>(null);
   const [messages, setMessages] = useState<ConciergeMessage[]>([
-    chatMessage("assistant", "원하는 장면을 편하게 말해 주세요. 기존 일정은 기억하고 실제 장소와 동선을 확인해 필요한 부분만 바꿀게요."),
+    chatMessage("assistant", "원하는 그림을 편하게 말해줘. 지금 일정은 기억하고, 실제 장소랑 동선을 확인해서 필요한 부분만 바꿀게."),
   ]);
   const chatRef = useRef<HTMLDivElement>(null);
   const [identity, setIdentity] = useState({ id: "", name: "나" });
@@ -252,7 +252,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           chatMessage("assistant", revision.summary),
         ]);
         setMessages([
-          chatMessage("assistant", "원하는 장면을 편하게 말해 주세요. 기존 일정은 기억하고 필요한 부분만 바꿀게요."),
+          chatMessage("assistant", "원하는 그림을 편하게 말해줘. 지금 일정은 기억하고 필요한 부분만 바꿀게."),
           ...restored,
         ]);
       }
@@ -310,7 +310,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     const category = item.category;
     let next = replacePlanItem(plan, category, optionId, item.id);
     const selectedTitle = next.items.find((entry) => entry.category === category && entry.dayNumber === item.dayNumber)?.title ?? "새 후보";
-    const response = `${selectedTitle}(으)로 바꾸고 전체 비용을 다시 계산했어요.`;
+    const response = `${selectedTitle}(으)로 바꾸고 전체 비용도 다시 계산했어.`;
     next = appendPlanConversation(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
     next = {
       ...next,
@@ -332,7 +332,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     }
     setPlan(next);
     setChanged([category]);
-    setRevisionMessage(`${next.items.find((item) => item.category === category)?.categoryLabel ?? "일정"}만 바꿨어요. 전체 비용도 다시 계산했습니다.`);
+    setRevisionMessage(`${next.items.find((item) => item.category === category)?.categoryLabel ?? "일정"}만 바꿨어. 전체 비용도 다시 계산했어.`);
     setMessages((current) => [...current, chatMessage("assistant", response)]);
   }
 
@@ -351,7 +351,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     setRevising(true);
     setProposal(null);
     setRevisionMessage("");
-    const searching = chatMessage("assistant", "요청을 이해했어요. 근처의 실제 장소와 남은 예산, 앞뒤 이동 동선을 확인하고 있어요…", "searching");
+    const searching = chatMessage("assistant", "알겠어. 근처 실제 장소랑 남은 예산, 앞뒤 이동 동선을 보는 중이야…", "searching");
     setMessages((current) => [...current, chatMessage("user", nextInstruction), searching]);
     try {
       const result = await reviseAnyPlan(plan, identity.id, identity.name, nextInstruction);
@@ -364,7 +364,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         : message));
       setInstruction("");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "잠시 후 다시 말해 주세요.";
+      const message = error instanceof Error ? error.message : "잠시 후에 다시 말해줄래?";
       setRevisionMessage(message);
       setMessages((current) => current.map((entry) => entry.id === searching.id ? { ...entry, text: message, status: "error" } : entry));
     } finally {
@@ -373,7 +373,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   }
 
   async function reviseItem(item: PlanItem, nextInstruction: string): Promise<PlanRevisionResult> {
-    if (!plan) throw new Error("계획을 불러오지 못했어요.");
+    if (!plan) throw new Error("계획을 못 불러왔어.");
     const result = await reviseAnyPlan(plan, identity.id, identity.name, nextInstruction, item.category, item.id);
     applyRevisionResult(result);
     setChanged(result.changedCategories);
@@ -388,7 +388,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       applyRevisionResult(result);
       setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
     } catch (error) {
-      setRevisionMessage(error instanceof Error ? error.message : "준비 항목을 바꾸지 못했어요.");
+      setRevisionMessage(error instanceof Error ? error.message : "준비 항목을 못 바꿨어.");
     }
   }
 
@@ -400,7 +400,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       applyRevisionResult(result);
       setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
     } catch (error) {
-      setRevisionMessage(error instanceof Error ? error.message : "비공개 설정을 바꾸지 못했어요.");
+      setRevisionMessage(error instanceof Error ? error.message : "비공개 설정을 못 바꿨어.");
     }
   }
 
@@ -416,7 +416,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       applyRevisionResult(result);
       setMessages((current) => [...current, chatMessage("user", text), chatMessage("assistant", result.message)]);
     } catch (error) {
-      setRevisionMessage(error instanceof Error ? error.message : "공개 수준을 바꾸지 못했어요.");
+      setRevisionMessage(error instanceof Error ? error.message : "공개 수준을 못 바꿨어.");
     }
   }
 
@@ -430,14 +430,14 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         body: JSON.stringify({ plan, ownerId: identity.id, ownerName: identity.name, companionId, companionName }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "공유하지 못했어요.");
+      if (!response.ok) throw new Error(data.error || "공유를 못 했어.");
       const next = { ...data.plan, sharedVersion: data.version } as DajeongPlan;
       setPlan(next);
       savePlan(next);
-      setRevisionMessage(`${companionName}님과 계획을 공유했어요.`);
+      setRevisionMessage(`${companionName}님이랑 계획을 공유했어.`);
       setShareOpen(false);
     } catch (error) {
-      setRevisionMessage(error instanceof Error ? error.message : "공유하지 못했어요.");
+      setRevisionMessage(error instanceof Error ? error.message : "공유를 못 했어.");
     } finally {
       setShareBusy(false);
     }
@@ -445,7 +445,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
 
   async function unshare() {
     if (!plan || plan.planKind !== "shared" || shareBusy) return;
-    if (!window.confirm("공유를 해제할까요? 동반자는 더 이상 이 계획을 볼 수 없게 돼요.")) return;
+    if (!window.confirm("공유를 끊을까? 동반자는 이제 이 계획을 못 봐.")) return;
     setShareBusy(true);
     try {
       await fetch("/api/dajeong/plans/unshare", {
@@ -456,46 +456,46 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       const next = { ...plan, planKind: "solo" as const, companionId: undefined, companionName: undefined };
       setPlan(next);
       savePlan(next);
-      setRevisionMessage("공유를 해제했어요. 이제 나만 볼 수 있는 계획이에요.");
+      setRevisionMessage("공유 끊었어. 이제 너만 볼 수 있어.");
     } finally {
       setShareBusy(false);
     }
   }
 
   async function applyItemProposal(nextProposal: PlanChangeProposal) {
-    let next = appendPlanConversation(nextProposal.plan, "추천한 동선으로 바꿔줘", "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요.");
+    let next = appendPlanConversation(nextProposal.plan, "추천한 동선으로 바꿔줘", "좋아. 이동이 덜 끊기게 순서까지 바꿨어.");
     if (role !== "companion") {
-      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 순서까지 바꿨어요.");
+      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기게 순서까지 바꿨어.");
       savePlan(next);
     }
     setPlan(next);
     setChanged(next.items.map((item) => item.category));
-    setRevisionMessage("이동이 덜 끊기도록 일정 순서를 바꿨어요.");
+    setRevisionMessage("이동이 덜 끊기게 일정 순서를 바꿨어.");
   }
 
   async function acceptProposal() {
     if (!proposal) return;
-    let next = appendPlanConversation(proposal.plan, "추천한 순서로 바꿔줘", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.");
+    let next = appendPlanConversation(proposal.plan, "추천한 순서로 바꿔줘", "좋아. 이동이 덜 끊기게 일정 순서를 바꿨어. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해줘.");
     if (role !== "companion") {
-      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기도록 일정 순서를 바꿨어요.");
+      next = await syncPlanIfShared(next, identity.id, identity.name, "이동이 덜 끊기게 일정 순서를 바꿨어.");
       savePlan(next);
     }
     setPlan(next);
     setChanged(next.items.map((item) => item.category));
-    setMessages((current) => [...current, chatMessage("user", "추천한 순서로 바꿔줘"), chatMessage("assistant", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.")]);
+    setMessages((current) => [...current, chatMessage("user", "추천한 순서로 바꿔줘"), chatMessage("assistant", "좋아. 이동이 덜 끊기게 일정 순서를 바꿨어. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해줘.")]);
     setProposal(null);
   }
 
   async function keepCurrentOrder() {
     if (plan) {
-      let next = appendPlanConversation(plan, "지금 순서를 유지할게", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.");
+      let next = appendPlanConversation(plan, "지금 순서를 유지할게", "알겠어. 장소만 바꾸고 순서는 그대로 뒀어.");
       if (role !== "companion") {
-        next = await syncPlanIfShared(next, identity.id, identity.name, "장소만 바꾸고 기존 순서는 그대로 유지했어요.");
+        next = await syncPlanIfShared(next, identity.id, identity.name, "장소만 바꾸고 순서는 그대로 뒀어.");
         savePlan(next);
       }
       setPlan(next);
     }
-    setMessages((current) => [...current, chatMessage("user", "지금 순서를 유지할게"), chatMessage("assistant", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.")]);
+    setMessages((current) => [...current, chatMessage("user", "지금 순서를 유지할게"), chatMessage("assistant", "알겠어. 장소만 바꾸고 순서는 그대로 뒀어.")]);
     setProposal(null);
   }
 
@@ -510,7 +510,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       ...confirmed,
       execution: prepareReservationOrder(confirmed, { previous: plan.execution, includeTravel: true }),
     };
-    next = await syncPlanIfShared(next, identity.id, identity.name, "계획을 확정하고 예약 준비를 시작했어요.");
+    next = await syncPlanIfShared(next, identity.id, identity.name, "계획을 확정하고 예약 준비를 시작했어.");
     savePlan(next);
     router.push(`/dajeong/plan/${plan.id}/execute`);
   }
@@ -518,7 +518,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   async function setNotificationLevel(level: "normal" | "content_hidden" | "off") {
     if (!plan || role === "companion") return;
     let next: DajeongPlan = { ...plan, notificationLevel: level };
-    next = await syncPlanIfShared(next, identity.id, identity.name, "알림 공개 수준을 바꿨어요.");
+    next = await syncPlanIfShared(next, identity.id, identity.name, "알림 공개 수준을 바꿨어.");
     savePlan(next);
     setPlan(next);
     // The plan-level toggle drives this person's actual notification privacy setting — a secret
@@ -530,8 +530,8 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     }).catch(() => {});
   }
 
-  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>계획을 꺼내고 있어요</p></div>;
-  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>이 계획을 찾지 못했어요</h1><p>이 기기에 저장된 계획이 아니거나 브라우저 데이터가 지워졌을 수 있어요.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기 <ArrowIcon size={17} /></Link></div>;
+  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>계획 꺼내는 중</p></div>;
+  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>이 계획을 못 찾았어</h1><p>이 기기에 저장한 계획이 아니거나 브라우저 데이터가 지워졌을 수 있어.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기 <ArrowIcon size={17} /></Link></div>;
 
   const overBudget = plan.budgetRemaining < 0;
   const spendPercent = Math.min(100, Math.round((plan.total / plan.budget) * 100));
@@ -548,7 +548,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       <div className="dj-plan-breadcrumb"><Link href="/dajeong">새 계획</Link><ChevronIcon size={14} /><span>계획 검토</span><ChevronIcon size={14} /><Link href={`/dajeong/plan/${plan.id}/today`}>오늘 일정 보기</Link></div>
       <section className="dj-plan-hero dj-animate">
         <div>
-          <span className="dj-kicker"><SparkleIcon size={15} /> 상황을 읽고 하루로 만들었어요</span>
+          <span className="dj-kicker"><SparkleIcon size={15} /> 상황을 읽고 하루로 만들었어</span>
           <h1>{plan.title}</h1>
           <p>{plan.summary}</p>
           <div className="dj-hero-tags"><span>{plan.situation.occasionLabel}</span><span>{plan.situation.recipient}</span>{plan.situation.ageBand !== "미상" ? <span>{plan.situation.ageBand}</span> : null}{plan.situation.desiredMoods.slice(0, 2).map((mood) => <span key={mood}>{MOOD_LABEL[mood]}</span>)}{constraints.slice(0, 2).map((value) => <span key={value}>{value}</span>)}</div>
@@ -591,7 +591,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
                 <button key={companion.companionId} type="button" className="dj-btn dj-btn-secondary" onClick={() => shareWithCompanion(companion.companionId, companion.companionName)} disabled={shareBusy}>
                   {companion.companionName}와 공유하기
                 </button>
-              )) : <p>연결된 동반자가 없어요. <Link href="/dajeong/companions">동반자를 먼저 연결</Link>해 주세요.</p>}
+              )) : <p>연결된 동반자가 없어. <Link href="/dajeong/companions">동반자를 먼저 연결</Link>해줘.</p>}
             </div>
           ) : null}
         </div>
@@ -600,13 +600,13 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       {plan.discovery ? (
         <div className={`dj-discovery-banner dj-discovery-${plan.discovery.status}`}>
           <span><MapPinIcon size={17} /></span>
-          <div><strong>{plan.discovery.realPlaceCount > 0 ? `방문할 수 있는 장소 후보 ${plan.discovery.realPlaceCount}곳을 찾았어요` : "장소 정보를 더 확인하고 있어요"}</strong><p>{plan.discovery.message} · {checkedLabel(plan.discovery.checkedAt)}</p></div>
+          <div><strong>{plan.discovery.realPlaceCount > 0 ? `갈 만한 장소 후보 ${plan.discovery.realPlaceCount}곳 찾았어` : "장소 정보를 더 보는 중이야"}</strong><p>{plan.discovery.message} · {checkedLabel(plan.discovery.checkedAt)}</p></div>
         </div>
       ) : null}
 
       {plan.schedule?.weather ? (
         <div className={`dj-weather-banner dj-weather-${plan.schedule.weather.status}`}>
-          <div><strong>{plan.schedule.weather.status === "verified" ? "실제 예보를 일정에 반영했어요" : plan.schedule.weather.status === "user_report" ? "말해준 날씨를 임시 조건으로 반영했어요" : "날씨는 아직 확정하지 않았어요"}</strong><p>{plan.schedule.weather.message}{plan.schedule.weather.checkedAt ? ` · ${checkedLabel(plan.schedule.weather.checkedAt)}` : ""}</p></div>
+          <div><strong>{plan.schedule.weather.status === "verified" ? "실제 예보를 일정에 반영했어" : plan.schedule.weather.status === "user_report" ? "네가 말해준 날씨를 임시로 반영했어" : "날씨는 아직 확정 못 했어"}</strong><p>{plan.schedule.weather.message}{plan.schedule.weather.checkedAt ? ` · ${checkedLabel(plan.schedule.weather.checkedAt)}` : ""}</p></div>
         </div>
       ) : null}
 
@@ -651,7 +651,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
                 ))}
               </div>
             ) : (
-              <p className="dj-companion-empty">{plan.prepDeclined ? "따로 준비할 건 없다고 기억했어요." : "아직 준비 목록이 비어 있어요. “꽃이랑 케이크 준비하고 싶어”처럼 말하거나 위 버튼을 눌러보세요."}</p>
+              <p className="dj-companion-empty">{plan.prepDeclined ? "따로 준비할 건 없다고 기억해뒀어." : "아직 준비 목록이 비어 있어. “꽃이랑 케이크 준비하고 싶어”처럼 말하거나 위 버튼을 눌러봐."}</p>
             )}
           </section>
 
@@ -667,22 +667,22 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           <div className="dj-summary-lines">{plan.items.map((item) => <div key={item.id}><span>{plan.situation.planScope === "trip" ? `${item.dayNumber ?? 1}일차 · ` : ""}{item.time} · {item.categoryLabel}</span><strong>{money(item.price)}</strong></div>)}</div>
           <div className={`dj-budget-remaining ${overBudget ? "dj-over-budget" : ""}`}>
             <div><span>{overBudget ? "초과 금액" : "남겨둔 여유"}</span><strong>{money(Math.abs(plan.budgetRemaining))}</strong></div>
-            <p>{overBudget ? "더 가벼운 선택으로 바꿔 주세요." : "교통비와 현장 변동을 위해 일부러 남겨뒀어요."}</p>
+            <p>{overBudget ? "더 가벼운 걸로 바꿔줄래?" : "교통비랑 현장 변수 때문에 일부러 남겨뒀어."}</p>
           </div>
           <div className="dj-booking-summary"><strong>확인할 예약</strong>{plan.items.filter((item) => item.reservationRequired).map((item) => <span key={item.id}><i />{item.dayNumber && plan.situation.planScope === "trip" ? `${item.dayNumber}일차 ` : ""}{item.time} {item.title}</span>)}</div>
           {role !== "companion" ? (
             <>
               <button className="dj-btn dj-btn-primary dj-confirm-button" type="button" onClick={confirmPlan} disabled={overBudget}>확정하고 예약 준비하기 <ArrowIcon size={17} /></button>
-              <p className="dj-summary-trust"><ShieldIcon size={14} /> 다음 화면에서 예약할 곳과 예약금을 먼저 확인합니다. 최종 승인 전에는 결제하거나 예약 완료로 표시하지 않아요.</p>
+              <p className="dj-summary-trust"><ShieldIcon size={14} /> 다음 화면에서 예약할 곳이랑 예약금을 먼저 보여줄게. 네가 승인하기 전엔 결제하지도, 예약 완료로 적지도 않아.</p>
             </>
           ) : (
-            <p className="dj-summary-trust"><ShieldIcon size={14} /> 계획 확정과 예약 준비는 계획을 만든 사람만 진행할 수 있어요.</p>
+            <p className="dj-summary-trust"><ShieldIcon size={14} /> 계획 확정이랑 예약 준비는 계획을 만든 사람만 할 수 있어.</p>
           )}
         </aside>
       </div>
 
       <section className="dj-revision-studio">
-        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}랑 마음에 들 때까지 고쳐</strong><p>취향이랑 지금 일정은 기억하고, 필요한 부분만 바꿀게.</p></div></div>
         <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
           {messages.slice(-16).map((message) => (
             <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>
@@ -693,7 +693,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           {proposal ? (
             <div className="dj-proposal-actions">
               <p>{proposal.reason}</p>
-              <div><button type="button" onClick={acceptProposal}>이 순서로 바꿀게요</button><button type="button" onClick={keepCurrentOrder}>지금 순서 유지</button></div>
+              <div><button type="button" onClick={acceptProposal}>이 순서로 바꿀게</button><button type="button" onClick={keepCurrentOrder}>지금 순서 유지</button></div>
             </div>
           ) : null}
         </div>
@@ -705,7 +705,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         {revisionMessage ? <span className="dj-sr-only" role="status">{revisionMessage}</span> : null}
       </section>
 
-      <div className="dj-honesty-note"><ShieldIcon size={20} /><div><strong>추천과 실제 확정을 분명히 나눕니다</strong><p>{plan.notice}</p></div></div>
+      <div className="dj-honesty-note"><ShieldIcon size={20} /><div><strong>추천과 확정은 분명히 나눠</strong><p>{plan.notice}</p></div></div>
     </div>
   );
 }

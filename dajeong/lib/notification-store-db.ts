@@ -104,7 +104,7 @@ export async function addSubscription(personId: string, endpoint: string, keys: 
   // upsert onto them silently.
   const existing = await prisma.dajeongPushSubscription.findUnique({ where: { endpoint } });
   if (existing && existing.personId !== personId) {
-    throw new Error("이 구독은 다른 사용자에게 등록되어 있어요.");
+    throw new Error("이 구독은 다른 사용자에게 등록되어 있어.");
   }
   const row = await prisma.dajeongPushSubscription.upsert({
     where: { endpoint },

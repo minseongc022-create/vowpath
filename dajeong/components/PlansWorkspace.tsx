@@ -29,7 +29,7 @@ export function PlansWorkspace() {
   }, []);
 
   function remove(id: string) {
-    if (!window.confirm("이 계획을 목록에서 지울까요?")) return;
+    if (!window.confirm("이 계획을 목록에서 지울까?")) return;
     removePlan(id);
     setPlans(listPlans());
   }
@@ -37,9 +37,9 @@ export function PlansWorkspace() {
   if (!plans) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /></div>;
   return (
     <div className="dj-plans-page dj-narrow">
-      <div className="dj-plans-heading"><div><span className="dj-kicker"><HeartIcon size={15} /> 준비한 마음들</span><h1>내 계획</h1><p>이 브라우저에 저장된 계획을 다시 열어 이어서 준비할 수 있어요.</p></div><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 <ArrowIcon size={16} /></Link></div>
+      <div className="dj-plans-heading"><div><span className="dj-kicker"><HeartIcon size={15} /> 준비한 마음들</span><h1>내 계획</h1><p>이 브라우저에 저장한 계획을 다시 열어서 이어갈 수 있어.</p></div><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 <ArrowIcon size={16} /></Link></div>
       {plans.length === 0 ? (
-        <div className="dj-plans-empty dj-card"><span><SparkleIcon size={28} /></span><h2>아직 만든 계획이 없어요</h2><p>한 문장만 들려주면 첫 계획을 바로 정리해 드릴게요.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">첫 계획 만들기</Link></div>
+        <div className="dj-plans-empty dj-card"><span><SparkleIcon size={28} /></span><h2>아직 만든 계획이 없어</h2><p>한 문장만 말해주면 첫 계획을 바로 정리해줄게.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">첫 계획 만들기</Link></div>
       ) : (
         <div className="dj-plans-list">
           {plans.map((plan) => {

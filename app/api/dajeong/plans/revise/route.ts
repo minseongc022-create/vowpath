@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (limited) return NextResponse.json(limited, { status: 429 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "바꾸고 싶은 내용을 한 문장으로 적어 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "바꾸고 싶은 내용을 한 문장으로 적어줘." }, { status: 400 });
   const result = await reviseDajeongPlanWithDiscovery(parsed.data.plan as DajeongPlan, parsed.data.instruction, parsed.data.targetCategory, parsed.data.targetItemId);
   // Keep the server's notification-scheduling copy in sync so a stale plan version (deleted
   // items, moved times) can never fire an already-meaningless reminder — see notification-sweep.

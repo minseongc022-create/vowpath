@@ -5,7 +5,7 @@ import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/id
 
 export async function GET(request: Request) {
   const personId = new URL(request.url).searchParams.get("personId")?.trim();
-  if (!personId) return NextResponse.json({ error: "personId가 필요해요." }, { status: 400 });
+  if (!personId) return NextResponse.json({ error: "personId가 필요해." }, { status: 400 });
   if (!(await verifyClaimedIdentity(personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   return NextResponse.json({ preferences: await getPreferences(personId) });
 }
@@ -27,7 +27,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "설정 값을 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "설정 값을 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const { personId, ...rest } = parsed.data;
   const preferences = await setPreferences(personId, rest);

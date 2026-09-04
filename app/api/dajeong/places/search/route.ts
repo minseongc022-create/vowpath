@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "검색 조건을 다시 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "검색 조건을 다시 확인해줘." }, { status: 400 });
   }
   const { region, category: hint, query, budget } = parsed.data;
   const intent = query?.trim() ? classifyPlaceRequest(query) : null;

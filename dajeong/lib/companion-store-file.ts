@@ -111,10 +111,10 @@ export async function findLink(aId: string, bId: string): Promise<CompanionLink 
 export async function acceptInvite(code: string, accepterId: string, accepterName: string): Promise<{ link: CompanionLink } | { error: string }> {
   const store = await loadStore();
   const invite = store.invites.find((entry) => entry.code === code.trim().toUpperCase());
-  if (!invite) return { error: "초대 코드를 찾지 못했어요." };
-  if (invite.status !== "pending") return { error: "이미 사용됐거나 취소된 초대예요." };
-  if (new Date(invite.expiresAt).getTime() < Date.now()) return { error: "초대 코드가 만료됐어요. 새 초대를 받아주세요." };
-  if (invite.fromId === accepterId) return { error: "자기 자신을 동반자로 연결할 수 없어요." };
+  if (!invite) return { error: "초대 코드를 찾지 못했어." };
+  if (invite.status !== "pending") return { error: "이미 사용됐거나 취소된 초대야." };
+  if (new Date(invite.expiresAt).getTime() < Date.now()) return { error: "초대 코드가 만료됐어. 새 초대를 받아줘." };
+  if (invite.fromId === accepterId) return { error: "자기 자신을 동반자로 연결할 수 없어." };
   const existing = store.links.find((link) => link.memberIds.includes(invite.fromId) && link.memberIds.includes(accepterId));
   if (existing) {
     invite.status = "accepted";
@@ -214,7 +214,7 @@ export async function listAllSharedPlans(): Promise<SharedPlanRecord[]> {
 
 export async function shareplan(plan: DajeongPlan, ownerId: string, ownerName: string, companionId: string, companionName: string): Promise<{ ok: true; record: SharedPlanRecord } | { error: string }> {
   const link = await findLink(ownerId, companionId);
-  if (!link) return { error: "연결된 동반자가 아니에요. 먼저 동반자를 연결해 주세요." };
+  if (!link) return { error: "연결된 동반자가 아니야. 먼저 동반자를 연결해줘." };
   const store = await loadStore();
   const record: SharedPlanRecord = {
     planId: plan.id,
@@ -250,9 +250,9 @@ export async function publishSharedPlan(
   const record = store.sharedPlans[planId];
   // Deliberately the same message whether the plan doesn't exist or the caller just isn't a
   // participant — distinguishing the two would let a client enumerate valid plan IDs.
-  if (!record || (record.ownerId !== actorId && record.companionId !== actorId)) return { ok: false, error: "이 계획을 찾을 수 없어요." };
+  if (!record || (record.ownerId !== actorId && record.companionId !== actorId)) return { ok: false, error: "이 계획을 찾을 수 없어." };
   if (expectedVersion != null && expectedVersion !== record.version) {
-    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어요. 최신 내용을 다시 확인해 주세요.", conflict: record };
+    return { ok: false, error: "다른 사람이 방금 이 계획을 바꿨어. 최신 내용을 다시 확인해줘.", conflict: record };
   }
   const nextPlan = updater(record.plan);
   const nextRecord: SharedPlanRecord = {

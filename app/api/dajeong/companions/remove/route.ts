@@ -10,9 +10,9 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해 주세요." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "요청 정보를 확인해줘." }, { status: 400 });
   if (!(await verifyClaimedIdentity(parsed.data.personId))) return NextResponse.json({ error: IDENTITY_MISMATCH_ERROR }, { status: 401 });
   const ok = await removeCompanion(parsed.data.linkId, parsed.data.personId);
-  if (!ok) return NextResponse.json({ error: "연결을 찾지 못했어요." }, { status: 404 });
+  if (!ok) return NextResponse.json({ error: "연결을 찾지 못했어." }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

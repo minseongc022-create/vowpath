@@ -152,18 +152,18 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
     const target = resolveTargetItem(plan, instruction, requestedItemId);
     if (target && target.visibility === "secret" && !/전부|다|모두|전체/.test(instruction)) {
       const next = setItemVisibility(plan, target.id, "shared");
-      const message = `${target.title} 일정을 이제 공유 화면에도 보이게 했어요.`;
+      const message = `${target.title} 일정을 이제 공유 화면에도 보이게 했어.`;
       return { handled: true, plan: record(next, instruction, message, [target.id], false), message, changedItemIds: [target.id] };
     }
     const prepTarget = resolvePrepTarget(plan, instruction, requestedItemId);
     if (prepTarget && prepTarget.visibility !== "shared" && !/전부|다|모두|전체/.test(instruction)) {
       const next = setPrepVisibility(plan, prepTarget.id, "shared");
-      const message = `${prepTarget.title} 준비를 이제 동반자도 볼 수 있게 했어요.`;
+      const message = `${prepTarget.title} 준비를 이제 동반자도 볼 수 있게 했어.`;
       return { handled: true, plan: record(next, instruction, message, [], false), message, changedItemIds: [] };
     }
     const { plan: revealed, changedItemIds } = revealAllItems(plan);
     if (!changedItemIds.length && !(plan.prep ?? []).some((item) => item.visibility !== "shared")) return { handled: false, plan, message: "", changedItemIds: [] };
-    const message = "비공개로 뒀던 일정과 준비물을 모두 공유 화면에 보이게 바꿨어요.";
+    const message = "비공개로 뒀던 일정과 준비물을 모두 공유 화면에 보이게 바꿨어.";
     return { handled: true, plan: record(revealed, instruction, message, changedItemIds, false), message, changedItemIds };
   }
 
@@ -179,8 +179,8 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
       const dayNumber = cutoffItem?.dayNumber ?? 1;
       const { plan: next, changedItemIds } = setVisibilityFrom(plan, dayNumber, cutoffTime, "secret");
       const message = changedItemIds.length
-        ? `${cutoffTime} 이후 일정은 동반자 화면에서 비공개로 바꿨어요. 하루위드는 계속 전체 일정을 기억하고 동선을 맞춰요.`
-        : "그 시간 이후 일정이 없어서 바꿀 내용이 없어요.";
+        ? `${cutoffTime} 이후 일정은 동반자 화면에서 비공개로 바꿨어. 하루위드는 계속 전체 일정을 기억하고 동선을 맞춰.`
+        : "그 시간 이후 일정이 없어서 바꿀 내용이 없어.";
       return { handled: true, plan: record(next, instruction, message, changedItemIds, true), message, changedItemIds };
     }
   }
@@ -189,17 +189,17 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
   if (DISCLOSURE_LABEL_ONLY.test(instruction) || DISCLOSURE_TIME_ONLY.test(instruction) || DISCLOSURE_HIDDEN.test(instruction)) {
     const target = resolveTargetItem(plan, instruction, requestedItemId);
     if (!target) {
-      const message = "어떤 일정의 공개 수준을 바꿀지 정확히 짚지 못했어요. 시간이나 장소 이름을 함께 말해 주세요.";
+      const message = "어떤 일정의 공개 수준을 바꿀지 정확히 짚지 못했어. 시간이나 장소 이름을 함께 말해줘.";
       return { handled: true, plan: appendPlanConversation(plan, instruction, message), message, changedItemIds: [] };
     }
     const disclosure: SecretDisclosure = DISCLOSURE_LABEL_ONLY.test(instruction) ? "label_only" : DISCLOSURE_TIME_ONLY.test(instruction) ? "time_only" : "hidden";
     let next = setItemVisibility(plan, target.id, "secret", instruction.slice(0, 120));
     next = setItemDisclosure(next, target.id, disclosure);
     const message = disclosure === "label_only"
-      ? `${target.title} 일정은 동반자 화면에 "서프라이즈 일정"이라고만 보이게 했어요. 장소·내용은 안 보여요.`
+      ? `${target.title} 일정은 동반자 화면에 "서프라이즈 일정"이라고만 보이게 했어. 장소랑 내용은 안 보여.`
       : disclosure === "time_only"
-        ? `${target.title} 시간대만 동반자에게 "일정 있음"으로 보이고 내용은 비공개로 했어요.`
-        : `${target.title} 일정은 동반자 화면에서 완전히 안 보이게 했어요.`;
+        ? `${target.title} 시간대만 동반자에게 "일정 있음"으로 보이고 내용은 비공개로 해뒀어.`
+        : `${target.title} 일정은 동반자 화면에서 완전히 안 보이게 했어.`;
     return { handled: true, plan: record(next, instruction, message, [target.id], true), message, changedItemIds: [target.id] };
   }
 
@@ -210,7 +210,7 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
       const prepTarget = resolvePrepTarget(plan, instruction, requestedItemId);
       if (prepTarget) {
         const next = setPrepVisibility(plan, prepTarget.id, "secret", instruction.slice(0, 120));
-        const message = `${prepTarget.title} 준비는 이제 동반자에게 보이지 않아요. 관련 업체·가격·주문 정보와 채팅도 함께 비공개로 처리할게요.`;
+        const message = `${prepTarget.title} 준비는 이제 동반자에게 보이지 않아. 관련 업체·가격·주문 정보와 채팅도 함께 비공개로 처리할게.`;
         return { handled: true, plan: record(next, instruction, message, [], true), message, changedItemIds: [] };
       }
     }
@@ -219,14 +219,14 @@ export function applySecrecyInstruction(plan: DajeongPlan, instructionRaw: strin
       const prepTarget = resolvePrepTarget(plan, instruction, requestedItemId);
       if (prepTarget) {
         const next = setPrepVisibility(plan, prepTarget.id, "secret", instruction.slice(0, 120));
-        const message = `${prepTarget.title} 준비는 이제 동반자에게 보이지 않아요.`;
+        const message = `${prepTarget.title} 준비는 이제 동반자에게 보이지 않아.`;
         return { handled: true, plan: record(next, instruction, message, [], true), message, changedItemIds: [] };
       }
-      const message = "어떤 일정을 비공개로 할지 정확히 짚지 못했어요. 장소 이름이나 ‘마지막 일정’처럼 말해 주세요.";
+      const message = "어떤 일정을 비공개로 할지 정확히 짚지 못했어. 장소 이름이나 ‘마지막 일정’처럼 말해줘.";
       return { handled: true, plan: appendPlanConversation(plan, instruction, message), message, changedItemIds: [] };
     }
     const next = setItemVisibility(plan, target.id, "secret", instruction.slice(0, 120));
-    const message = `${target.title} 일정은 이제 동반자 화면에는 보이지 않아요. 하루위드는 계속 이 일정까지 포함해서 동선과 시간을 맞출게요.`;
+    const message = `${target.title} 일정은 이제 동반자 화면에는 보이지 않아. 하루위드는 계속 이 일정까지 포함해서 동선과 시간을 맞출게.`;
     return { handled: true, plan: record(next, instruction, message, [target.id], true), message, changedItemIds: [target.id] };
   }
 
