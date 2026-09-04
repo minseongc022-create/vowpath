@@ -4,7 +4,7 @@ import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-eng
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
 import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
-import { attachDiscoveryNote } from "@/dajeong/lib/plan-discovery";
+import { applyDiscoveryResult, findEventsForPlan } from "@/dajeong/lib/plan-discovery";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const ageBandSchema = z.enum(["10대", "20대", "30대", "40대", "50대", "60대 이상", "미상"]);
@@ -110,8 +110,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "상황을 다섯 글자 이상 적고 예산을 확인해줘." }, { status: 400 });
   }
 
-  const discovered = await enrichDajeongPlanWithRealPlaces(createDajeongPlan(parsed.data));
-  const withEvents = await attachDiscoveryNote(discovered);
+  const basePlan = createDajeongPlan(parsed.data);
+  // 발견 검색은 실제 장소 검색과 무관하다 — 뒤에 이어붙이면 걸리는 시간이 그대로 더해진다.
+  // 동시에 돌려서 둘 중 느린 쪽 시간만 든다.
+  const [discovered, discoveryResult] = await Promise.all([
+    enrichDajeongPlanWithRealPlaces(basePlan),
+    findEventsForPlan(basePlan),
+  ]);
+  const withEvents = applyDiscoveryResult(discovered, discoveryResult);
   const plan = initializePlanVersion(await personalizePlanSummary(await enrichPlanWithWeather(withEvents)));
   return NextResponse.json({ plan });
 }

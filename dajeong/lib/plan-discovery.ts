@@ -28,16 +28,15 @@ function eventLine(item: DiscoveryItem): string {
 }
 
 /**
- * 계획에 그 날짜·지역 행사 정보를 대화 메모로 붙인다.
- *
- * 확정(official, 기관 데이터)만 "그날 하고 있어"라고 말한다. 추정(inferred, 블로그 반응)은
- * 날짜를 확인 못 했으니 계획 날짜와 겹치는지 판단할 수 없다 — 그래서 날짜 매칭에서는 아예
- * 빼고, 지역만 맞으면 "요즘 그 동네에서 화제인 것도 있어" 정도로만 가볍게 덧붙인다.
+ * 발견 검색만 따로 떼어 실행한다. 실제 장소 검색(플레이스 엔리치먼트)과 아무 관계가 없어서,
+ * 그 뒤에 순서대로 기다릴 이유가 없다 — 호출하는 쪽에서 Promise.all로 실제 장소 검색과
+ * 동시에 돌려야 한다. 순서대로 이어붙이면 시간이 그대로 더해져 계획 하나 만드는 데
+ * 30초 넘게 걸리는 일이 생긴다(실제로 겪었다).
  */
-export async function attachDiscoveryNote(plan: DajeongPlan): Promise<DajeongPlan> {
-  if (!discoverySourcesConfigured() || plan.situation.singleCategory) return plan;
+export async function findEventsForPlan(plan: DajeongPlan): Promise<{ note: string; events: DiscoveryItem[] } | null> {
+  if (!discoverySourcesConfigured() || plan.situation.singleCategory) return null;
   const range = planDateRange(plan);
-  if (!range) return plan;
+  if (!range) return null;
 
   const near = await geocodeRegion(plan.situation.region);
   const withinDays = Math.max(1, Math.ceil((range.end.getTime() - Date.now()) / MS_PER_DAY) + 3);
@@ -53,7 +52,7 @@ export async function attachDiscoveryNote(plan: DajeongPlan): Promise<DajeongPla
     .slice(0, 2);
   const matchingBuzz = buzz.filter((item) => matchesRegion(item, plan.situation.region, near)).slice(0, 1);
 
-  if (!matchingEvents.length && !matchingBuzz.length) return plan;
+  if (!matchingEvents.length && !matchingBuzz.length) return null;
 
   const parts: string[] = [];
   if (matchingEvents.length) {
@@ -63,5 +62,11 @@ export async function attachDiscoveryNote(plan: DajeongPlan): Promise<DajeongPla
     // 추정 항목은 날짜를 단정하지 않는다 — headline이 이미 "확인해줘"로 끝나게 만들어져 있다.
     parts.push(`${discoveryHeadline(matchingBuzz[0])} (‘${matchingBuzz[0].title}’)`);
   }
-  return appendAssistantNote({ ...plan, discoveredEvents: [...matchingEvents, ...matchingBuzz] }, parts.join(" "));
+  return { note: parts.join(" "), events: [...matchingEvents, ...matchingBuzz] };
+}
+
+/** 발견 결과를 계획에 합친다. 못 찾았으면 그대로 돌려준다. */
+export function applyDiscoveryResult(plan: DajeongPlan, result: { note: string; events: DiscoveryItem[] } | null): DajeongPlan {
+  if (!result) return plan;
+  return appendAssistantNote({ ...plan, discoveredEvents: result.events }, result.note);
 }
