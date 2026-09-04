@@ -4,6 +4,7 @@ import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-eng
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
 import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
+import { attachDiscoveryNote } from "@/dajeong/lib/plan-discovery";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
 const ageBandSchema = z.enum(["10대", "20대", "30대", "40대", "50대", "60대 이상", "미상"]);
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
   }
 
   const discovered = await enrichDajeongPlanWithRealPlaces(createDajeongPlan(parsed.data));
-  const plan = initializePlanVersion(await personalizePlanSummary(await enrichPlanWithWeather(discovered)));
+  const withEvents = await attachDiscoveryNote(discovered);
+  const plan = initializePlanVersion(await personalizePlanSummary(await enrichPlanWithWeather(withEvents)));
   return NextResponse.json({ plan });
 }

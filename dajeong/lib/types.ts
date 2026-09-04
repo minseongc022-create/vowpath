@@ -655,6 +655,8 @@ export type DajeongPlan = {
   prep?: PrepItem[];
   prepAsked?: boolean;
   prepDeclined?: boolean;
+  /** 이 계획의 날짜·지역과 겹치는 기간 한정 행사(경복궁 야간개장류). 일정에 자동으로 넣지 않고 참고용으로만 들고 있는다. */
+  discoveredEvents?: DiscoveryItem[];
   notificationLevel?: "normal" | "content_hidden" | "off";
   /**
    * Whichever local identity (anonymous device id or account id) was active in this browser when

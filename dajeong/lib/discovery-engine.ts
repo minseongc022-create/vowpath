@@ -156,6 +156,35 @@ export function rankDiscoveries(items: DiscoveryItem[], today = new Date()): Dis
   });
 }
 
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * 계획의 날짜 범위(당일이면 하루, 여행이면 tripDays만큼)를 구한다.
+ *
+ * 시간대를 한국 기준으로 고정한다 — 서버는 UTC로 돌지만 "그날"은 한국 시간 기준이다.
+ */
+export function planDateRange(plan: { situation: { targetDate: string; planScope: string; tripDays?: number } }): { start: Date; end: Date } | null {
+  const start = new Date(`${plan.situation.targetDate}T00:00:00+09:00`);
+  if (Number.isNaN(start.getTime())) return null;
+  const days = plan.situation.planScope === "trip" ? Math.max(1, plan.situation.tripDays ?? 1) : 1;
+  const end = new Date(start.getTime() + (days - 1) * MS_PER_DAY);
+  return { start, end };
+}
+
+/**
+ * 행사 기간이 계획 날짜와 하루라도 겹치는지.
+ *
+ * 날짜를 모르는 항목(추정, 블로그 반응)은 겹치는지 판단할 근거가 없다 — 그래서 false를 준다.
+ * 계획에 자동으로 끼워 넣을 후보는 확정된 기간이 있는 것만이어야 한다.
+ */
+export function overlapsPlanDate(item: DiscoveryItem, range: { start: Date; end: Date }): boolean {
+  if (!item.startDate || !item.endDate) return false;
+  const eventStart = new Date(`${item.startDate}T00:00:00+09:00`);
+  const eventEnd = new Date(`${item.endDate}T23:59:59+09:00`);
+  if (Number.isNaN(eventStart.getTime()) || Number.isNaN(eventEnd.getTime())) return false;
+  return eventStart.getTime() <= range.end.getTime() && eventEnd.getTime() >= range.start.getTime();
+}
+
 export function selectDiscoveries(params: {
   items: DiscoveryItem[];
   region?: string;
