@@ -23,6 +23,10 @@ export function ArrowIcon(props: IconProps) {
   return <IconBase {...props}><path d="M5 12h14M14 7l5 5-5 5" /></IconBase>;
 }
 
+export function ArrowUpIcon(props: IconProps) {
+  return <IconBase {...props}><path d="M12 19V5M6 11l6-6 6 6" /></IconBase>;
+}
+
 export function CheckIcon(props: IconProps) {
   return <IconBase {...props}><path d="m5 12 4 4L19 6" /></IconBase>;
 }
@@ -61,6 +65,22 @@ export function UsersIcon(props: IconProps) {
 
 export function TrashIcon(props: IconProps) {
   return <IconBase {...props}><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" /></IconBase>;
+}
+
+export function PaletteIcon(props: IconProps) {
+  return <IconBase {...props}><path d="M12 3a9 9 0 0 0 0 18c1.4 0 2.2-.9 2.2-1.9 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H16A5 5 0 0 0 21 9.6C21 6 16.9 3 12 3Z" /><circle cx="7.6" cy="11.4" r="1.1" fill="currentColor" stroke="none" /><circle cx="10.4" cy="7.6" r="1.1" fill="currentColor" stroke="none" /><circle cx="15" cy="7.9" r="1.1" fill="currentColor" stroke="none" /><circle cx="17.6" cy="11.2" r="1.1" fill="currentColor" stroke="none" /></IconBase>;
+}
+
+export function PlusIcon(props: IconProps) {
+  return <IconBase {...props}><path d="M12 5.5v13M5.5 12h13" /></IconBase>;
+}
+
+export function InfoIcon(props: IconProps) {
+  return <IconBase {...props}><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><circle cx="12" cy="8" r=".6" fill="currentColor" stroke="none" /></IconBase>;
+}
+
+export function CalendarIcon(props: IconProps) {
+  return <IconBase {...props}><rect x="3.5" y="5.5" width="17" height="15" rx="3" /><path d="M3.5 10h17M8.5 3.5v4M15.5 3.5v4" /></IconBase>;
 }
 
 export function CategoryIcon({ category, ...props }: IconProps & { category: PlanCategory }) {

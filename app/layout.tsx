@@ -105,10 +105,19 @@ export async function generateMetadata(): Promise<Metadata> {
       description: DAJEONG_BRAND.tagline,
       applicationName: DAJEONG_BRAND.name,
       robots: { index: false, follow: false },
+      manifest: "/haruwith/site.webmanifest",
+      icons: {
+        icon: [
+          { url: "/haruwith/favicon-32.png", sizes: "32x32", type: "image/png" },
+          { url: "/haruwith/favicon-16.png", sizes: "16x16", type: "image/png" },
+        ],
+        apple: [{ url: "/haruwith/apple-touch-icon.png", sizes: "180x180" }],
+      },
       openGraph: {
         title: DAJEONG_BRAND.fullName,
         description: DAJEONG_BRAND.tagline,
         locale: "ko_KR",
+        images: [{ url: "/haruwith/icon-512.png", width: 512, height: 512, alt: DAJEONG_BRAND.name }],
       },
     };
   }

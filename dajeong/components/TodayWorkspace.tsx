@@ -220,7 +220,7 @@ export function TodayWorkspace({ planId }: { planId: string }) {
       )}
 
       <section className="dj-revision-studio">
-        <div className="dj-revision-heading"><span className="dj-concierge-avatar dj-brand-orb"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}에게 지금 상황을 말해 주세요</strong><p>지연, 연장, 조기 귀가처럼 오늘 바뀌는 것만 다시 계산해요.</p></div></div>
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}에게 지금 상황을 말해 주세요</strong><p>지연, 연장, 조기 귀가처럼 오늘 바뀌는 것만 다시 계산해요.</p></div></div>
         <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
           {messages.slice(-12).map((message) => (
             <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>

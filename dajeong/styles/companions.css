@@ -1,39 +1,91 @@
+/** 동반자 · 로그인 화면 — 메인과 같은 오로라 글래스 언어. */
+
 .dj-companions-page { display: grid; gap: 18px; }
-.dj-companion-name-form { display: grid; gap: 8px; padding: 18px 20px; }
-.dj-companion-name-form label { color: var(--dj-faint); font-size: 10px; font-weight: 800; }
+.dj-companion-name-form { display: grid; gap: 9px; padding: 19px 21px; }
+.dj-companion-name-form label { color: var(--dj-faint); font-size: 12px; font-weight: 750; }
 .dj-companion-name-form > div { display: flex; gap: 8px; }
-.dj-companion-name-form input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--dj-border); border-radius: 11px; font: inherit; font-size: 13px; }
-.dj-companion-invite, .dj-companion-accept { padding: 20px 22px; }
-.dj-companion-invite h2, .dj-companion-accept h2 { margin: 0 0 12px; font-family: inherit; font-size: 16px; letter-spacing: -.02em; }
+.dj-companion-name-form input { flex: 1; min-width: 0; height: 46px; padding: 0 13px; border: 1px solid var(--dj-line-strong); border-radius: var(--dj-radius-xs); background: #fff; color: var(--dj-ink); font: inherit; font-size: 14px; outline: none; }
+.dj-companion-name-form input:focus { border-color: var(--dj-accent); box-shadow: 0 0 0 4px var(--dj-accent-glow); }
+
+.dj-companion-invite, .dj-companion-accept { padding: 21px 23px; }
+.dj-companion-invite h2, .dj-companion-accept h2 { margin: 0 0 13px; font-size: 17px; letter-spacing: -.03em; font-weight: 750; }
 .dj-companion-invite-row, .dj-companion-accept form { display: flex; flex-wrap: wrap; gap: 8px; }
 .dj-companion-invite-row select,
 .dj-companion-invite-row input,
-.dj-companion-accept input { height: 42px; padding: 0 12px; border: 1px solid var(--dj-border); border-radius: 11px; font: inherit; font-size: 13px; }
+.dj-companion-accept input {
+  height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--dj-line-strong);
+  border-radius: var(--dj-radius-xs);
+  background: #fff;
+  color: var(--dj-ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.dj-companion-invite-row select:focus,
+.dj-companion-invite-row input:focus,
+.dj-companion-accept input:focus { border-color: var(--dj-accent); box-shadow: 0 0 0 4px var(--dj-accent-glow); }
 .dj-companion-invite-row input { flex: 1; min-width: 140px; }
 .dj-companion-accept input { flex: 1; min-width: 160px; text-transform: uppercase; letter-spacing: .08em; }
-.dj-invite-code-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; padding: 14px 16px; border: 1px dashed var(--dj-coral); border-radius: 14px; background: var(--dj-coral-soft); }
-.dj-invite-code-box span { color: var(--dj-coral-dark); font-size: 10px; font-weight: 800; }
-.dj-invite-code-box strong { font-size: 20px; letter-spacing: .12em; }
-.dj-invite-code-box p { flex-basis: 100%; margin: 4px 0 0; color: var(--dj-muted); font-size: 11px; line-height: 1.55; }
-.dj-companion-status { padding: 10px 14px; border-radius: 12px; background: var(--dj-sage-soft); color: var(--dj-sage); font-size: 12px; font-weight: 700; }
-.dj-companion-empty { color: var(--dj-faint); font-size: 12px; }
-.dj-companion-list { display: grid; gap: 8px; }
-.dj-companion-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; }
-.dj-companion-row strong { display: block; font-size: 14px; }
-.dj-companion-row span { color: var(--dj-faint); font-size: 11px; }
+
+.dj-invite-code-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; padding: 15px 17px; border: 1px dashed var(--dj-accent); border-radius: var(--dj-radius-sm); background: var(--dj-accent-soft); }
+.dj-invite-code-box span { color: var(--dj-accent-ink); font-size: 12px; font-weight: 750; }
+.dj-invite-code-box strong { font-size: 21px; letter-spacing: .12em; font-weight: 800; }
+.dj-invite-code-box p { flex-basis: 100%; margin: 4px 0 0; color: var(--dj-muted); font-size: 12px; line-height: 1.55; }
+.dj-companion-status { padding: 11px 15px; border-radius: var(--dj-radius-xs); background: var(--dj-accent-soft); color: var(--dj-accent-ink); font-size: 12px; font-weight: 700; }
+.dj-companion-empty { color: var(--dj-faint); font-size: 13px; }
+.dj-companion-list { display: grid; gap: 9px; }
+.dj-companion-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 19px; }
+.dj-companion-row strong { display: block; font-size: 14px; font-weight: 750; }
+.dj-companion-row span { color: var(--dj-faint); font-size: 12px; }
+.dj-companion-note { display: flex; align-items: flex-start; gap: 9px; padding: 15px 17px; color: var(--dj-muted); font-size: 12px; line-height: 1.6; }
+.dj-companion-note svg { flex: 0 0 auto; margin-top: 2px; color: var(--dj-accent); }
+
+/* ── 로그인 ───────────────────────────────────────────────── */
 
 .dj-login-page { display: flex; justify-content: center; padding: 60px 0; }
-.dj-login-card { display: grid; justify-items: center; gap: 6px; max-width: 380px; padding: 36px 30px; text-align: center; }
-.dj-login-orb { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 16px 16px 16px 5px; }
-.dj-login-card h1 { margin: 14px 0 4px; font-family: inherit; font-size: 24px; letter-spacing: -.03em; }
-.dj-login-card p { margin: 0 0 18px; color: var(--dj-muted); font-size: 13px; line-height: 1.6; }
-.dj-login-buttons { display: grid; gap: 10px; width: 100%; }
-.dj-login-button { position: relative; height: 48px; border: 1px solid var(--dj-border); border-radius: 12px; background: var(--dj-paper-strong); color: var(--dj-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.dj-login-button:disabled { opacity: .5; cursor: not-allowed; }
-.dj-login-button em { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--dj-faint); font-size: 10px; font-style: normal; font-weight: 700; }
+.dj-login-card { max-width: 390px; display: grid; justify-items: center; gap: 6px; padding: 38px 32px; text-align: center; }
+.dj-login-orb {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--dj-accent-border);
+  border-radius: var(--dj-radius);
+  background: linear-gradient(140deg, var(--dj-accent-soft), #fff);
+  color: var(--dj-accent);
+}
+.dj-login-card h1 { margin: 16px 0 5px; font-size: 24px; letter-spacing: -.04em; font-weight: 800; }
+.dj-login-card p { margin: 0 0 20px; color: var(--dj-muted); font-size: 13px; line-height: 1.65; }
+.dj-login-buttons { width: 100%; display: grid; gap: 10px; }
+.dj-login-button {
+  height: 50px;
+  position: relative;
+  border: 1px solid var(--dj-line-strong);
+  border-radius: var(--dj-radius-sm);
+  background: #fff;
+  color: var(--dj-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--dj-shadow-sm);
+  transition: transform .18s var(--dj-ease), box-shadow .18s var(--dj-ease);
+}
+.dj-login-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--dj-shadow); }
+.dj-login-button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.dj-login-button em { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: var(--dj-faint); font-size: 11px; font-style: normal; font-weight: 700; }
 .dj-login-google { border-color: #dadce0; }
-.dj-login-kakao { background: #FEE500; border-color: #FEE500; }
-.dj-login-naver { background: #03C75A; border-color: #03C75A; color: #fff; }
-.dj-login-toss { background: #0064FF; border-color: #0064FF; color: #fff; }
-.dj-login-note { margin-top: 14px; color: var(--dj-faint); font-size: 11px; }
+.dj-login-kakao { border-color: #FEE500; background: #FEE500; color: #191600; }
+.dj-login-naver { border-color: #03C75A; background: #03C75A; color: #fff; }
+.dj-login-toss { border-color: #0064FF; background: #0064FF; color: #fff; }
+.dj-login-note { margin-top: 15px; color: var(--dj-faint); font-size: 12px; }
 .dj-login-card .dj-help-link { margin-top: 18px; }
+
+@media (max-width: 640px) {
+  .dj-login-page { padding: 34px 0; }
+  .dj-login-card { padding: 30px 22px; }
+  .dj-companion-invite, .dj-companion-accept { padding: 18px; }
+  .dj-companion-row { padding: 14px 16px; }
+}

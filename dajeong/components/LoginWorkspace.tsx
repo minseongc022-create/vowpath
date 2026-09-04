@@ -48,7 +48,7 @@ export function LoginWorkspace({ callbackUrl = "/dajeong" }: { callbackUrl?: str
   return (
     <div className="dj-login-page dj-narrow">
       <div className="dj-login-card dj-card">
-        <span className="dj-brand-orb dj-login-orb"><SparkleIcon size={20} /></span>
+        <span className="dj-login-orb"><SparkleIcon size={20} /></span>
         <h1>{DAJEONG_BRAND.name} 로그인</h1>
         <p>로그인하면 다른 기기에서도 계획을 이어보고, 동반자와의 연결이 더 안전하게 유지돼요.</p>
         <div className="dj-login-buttons">

@@ -216,7 +216,7 @@ export function CompanionsWorkspace() {
         </section>
       ) : null}
 
-      <div className="dj-sidebar-trust dj-card"><SparkleIcon size={14} /><span>동반자는 계획 소유자가 비공개로 설정한 일정과 대화는 볼 수 없어요.<br />비공개 설정은 계획 화면에서 언제든 바꿀 수 있어요.</span></div>
+      <div className="dj-companion-note dj-card"><SparkleIcon size={14} /><span>동반자는 계획 소유자가 비공개로 설정한 일정과 대화는 볼 수 없어요.<br />비공개 설정은 계획 화면에서 언제든 바꿀 수 있어요.</span></div>
     </div>
   );
 }

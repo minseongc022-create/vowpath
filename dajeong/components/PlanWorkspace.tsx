@@ -132,7 +132,7 @@ function TimelineItem({
           {!isLast ? <i /> : null}
         </div>
         <div className="dj-plan-item dj-card">
-          {hasPhoto ? <div className="dj-plan-image"><img src={item.imageUrl} alt={item.imageAlt || item.title} onError={(event) => { if (item.referenceImageUrl && event.currentTarget.src !== item.referenceImageUrl) event.currentTarget.src = item.referenceImageUrl; else event.currentTarget.style.display = "none"; }} /><span>{item.location || `${item.categoryLabel} 후보`}</span><small>{photoLabel}</small>{changed ? <em>방금 조정됨</em> : null}</div> : <div className="dj-plan-image dj-plan-image-placeholder"><MapPinIcon size={25} /><span>{item.location || item.title}</span><small>사진은 상세 페이지에서 확인</small>{changed ? <em>방금 조정됨</em> : null}</div>}
+          {hasPhoto ? <div className="dj-plan-image"><img src={item.imageUrl} alt={item.imageAlt || item.title} onError={(event) => { if (item.referenceImageUrl && event.currentTarget.src !== item.referenceImageUrl) { event.currentTarget.src = item.referenceImageUrl; return; } event.currentTarget.style.display = "none"; event.currentTarget.parentElement?.classList.add("dj-plan-image-placeholder"); }} /><span>{item.location || `${item.categoryLabel} 후보`}</span><small>{photoLabel}</small>{changed ? <em>방금 조정됨</em> : null}</div> : <div className="dj-plan-image dj-plan-image-placeholder"><MapPinIcon size={25} /><span>{item.location || item.title}</span><small>사진은 상세 페이지에서 확인</small>{changed ? <em>방금 조정됨</em> : null}</div>}
           <div className="dj-plan-item-body">
             <div className="dj-plan-item-top">
               <div className="dj-plan-category"><span>{item.categoryLabel}</span>{highlight ? <em className="dj-highlight-badge">이번 코스의 하이라이트</em> : item.badge ? <em>{item.badge}</em> : null}</div>
@@ -620,7 +620,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       </div>
 
       <section className="dj-revision-studio">
-        <div className="dj-revision-heading"><span className="dj-concierge-avatar dj-brand-orb"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
         <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
           {messages.slice(-16).map((message) => (
             <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>
