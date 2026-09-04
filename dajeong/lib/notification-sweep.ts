@@ -60,13 +60,36 @@ async function collectParticipants(): Promise<Participant[]> {
   return participants;
 }
 
+/**
+ * dajeong_discovery_digests 테이블은 이 기능과 함께 새로 추가됐다 — 운영 DB에 아직
+ * `prisma db push`가 안 돌았으면 테이블이 없어서 쿼리가 실패한다. 그렇다고 그 실패가 날씨·
+ * 출발·준비물 등 이미 정상 동작하던 다른 알림까지 통째로 멈추게 하면 안 된다. 그래서 여기서만
+ * 조용히 실패를 흡수한다 — 발견 알림 하나가 이번 틱에 빠지는 것과, 스윕 전체가 죽는 것은
+ * 전혀 다른 크기의 문제다.
+ */
+async function safeGetDiscoveryDigest(planId: string): Promise<string[]> {
+  try {
+    return await getDiscoveryDigest(planId);
+  } catch {
+    return [];
+  }
+}
+
+async function safeSetDiscoveryDigest(planId: string, notifiedIds: string[]): Promise<void> {
+  try {
+    await setDiscoveryDigest(planId, notifiedIds);
+  } catch {
+    // 테이블이 아직 없으면 이번엔 못 남기고 넘어간다 — db push 이후 다음 스윕부터 정상 동작한다.
+  }
+}
+
 async function sweepOneParticipant(participant: Participant, discoveryCache: Map<string, DajeongPlan>): Promise<{ created: number; dispatched: number }> {
   const refreshedPlan = await refreshedDiscoveredEvents(participant.plan, discoveryCache);
   const viewerPlan = participant.role === "owner" ? refreshedPlan : redactPlanForViewer(refreshedPlan, participant.personId);
   if (!viewerPlan) return { created: 0, dispatched: 0 };
   const prefs = await getPreferences(participant.personId);
   const previousDigest = await getWeatherDigest(participant.plan.id);
-  const previousNotifiedDiscoveryIds = await getDiscoveryDigest(participant.plan.id);
+  const previousNotifiedDiscoveryIds = await safeGetDiscoveryDigest(participant.plan.id);
   const ownerSecretItemIds = participant.role === "owner" ? secretRelatedItemIds(participant.plan) : new Set<string>();
   const drafts = computeNotificationDrafts({
     plan: viewerPlan,
@@ -86,7 +109,7 @@ async function sweepOneParticipant(participant: Participant, discoveryCache: Map
   if (participant.role === "owner") {
     await setWeatherDigest(participant.plan.id, weatherDigestFor(viewerPlan));
     const newlyNotified = discoveryIdsFromDrafts(drafts, participant.plan.id);
-    if (newlyNotified.length) await setDiscoveryDigest(participant.plan.id, [...previousNotifiedDiscoveryIds, ...newlyNotified]);
+    if (newlyNotified.length) await safeSetDiscoveryDigest(participant.plan.id, [...previousNotifiedDiscoveryIds, ...newlyNotified]);
   }
   return { created: created.length, dispatched: 0 };
 }

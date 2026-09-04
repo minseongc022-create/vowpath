@@ -143,8 +143,11 @@ export async function unregisterPlan(planId: string): Promise<void> {
   await prisma.$transaction([
     prisma.dajeongRegisteredPlan.deleteMany({ where: { planId } }),
     prisma.dajeongWeatherDigest.deleteMany({ where: { planId } }),
-    prisma.dajeongDiscoveryDigest.deleteMany({ where: { planId } }),
   ]);
+  // dajeong_discovery_digests는 이 기능과 함께 새로 추가된 테이블이라, `prisma db push`가 아직
+  // 안 돈 운영 DB에는 없을 수 있다. 그런 경우에도 위의 등록 해제 자체(이미 동작하던 기능)는
+  // 실패하면 안 되므로 트랜잭션 밖에서 따로, 실패해도 무시하고 처리한다.
+  await prisma.dajeongDiscoveryDigest.deleteMany({ where: { planId } }).catch(() => undefined);
 }
 
 export async function listRegisteredPlans(): Promise<RegisteredPlan[]> {
