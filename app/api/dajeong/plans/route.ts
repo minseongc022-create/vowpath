@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-engine";
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
-import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
+import { applyWeatherContext, fetchWeatherContext } from "@/dajeong/lib/weather";
 import { applyDiscoveryResult, findEventsForPlan } from "@/dajeong/lib/plan-discovery";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 
@@ -111,13 +111,15 @@ export async function POST(request: Request) {
   }
 
   const basePlan = createDajeongPlan(parsed.data);
-  // 발견 검색은 실제 장소 검색과 무관하다 — 뒤에 이어붙이면 걸리는 시간이 그대로 더해진다.
-  // 동시에 돌려서 둘 중 느린 쪽 시간만 든다.
-  const [discovered, discoveryResult] = await Promise.all([
+  // 발견 검색·날씨 조회는 실제 장소 검색과 서로 무관하다 — 뒤에 이어붙이면 걸리는 시간이
+  // 그대로 더해진다. 셋 다 동시에 돌려서 가장 느린 것 하나의 시간만 든다.
+  const [discovered, discoveryResult, weather] = await Promise.all([
     enrichDajeongPlanWithRealPlaces(basePlan),
     findEventsForPlan(basePlan),
+    fetchWeatherContext(basePlan),
   ]);
   const withEvents = applyDiscoveryResult(discovered, discoveryResult);
-  const plan = initializePlanVersion(await personalizePlanSummary(await enrichPlanWithWeather(withEvents)));
+  const withWeather = applyWeatherContext(withEvents, weather);
+  const plan = initializePlanVersion(await personalizePlanSummary(withWeather));
   return NextResponse.json({ plan });
 }

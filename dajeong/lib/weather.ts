@@ -103,7 +103,16 @@ export async function fetchWeatherContext(plan: DajeongPlan): Promise<WeatherCon
   }
 }
 
+/**
+ * 이미 받아 둔 날씨 정보를 계획에 합친다. fetchWeatherContext 자체는 실제 장소 검색과
+ * 무관해서 라우트 쪽에서 Promise.all로 동시에 미리 받아둘 수 있다 — 그 경우 이 함수로
+ * 합치기만 하면 된다(순서대로 다시 기다릴 필요가 없다).
+ */
+export function applyWeatherContext(plan: DajeongPlan, weather: WeatherContext): DajeongPlan {
+  return scheduleDajeongPlan({ ...plan, schedule: { ...(plan.schedule ?? { density: plan.situation.scheduleDensity, dayWindows: [], estimatedEndTime: plan.situation.startTime, reserveRatio: .85, warnings: [] }), weather } });
+}
+
 export async function enrichPlanWithWeather(plan: DajeongPlan): Promise<DajeongPlan> {
   const weather = await fetchWeatherContext(plan);
-  return scheduleDajeongPlan({ ...plan, schedule: { ...(plan.schedule ?? { density: plan.situation.scheduleDensity, dayWindows: [], estimatedEndTime: plan.situation.startTime, reserveRatio: .85, warnings: [] }), weather } });
+  return applyWeatherContext(plan, weather);
 }

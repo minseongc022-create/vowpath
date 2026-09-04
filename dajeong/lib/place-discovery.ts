@@ -424,6 +424,30 @@ function normalizeOsm(element: OsmElement, region: string, checkedAt: string): R
   return candidate;
 }
 
+const OVERPASS_ENDPOINTS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://lz4.overpass-api.de/api/interpreter"];
+
+/**
+ * 여러 Overpass 미러를 순서대로 기다리면 하나가 느리거나 응답이 없을 때 그 타임아웃만큼
+ * 그대로 더 기다리게 된다(실제로 계획 생성 하나에 30초 넘게 걸린 원인 중 하나였다).
+ * 대신 전부 동시에 쏘고 가장 먼저 데이터를 준 것을 쓴다 — 전체 대기 시간이 "가장 느린 것의
+ * 합"이 아니라 "가장 빠른 성공 응답" 하나로 줄어든다.
+ */
+async function fetchOverpass(query: string, timeoutMs: number): Promise<{ elements?: OsmElement[] } | null> {
+  const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
+    const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) throw new Error(`overpass_${response.status}`);
+    return response.json() as Promise<{ elements?: OsmElement[] }>;
+  });
+  const settled = await Promise.allSettled(attempts);
+  const fulfilled = settled.find((result) => result.status === "fulfilled" && (result.value.elements?.length ?? 0) > 0);
+  if (fulfilled && fulfilled.status === "fulfilled") return fulfilled.value;
+  const anyOk = settled.find((result): result is PromiseFulfilledResult<{ elements?: OsmElement[] }> => result.status === "fulfilled");
+  return anyOk?.value ?? null;
+}
+
 async function searchOpenStreetMap(region: string, category: PlanCategory, near?: Coordinates): Promise<RealPlaceCandidate[]> {
   const filters = osmFilters(category);
   if (!filters.length) return [];
@@ -436,26 +460,12 @@ async function searchOpenStreetMap(region: string, category: PlanCategory, near?
   const around = `around:${radius},${center.latitude},${center.longitude}`;
   const clauses = filters.map((filter) => `nwr(${around})${filter};`).join("");
   const query = `[out:json][timeout:12];(${clauses});out body center 40;`;
-  const endpoints = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://lz4.overpass-api.de/api/interpreter"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
-        headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
-        signal: AbortSignal.timeout(16_000),
-      });
-      if (!response.ok) continue;
-      const data = await response.json() as { elements?: OsmElement[] };
-      const checkedAt = new Date().toISOString();
-      const places = (data.elements ?? []).map((element) => normalizeOsm(element, region, checkedAt)).filter((place): place is RealPlaceCandidate => Boolean(place));
-      if (places.length) {
-        osmCache.set(cacheKey, { expiresAt: Date.now() + 3_600_000, places });
-        return places;
-      }
-    } catch {
-      // Try another public OSM endpoint, then retain the curated fallback.
-    }
-  }
-  return [];
+  const data = await fetchOverpass(query, 8_000).catch(() => null);
+  if (!data) return [];
+  const checkedAt = new Date().toISOString();
+  const places = (data.elements ?? []).map((element) => normalizeOsm(element, region, checkedAt)).filter((place): place is RealPlaceCandidate => Boolean(place));
+  if (places.length) osmCache.set(cacheKey, { expiresAt: Date.now() + 3_600_000, places });
+  return places;
 }
 
 function osmMatchesCategory(tags: Record<string, string>, category: PlanCategory): boolean {
@@ -483,29 +493,17 @@ async function searchOpenStreetMapBatch(region: string, categories: PlanCategory
     return clauses ? `(${clauses});out body center ${limit};` : "";
   }).join("");
   const query = `[out:json][timeout:14];${categoryQueries}`;
-  const endpoints = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://lz4.overpass-api.de/api/interpreter"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {
-        headers: { "User-Agent": "HaruwithConcierge/1.0 (https://haruwith.com)", Accept: "application/json" },
-        signal: AbortSignal.timeout(18_000),
-      });
-      if (!response.ok) continue;
-      const data = await response.json() as { elements?: OsmElement[] };
-      const checkedAt = new Date().toISOString();
-      for (const category of uniqueCategories) {
-        const places = (data.elements ?? [])
-          .filter((element) => osmMatchesCategory(element.tags ?? {}, category))
-          .map((element) => normalizeOsm(element, region, checkedAt))
-          .filter((place): place is RealPlaceCandidate => Boolean(place));
-        if (places.length) {
-          result.set(category, places);
-          osmCache.set(`${category}:${center.latitude.toFixed(2)}:${center.longitude.toFixed(2)}`, { expiresAt: Date.now() + 3_600_000, places });
-        }
-      }
-      return result;
-    } catch {
-      // Try one other public endpoint before retaining the curated candidates.
+  const data = await fetchOverpass(query, 10_000).catch(() => null);
+  if (!data) return result;
+  const checkedAt = new Date().toISOString();
+  for (const category of uniqueCategories) {
+    const places = (data.elements ?? [])
+      .filter((element) => osmMatchesCategory(element.tags ?? {}, category))
+      .map((element) => normalizeOsm(element, region, checkedAt))
+      .filter((place): place is RealPlaceCandidate => Boolean(place));
+    if (places.length) {
+      result.set(category, places);
+      osmCache.set(`${category}:${center.latitude.toFixed(2)}:${center.longitude.toFixed(2)}`, { expiresAt: Date.now() + 3_600_000, places });
     }
   }
   return result;
