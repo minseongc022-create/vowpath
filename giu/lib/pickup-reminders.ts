@@ -27,7 +27,16 @@ export async function runGiuPickupReminders(store: GiuStore): Promise<PickupRemi
   let merchantExtensionPings = 0;
 
   for (const res of store.reservations) {
-    if (res.paymentStatus !== "paid" || res.status !== "giu_cho") continue;
+    if (res.paymentStatus !== "paid") continue;
+    if (
+      res.status !== "payment_completed" &&
+      res.status !== "merchant_confirmed" &&
+      res.status !== "pickup_preparing" &&
+      res.status !== "pickup_waiting" &&
+      res.status !== "pickup_change_completed"
+    ) {
+      continue;
+    }
     const box = store.boxes.find((b) => b.id === res.boxId);
     const merchant = store.merchants.find((m) => m.id === res.merchantId);
     if (!box || !merchant) continue;

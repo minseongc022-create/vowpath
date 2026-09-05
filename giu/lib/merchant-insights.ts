@@ -1,3 +1,4 @@
+import { isMerchantDeliveredOrder } from "./order-status";
 import type { GiuReservation } from "./types";
 
 export type MerchantCustomerInsights = {
@@ -14,7 +15,7 @@ export function computeMerchantCustomerInsights(
   merchantId: string,
 ): MerchantCustomerInsights {
   const completed = reservations.filter(
-    (r) => r.merchantId === merchantId && r.status === "da_lay" && r.paymentStatus === "paid",
+    (r) => r.merchantId === merchantId && isMerchantDeliveredOrder(r),
   );
   const counts = new Map<string, number>();
   for (const r of completed) {

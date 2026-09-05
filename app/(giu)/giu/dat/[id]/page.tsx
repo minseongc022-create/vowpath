@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CustomerOrderActions } from "@/giu/components/CustomerOrderActions";
+import { OrderStatusBadge } from "@/giu/components/OrderStatusBadge";
+import { OrderStatusTimeline } from "@/giu/components/OrderStatusTimeline";
 import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
-import { CustomerExtensionRequestForm } from "@/giu/components/CustomerExtensionRequestForm";
-import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
 import { ReservationDeepLinkScroll } from "@/giu/components/ReservationDeepLinkScroll";
 import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
@@ -15,8 +16,9 @@ import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { zaloChatUrl } from "@/giu/lib/links";
+import { isPickupQrValid, resolveDisplayOrderStatus, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
+import { isTerminalOrderStatus } from "@/giu/lib/order-status";
 import { ReservationTicketExtras } from "@/giu/components/ReservationTicketExtras";
-import { canRequestExtensionInApp, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 import { getBox, getMerchant, getReservation, getReviewForReservation } from "@/giu/lib/store";
 
 type Props = {
@@ -34,8 +36,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
   const paid = reservation.paymentStatus === "paid";
   const pending = reservation.paymentStatus === "pending";
-  const pickedUp = reservation.status === "da_lay";
-  const expired = reservation.status === "het_han";
+  const refunded = reservation.paymentStatus === "refunded";
 
   const [box, merchant, existingReview] = await Promise.all([
     getBox(reservation.boxId),
@@ -43,18 +44,17 @@ export default async function GiuReservationPage({ params, searchParams }: Props
     getReviewForReservation(id),
   ]);
 
-  const zaloUrl = merchant?.zalo ? zaloChatUrl(merchant.zalo) : null;
-  const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
   const policy = resolvePickupPolicy(merchant);
-  const canRequestInApp = Boolean(
-    box &&
-      (reservation.status === "giu_cho" || reservation.status === "het_han") &&
-      canRequestExtensionInApp(box.pickupEnd, policy),
-  );
+  const displayStatus = resolveDisplayOrderStatus(reservation, box?.pickupEnd, policy);
+  const pickedUp =
+    displayStatus === "pickup_completed" || displayStatus === "settlement_completed";
+  const qrVisible = paid && isPickupQrValid({ ...reservation, status: displayStatus });
   const hasPromise =
     reservation.merchantPickupPromiseUntil &&
     new Date(reservation.merchantPickupPromiseUntil).getTime() > Date.now();
-  const extensionStatus = reservation.extensionRequest?.status;
+
+  const zaloUrl = merchant?.zalo ? zaloChatUrl(merchant.zalo) : null;
+  const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
 
   const defaultPlanned = box
     ? (() => {
@@ -81,36 +81,35 @@ export default async function GiuReservationPage({ params, searchParams }: Props
         </div>
       ) : paid ? (
         <div className="giu-ticket space-y-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
-            {t(locale, "pickupQr")}
-          </p>
-          {sp.paid === "1" ? (
-            <p className="text-[11px] font-semibold text-giu-accent">{t(locale, "settleHeld")}</p>
-          ) : null}
-          <p className="text-[13px] font-medium text-giu-muted">{t(locale, "showCode")}</p>
-          <p className="text-[12px] leading-relaxed text-giu-muted">{t(locale, "pickupPinHint")}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
+              {t(locale, "pickupQr")}
+            </p>
+            <OrderStatusBadge reservation={reservation} boxPickupEnd={box?.pickupEnd} policy={policy} />
+          </div>
           {pickedUp ? (
-            <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
+            <p className="text-[13px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
+          ) : displayStatus === "not_picked_up" ? (
+            <p className="text-[13px] font-semibold text-amber-800">{t(locale, "orderNotPickedUpHint")}</p>
           ) : hasPromise ? (
-            <p className="text-[12px] font-semibold text-giu-primary">{t(locale, "cPickupPromisedHint")}</p>
-          ) : expired ? (
-            <p className="text-[12px] font-semibold text-amber-800">{t(locale, "cPickupExpiredHint")}</p>
+            <p className="text-[13px] font-semibold text-giu-primary">{t(locale, "cPickupPromisedHint")}</p>
           ) : (
-            <p className="text-[12px] font-semibold text-giu-ink">{t(locale, "settleHeld")}</p>
+            <p className="text-[13px] text-giu-muted">{t(locale, "settleHeld")}</p>
           )}
-          {reservation.smsSent ? (
-            <p className="text-[11px] text-giu-muted">{t(locale, "paidSms")}</p>
+          {qrVisible ? (
+            <ReservationTicketExtras
+              reservationId={id}
+              pickupCode={reservation.code}
+              pickedUp={pickedUp}
+              paid={paid}
+              existingReviewRating={existingReview?.rating}
+            />
           ) : (
-            <p className="text-[11px] text-giu-muted">{t(locale, "paidAppOnly")}</p>
+            <p className="text-[12px] text-giu-muted">{t(locale, "qrNotReady")}</p>
           )}
-          <ReservationTicketExtras
-            reservationId={id}
-            pickupCode={reservation.code}
-            pickedUp={pickedUp}
-            paid={paid}
-            existingReviewRating={existingReview?.rating}
-          />
         </div>
+      ) : refunded ? (
+        <div className="giu-card text-center text-[13px] text-giu-muted">{t(locale, "payRefunded")}</div>
       ) : (
         <div className="giu-card text-center text-[13px] text-giu-muted">{t(locale, "payFailed")}</div>
       )}
@@ -147,37 +146,25 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           </>
         ) : null}
 
-        {paid && !pickedUp ? (
+        {paid && !pickedUp && !isTerminalOrderStatus(displayStatus) ? (
           <>
-            {(reservation.status === "giu_cho" || reservation.status === "het_han") &&
-            extensionStatus !== "approved" ? (
-              <CustomerExtensionRequestForm
-                locale={locale}
-                reservationId={id}
-                canRequestInApp={canRequestInApp}
-                cutoffMinutes={policy.extensionRequestBeforeMinutes}
-                extensionStatus={extensionStatus}
-                defaultPlannedAt={defaultPlanned}
-              />
-            ) : null}
-            {expired ? (
-              <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "cPickupExpiredActionHint")}</p>
-            ) : null}
+            <CustomerOrderActions
+              locale={locale}
+              reservation={reservation}
+              displayStatus={displayStatus}
+              merchantName={merchant?.name ?? ""}
+              merchantPhone={merchant?.phone}
+              boxPickupEnd={box?.pickupEnd}
+              policy={policy}
+              defaultPlannedAt={defaultPlanned}
+            />
             <div id="giu-refund-section">
               <RefundReservationButton reservationId={id} />
             </div>
           </>
         ) : null}
 
-        {paid && (reservation.status === "giu_cho" || pickedUp || expired) && merchant ? (
-          <ReservationChatButton
-            locale={locale}
-            reservationId={id}
-            viewerRole="customer"
-            peerName={merchant.name}
-            peerPhone={merchant.phone}
-          />
-        ) : null}
+        {paid ? <OrderStatusTimeline locale={locale} reservationId={id} /> : null}
 
         <GiuCustomerBackLink
           href={href(GIU_ROUTES.customer.home)}

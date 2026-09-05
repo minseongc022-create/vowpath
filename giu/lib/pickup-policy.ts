@@ -1,5 +1,6 @@
-import type { GiuMerchant, GiuReservation } from "./types";
+import type { GiuMerchant, GiuOrderStatus, GiuReservation } from "./types";
 import { getGiuPublicOrigin } from "./giu-host";
+import { isPickupQrEligibleStatus } from "./order-status";
 
 export type GiuPickupPolicy = {
   cancelFreeBeforeMinutes: number;
@@ -26,8 +27,14 @@ export const PICKUP_REMINDER_70_MIN = 70;
 export const PICKUP_REMINDER_30_MIN = 30;
 /** Merchant ping interval while extension pending. */
 export const EXTENSION_MERCHANT_PING_MIN = 5;
-/** After pickup grace, ghosted customers are auto-refunded (fee deducted) after this many days. */
-export const AUTO_NO_SHOW_REFUND_DAYS = 4;
+
+const PICKUP_WAITING_STATUSES: GiuOrderStatus[] = [
+  "payment_completed",
+  "merchant_confirmed",
+  "pickup_preparing",
+  "pickup_waiting",
+  "pickup_change_completed",
+];
 
 export function resolvePickupPolicy(merchant?: Pick<GiuMerchant, "pickupPolicy"> | null): GiuPickupPolicy {
   const p = merchant?.pickupPolicy ?? {};
@@ -95,27 +102,23 @@ export function pickupGraceEndsAt(
   return new Date(pickupEndIso).getTime() + policy.pickupGraceMinutes * 60_000;
 }
 
-/** Days after grace end before system auto-refunds ghosted orders (no merchant action). */
-export function autoNoShowRefundEligible(
+/** After 미수령 + review window — move to 노쇼 처리 검토 (no auto payout). */
+export function noShowReviewEligible(
   reservation: Pick<
     GiuReservation,
     | "status"
     | "paymentStatus"
-    | "merchantPickupPromiseUntil"
+    | "notPickedUpAt"
     | "extensionRequest"
+    | "merchantPickupPromiseUntil"
     | "refundedAt"
-    | "merchantNoShowMarkedAt"
-    | "autoNoShowRefundAt"
   >,
-  boxPickupEndIso: string,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
 ): boolean {
   if (reservation.paymentStatus !== "paid") return false;
-  if (reservation.refundedAt || reservation.merchantNoShowMarkedAt || reservation.autoNoShowRefundAt) {
-    return false;
-  }
-  if (reservation.status !== "het_han" && reservation.status !== "giu_cho") return false;
+  if (reservation.status !== "not_picked_up") return false;
+  if (reservation.refundedAt) return false;
   if (reservation.extensionRequest?.status === "pending") return false;
   if (
     reservation.merchantPickupPromiseUntil &&
@@ -123,16 +126,11 @@ export function autoNoShowRefundEligible(
   ) {
     return false;
   }
-  if (
-    reservation.status === "giu_cho" &&
-    !shouldMarkReservationExpired(reservation, boxPickupEndIso, policy, now)
-  ) {
-    return false;
-  }
-
-  const endIso = effectivePickupEndIso(reservation, boxPickupEndIso);
-  const graceEnd = pickupGraceEndsAt(endIso, policy);
-  return now >= graceEnd + AUTO_NO_SHOW_REFUND_DAYS * 86_400_000;
+  const base = reservation.notPickedUpAt
+    ? new Date(reservation.notPickedUpAt).getTime()
+    : now;
+  const reviewAfter = base + policy.merchantNoShowMarkAfterHours * 3_600_000;
+  return now >= reviewAfter;
 }
 
 export function defaultPromiseUntil(pickupEndIso: string, now = Date.now()): string {
@@ -151,11 +149,10 @@ export function isPickupQrValid(
   reservation: Pick<GiuReservation, "status" | "paymentStatus">,
 ): boolean {
   if (reservation.paymentStatus !== "paid") return false;
-  if (reservation.status === "da_lay" || reservation.status === "huy") return false;
-  return true;
+  return isPickupQrEligibleStatus(reservation.status);
 }
 
-export function shouldMarkReservationExpired(
+export function shouldMarkNotPickedUp(
   reservation: Pick<
     GiuReservation,
     "status" | "paymentStatus" | "merchantPickupPromiseUntil" | "extensionRequest"
@@ -164,11 +161,9 @@ export function shouldMarkReservationExpired(
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
 ): boolean {
-  if (reservation.paymentStatus !== "paid" || reservation.status !== "giu_cho") return false;
-
-  if (reservation.extensionRequest?.status === "pending") {
-    return false;
-  }
+  if (reservation.paymentStatus !== "paid") return false;
+  if (!PICKUP_WAITING_STATUSES.includes(reservation.status)) return false;
+  if (reservation.extensionRequest?.status === "pending") return false;
 
   const promisedUntil = reservation.merchantPickupPromiseUntil;
   if (promisedUntil && new Date(promisedUntil).getTime() > now) {
@@ -184,12 +179,12 @@ export function shouldMarkReservationExpired(
   return now > pickupGraceEndsAt(endIso, policy);
 }
 
+/** @deprecated Use shouldMarkNotPickedUp */
+export const shouldMarkReservationExpired = shouldMarkNotPickedUp;
+
 /** Pickup deadline for expiry/display — honors approved extension times. */
 export function effectivePickupEndIso(
-  reservation: Pick<
-    GiuReservation,
-    "merchantPickupPromiseUntil" | "extensionRequest"
-  >,
+  reservation: Pick<GiuReservation, "merchantPickupPromiseUntil" | "extensionRequest">,
   boxPickupEndIso: string,
 ): string {
   if (reservation.merchantPickupPromiseUntil) {
@@ -201,8 +196,8 @@ export function effectivePickupEndIso(
   return boxPickupEndIso;
 }
 
-/** UI + filters: treat past-grace giu_cho as 픽업 마감 even before cron persists het_han. */
-export function resolveDisplayReservationStatus(
+/** UI: show 미수령 before cron persists not_picked_up. */
+export function resolveDisplayOrderStatus(
   reservation: Pick<
     GiuReservation,
     "status" | "paymentStatus" | "merchantPickupPromiseUntil" | "extensionRequest"
@@ -210,12 +205,22 @@ export function resolveDisplayReservationStatus(
   boxPickupEndIso: string | undefined,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
-): GiuReservation["status"] {
-  if (reservation.status !== "giu_cho" || !boxPickupEndIso) return reservation.status;
-  if (shouldMarkReservationExpired(reservation, boxPickupEndIso, policy, now)) {
-    return "het_han";
+): GiuOrderStatus {
+  if (!boxPickupEndIso) return reservation.status;
+  if (PICKUP_WAITING_STATUSES.includes(reservation.status)) {
+    if (shouldMarkNotPickedUp(reservation, boxPickupEndIso, policy, now)) {
+      return "not_picked_up";
+    }
   }
   return reservation.status;
+}
+
+/** @deprecated */
+export const resolveDisplayReservationStatus = resolveDisplayOrderStatus;
+
+/** @deprecated Removed auto-refund — kept as no-op guard for imports. */
+export function autoNoShowRefundEligible(): boolean {
+  return false;
 }
 
 export function reservationDeepLink(reservationId: string, from?: string): string {

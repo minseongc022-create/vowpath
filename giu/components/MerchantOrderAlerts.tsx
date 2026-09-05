@@ -61,7 +61,9 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
       }
 
       const paid = (data.reservations ?? []).filter(
-        (r) => r.paymentStatus === "paid" && r.status === "giu_cho",
+        (r) =>
+          r.paymentStatus === "paid" &&
+          (r.status === "payment_completed" || r.status === "pickup_change_requested"),
       );
       const ids = paid.map((r) => r.id);
 
