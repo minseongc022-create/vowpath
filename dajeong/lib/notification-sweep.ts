@@ -8,6 +8,7 @@ import {
   weatherDigestFor,
 } from "./notification-engine";
 import { refreshDiscoveredEventsForPlan } from "./discovery-region-refresh";
+import { recordSweepRun } from "./sweep-heartbeat";
 import {
   dueNotifications,
   getDiscoveryDigest,
@@ -150,7 +151,10 @@ export async function sweepDueNotifications(): Promise<SweepSummary> {
       failed += 1;
     }
   }
-  return { plansScanned: new Set(participants.map((p) => p.plan.id)).size, participantsScanned: participants.length, notificationsReconciled, dispatched, failed, expiredSubscriptionsRemoved };
+  const summary = { plansScanned: new Set(participants.map((p) => p.plan.id)).size, participantsScanned: participants.length, notificationsReconciled, dispatched, failed, expiredSubscriptionsRemoved };
+  // 이 기록이 있어야 "60초 cron이 진짜 돌고 있는지"를 나중에 확인할 수 있다.
+  await recordSweepRun(summary);
+  return summary;
 }
 
 /** Called right after a plan mutation (revise/live/sync) so notifications react immediately

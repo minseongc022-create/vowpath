@@ -457,6 +457,17 @@ model DajeongWeatherDigest {
   @@map("dajeong_weather_digests")
 }
 
+/** Heartbeat for the 60-second notification sweep. The sweep itself is driven by an external
+ * cron this repo cannot see, so without a recorded timestamp there is no way to answer "is it
+ * actually running in production?" — which is exactly the question that kept coming up. */
+model DajeongSweepHeartbeat {
+  key       String   @id
+  lastRunAt DateTime
+  detail    Json?
+
+  @@map("dajeong_sweep_heartbeats")
+}
+
 /** One outbound booking call 하루위드 placed on a user's behalf. Server-side because the call
  * result arrives from the voice provider's webhook long after the browser moved on — the plan
  * itself lives in the user's browser for solo plans, so there is nowhere else to land it. */

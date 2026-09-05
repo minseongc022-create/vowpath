@@ -221,6 +221,78 @@ export async function fetchCultureEvents(params: {
 }
 
 /**
+ * 서울 열린데이터광장 — 서울시가 직접 등록한 문화행사 정보(culturalEventInfo).
+ *
+ * 위 전국 단위 문화데이터가 놓치는 자치구 단위 행사(구민회관 전시, 동네 축제, 야외공연)가
+ * 여기에 있다. 서울 계획에서만 부르므로 다른 지역 요청에는 호출조차 하지 않는다.
+ *
+ * 응답 필드 이름을 확정할 수 없는 상태에서 하나만 찍으면 통째로 빈 결과가 되므로, 이 파일의
+ * 다른 출처들과 같이 후보 이름을 여러 개 두고 먼저 잡히는 걸 쓴다.
+ */
+export async function fetchSeoulEvents(params: {
+  /** 자치구 이름("성동구") 또는 행사명 일부. 없으면 전체를 최신순으로 본다. */
+  keyword?: string;
+  limit?: number;
+}): Promise<DiscoveryItem[]> {
+  const serviceKey = seoulOpenDataKey();
+  if (!serviceKey) return [];
+
+  const limit = Math.min(100, params.limit ?? 30);
+  // 서울 열린데이터광장 공통 규격: /{키}/{형식}/{서비스}/{시작}/{끝}/{선택 필터...}
+  const segments = ["http://openapi.seoul.go.kr:8088", encodeURIComponent(serviceKey), "json", "culturalEventInfo", "1", String(limit)];
+  if (params.keyword?.trim()) {
+    // 이 서비스의 선택 인자 순서는 분류/자치구/공연명이라, 자치구 자리에 넣으려면 앞자리를 비워야 한다.
+    segments.push("", encodeURIComponent(params.keyword.trim()));
+  }
+  const body = await fetchText(segments.join("/"));
+  if (!body) return [];
+
+  const checkedAt = new Date().toISOString();
+  const items: DiscoveryItem[] = [];
+  for (const record of parseItems(body)) {
+    const title = pick(record, "TITLE", "title");
+    if (!title) continue;
+    const startDate = isoDate(pick(record, "STRTDATE", "strtdate", "START_DATE"));
+    const endDate = isoDate(pick(record, "END_DATE", "end_date", "ENDDATE"));
+    const fee = pick(record, "USE_FEE", "use_fee");
+    items.push({
+      id: `seoul-${pick(record, "TITLE", "title") ?? ""}-${startDate ?? ""}`,
+      title: stripTags(title),
+      source: "seoul_open_data",
+      sourceLabel: "서울 열린데이터광장 등록 정보",
+      // 서울시가 직접 등록한 기간이라 날짜를 그대로 말해도 된다.
+      confidence: "official",
+      startDate,
+      endDate,
+      place: pick(record, "PLACE", "place"),
+      region: pick(record, "GUNAME", "guname"),
+      ...seoulCoordinates(record),
+      category: pick(record, "CODENAME", "codename"),
+      summary: fee ? `이용요금: ${fee}` : pick(record, "PROGRAM", "program"),
+      imageUrl: pick(record, "MAIN_IMG", "main_img"),
+      detailsUrl: pick(record, "ORG_LINK", "org_link", "HMPG_ADDR", "hmpg_addr"),
+      signals: [],
+      checkedAt,
+    });
+    if (items.length >= limit) break;
+  }
+  return items;
+}
+
+/**
+ * 이 데이터셋은 LAT/LOT 값이 뒤바뀌어 들어 있는 행이 섞여 있다. 한국 안에서 위도는 33~39,
+ * 경도는 124~132로 겹치지 않으므로 값의 범위를 보고 제자리를 찾아준다 — 뒤바뀐 좌표를 그대로
+ * 쓰면 "근처 행사"가 엉뚱한 바다 위로 계산된다.
+ */
+function seoulCoordinates(record: Record<string, string>): { latitude?: number; longitude?: number } {
+  const values = [coordinate(pick(record, "LAT", "lat")), coordinate(pick(record, "LOT", "lot", "LNG", "lng"))]
+    .filter((value): value is number => value != null);
+  const latitude = values.find((value) => value >= 33 && value <= 39);
+  const longitude = values.find((value) => value >= 124 && value <= 132);
+  return { latitude, longitude };
+}
+
+/**
  * 네이버 지역 검색 — 아직 기관 데이터에 없는 실제 가게.
  *
  * 카카오·구글이 놓치는 신상 가게를 보강하는 용도다. 이 API는 평점을 주지 않으므로

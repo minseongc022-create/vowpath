@@ -104,6 +104,44 @@ CREATE TABLE "dajeong_discovery_digests" (
 );
 
 -- CreateTable
+CREATE TABLE "dajeong_sweep_heartbeats" (
+    "key" TEXT NOT NULL,
+    "lastRunAt" TIMESTAMP(3) NOT NULL,
+    "detail" JSONB,
+
+    CONSTRAINT "dajeong_sweep_heartbeats_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
+CREATE TABLE "dajeong_booking_calls" (
+    "id" TEXT NOT NULL,
+    "planId" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "providerCallId" TEXT,
+    "toNumber" TEXT NOT NULL,
+    "placeName" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "outcome" TEXT,
+    "confirmedDetail" TEXT,
+    "offeredAlternative" TEXT,
+    "quotedAmount" INTEGER,
+    "cancellationTerms" TEXT,
+    "summary" TEXT,
+    "failureReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "endedAt" TIMESTAMP(3),
+
+    CONSTRAINT "dajeong_booking_calls_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "dajeong_booking_calls_providerCallId_key" ON "dajeong_booking_calls"("providerCallId");
+CREATE INDEX "dajeong_booking_calls_planId_idx" ON "dajeong_booking_calls"("planId");
+CREATE INDEX "dajeong_booking_calls_ownerId_idx" ON "dajeong_booking_calls"("ownerId");
+
+-- CreateTable
 CREATE TABLE "dajeong_push_subscriptions" (
     "id" TEXT NOT NULL,
     "personId" TEXT NOT NULL,

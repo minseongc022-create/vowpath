@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { discoveryHeadline, discoveryQueries, selectDiscoveries } from "@/dajeong/lib/discovery-engine";
 import { geocodeRegion } from "@/dajeong/lib/place-discovery";
-import { discoverySourcesConfigured, fetchCultureEvents, fetchNaverBlogBuzz, fetchNaverLocal } from "@/dajeong/lib/discovery-sources";
+import { discoverySourcesConfigured, fetchCultureEvents, fetchNaverBlogBuzz, fetchNaverLocal, fetchSeoulEvents } from "@/dajeong/lib/discovery-sources";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 import type { DiscoveryItem } from "@/dajeong/lib/types";
 
@@ -49,15 +49,19 @@ export async function POST(request: Request) {
   const regionCoordinates = region ? await geocodeRegion(region) : undefined;
 
   try {
-    const [culture, local, buzz] = await Promise.all([
+    const [culture, seoul, local, buzz] = await Promise.all([
       // 지역은 이름이 아니라 좌표 사각형으로 서버에 직접 요청한다 — "광화문"과 "경복궁"처럼
       // 이름은 달라도 실제로는 붙어 있는 곳을 API 단계에서부터 잡아낸다.
       fetchCultureEvents({ near: regionCoordinates, radiusKm: 8, keyword: preferences?.[0], withinDays, limit: 40 }),
+      // 자치구 단위 행사는 전국 데이터에 잘 안 올라온다. 서울을 물었을 때만 부른다.
+      region && /서울|강남|성수|홍대|연남|잠실|종로|용산|여의도|광화문|마포|송파/.test(region)
+        ? fetchSeoulEvents({ keyword: region.match(/[가-힣]+구(?=\s|$)/)?.[0], limit: 30 }).catch(() => [] as DiscoveryItem[])
+        : Promise.resolve([] as DiscoveryItem[]),
       Promise.all(queries.slice(0, 2).map((query) => fetchNaverLocal({ query }))).then((rows) => rows.flat()),
       Promise.all(queries.slice(0, 2).map((query) => fetchNaverBlogBuzz({ query }))).then((rows) => rows.flat()),
     ]);
 
-    const items = selectDiscoveries({ items: [...culture, ...local, ...buzz], region, regionCoordinates, limit });
+    const items = selectDiscoveries({ items: [...culture, ...seoul, ...local, ...buzz], region, regionCoordinates, limit });
     const officialCount = items.filter((item) => item.confidence === "official").length;
 
     return NextResponse.json({

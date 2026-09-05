@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getPlan, rememberPacePreference, rememberPersonProfile, savePlan } from "../lib/storage";
-import { appendPlanConversation, appendPlanVersion, replacePlanItem } from "../lib/plan-engine";
+import { appendPlanConversation, appendPlanVersion, replacePlanItem, restorePlanVersion } from "../lib/plan-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import { prepareReservationOrder } from "../lib/reservation-engine";
 import { resolveIdentity } from "../lib/identity";
 import { NotificationPermissionPrompt } from "./NotificationPermissionPrompt";
 import { fetchSharedPlan, planRole, reviseAnyPlan, syncPlanIfShared } from "../lib/plan-sync";
-import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
+import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult, PlanVersion } from "../lib/types";
 import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, LockIcon, MapPinIcon, ShieldIcon, SparkleIcon, UsersIcon, WalletIcon } from "./DajeongIcons";
 
 function money(value: number): string {
@@ -528,6 +528,21 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     router.push(`/dajeong/plan/${plan.id}/execute`);
   }
 
+  /**
+   * 예전 버전으로 되돌리기. 되돌린 것 자체도 기록으로 남아서, 되돌린 게 마음에 안 들면
+   * 다시 원래대로 갈 수 있다 — 한 번 되돌리면 끝인 복원은 무섭기만 하다.
+   */
+  async function restoreVersion(version: PlanVersion) {
+    if (!plan || role === "companion") return;
+    const label = version.instruction || "처음 만든 계획";
+    const message = `‘${label}’ 상태로 되돌렸어. 시간표랑 총비용도 그때로 맞췄어.`;
+    let next = appendPlanConversation(restorePlanVersion(plan, version, `‘${label}’ 상태로 되돌려줘`), `‘${label}’ 상태로 되돌려줘`, message);
+    next = await syncPlanIfShared(next, identity.id, identity.name, message);
+    savePlan(next);
+    setPlan(next);
+    setMessages((current) => [...current, chatMessage("user", `‘${label}’ 상태로 되돌려줘`), chatMessage("assistant", message)]);
+  }
+
   async function setNotificationLevel(level: "normal" | "content_hidden" | "off") {
     if (!plan || role === "companion") return;
     let next: DajeongPlan = { ...plan, notificationLevel: level };
@@ -691,6 +706,26 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           ) : (
             <p className="dj-summary-trust"><ShieldIcon size={14} /> 계획 확정이랑 예약 준비는 계획을 만든 사람만 할 수 있어.</p>
           )}
+          {role !== "companion" && (plan.versions?.length ?? 0) > 1 ? (
+            <div className="dj-version-history">
+              <strong>바꾼 기록</strong>
+              <p>마음에 안 들면 아무 때나 그때로 돌아갈 수 있어.</p>
+              <ul>
+                {[...(plan.versions ?? [])].reverse().slice(0, 6).map((version, index) => (
+                  <li key={version.id}>
+                    <div>
+                      <span>{index === 0 ? "지금" : new Date(version.createdAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      <b>{version.instruction || "처음 만든 계획"}</b>
+                      <em>{version.items.length}곳 · {money(version.total)}</em>
+                    </div>
+                    {index === 0 ? null : (
+                      <button type="button" onClick={() => restoreVersion(version)}>이때로 되돌리기</button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </aside>
       </div>
 

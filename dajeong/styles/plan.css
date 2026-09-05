@@ -394,6 +394,19 @@
 .dj-budget-remaining p { margin: 7px 0 0; color: var(--dj-muted); font-size: 12px; line-height: 1.5; }
 .dj-over-budget { background: #fff2ef; }
 .dj-over-budget > div, .dj-over-budget p { color: #b8453a; }
+/* 바꾼 기록 — 예전 상태로 되돌리기 */
+.dj-version-history { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--dj-line); }
+.dj-version-history > strong { font-size: 12px; }
+.dj-version-history > p { margin: 4px 0 12px; color: var(--dj-muted); font-size: 11px; line-height: 1.5; }
+.dj-version-history ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.dj-version-history li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 11px; border-radius: var(--dj-radius-xs); background: var(--dj-accent-softer); }
+.dj-version-history li > div { min-width: 0; display: grid; gap: 2px; }
+.dj-version-history li span { color: var(--dj-faint); font-size: 10px; font-weight: 700; }
+.dj-version-history li b { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dj-version-history li em { color: var(--dj-muted); font-size: 11px; font-style: normal; }
+.dj-version-history li button { flex: 0 0 auto; min-height: 34px; padding: 0 10px; border: 1px solid var(--dj-line-strong); border-radius: var(--dj-radius-xs); background: #fff; color: var(--dj-ink); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.dj-version-history li button:hover { border-color: var(--dj-accent); color: var(--dj-accent-ink); }
+
 .dj-booking-summary { display: grid; gap: 8px; margin: 0 0 19px; padding: 0 2px; }
 .dj-booking-summary strong { margin-bottom: 2px; font-size: 12px; }
 .dj-booking-summary span { display: flex; align-items: flex-start; gap: 7px; color: var(--dj-muted); font-size: 11px; line-height: 1.45; }

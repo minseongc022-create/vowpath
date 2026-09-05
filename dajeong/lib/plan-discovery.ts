@@ -2,7 +2,7 @@ import "server-only";
 
 import { appendAssistantNote } from "./plan-engine";
 import { discoveryHeadline, matchesRegion, overlapsPlanDate, planDateRange } from "./discovery-engine";
-import { discoverySourcesConfigured, fetchCultureEvents, fetchNaverBlogBuzz } from "./discovery-sources";
+import { discoverySourcesConfigured, fetchCultureEvents, fetchNaverBlogBuzz, fetchSeoulEvents } from "./discovery-sources";
 import { geocodeRegion } from "./place-discovery";
 import type { DajeongPlan, DiscoveryItem } from "./types";
 
@@ -16,6 +16,16 @@ import type { DajeongPlan, DiscoveryItem } from "./types";
  */
 
 const MS_PER_DAY = 86_400_000;
+
+/** 서울 열린데이터광장은 서울 행사만 갖고 있다 — 다른 지역 계획에서 부르면 호출만 낭비된다. */
+function isSeoul(region: string): boolean {
+  return /서울|강남|성수|홍대|연남|잠실|종로|용산|여의도|이태원|한남|성북|마포|송파|광화문|을지로|압구정|가로수길|망원|서촌|북촌|삼청/.test(region);
+}
+
+/** "성동구 카페거리" 같은 표현에서 자치구만 뽑는다. 없으면 자치구 필터 없이 전체를 본다. */
+function seoulDistrict(region: string): string | undefined {
+  return region.match(/[가-힣]+구(?=\s|$)/)?.[0];
+}
 
 function formatMonthDay(iso: string): string {
   const [, month, day] = iso.split("-");
@@ -41,12 +51,16 @@ export async function findEventsForPlan(plan: DajeongPlan): Promise<{ note: stri
   const near = await geocodeRegion(plan.situation.region);
   const withinDays = Math.max(1, Math.ceil((range.end.getTime() - Date.now()) / MS_PER_DAY) + 3);
 
-  const [culture, buzz] = await Promise.all([
+  const [culture, seoul, buzz] = await Promise.all([
     fetchCultureEvents({ near, radiusKm: 8, withinDays: Math.min(90, withinDays), limit: 30 }),
+    // 서울 자치구 단위 행사는 전국 데이터에 잘 안 올라온다. 서울 계획일 때만 부른다.
+    isSeoul(plan.situation.region)
+      ? fetchSeoulEvents({ keyword: seoulDistrict(plan.situation.region), limit: 30 }).catch(() => [] as DiscoveryItem[])
+      : Promise.resolve([] as DiscoveryItem[]),
     fetchNaverBlogBuzz({ query: `${plan.situation.region} 팝업` }).catch(() => [] as DiscoveryItem[]),
   ]);
 
-  const matchingEvents = culture
+  const matchingEvents = [...culture, ...seoul]
     .filter((item) => matchesRegion(item, plan.situation.region, near))
     .filter((item) => overlapsPlanDate(item, range))
     .slice(0, 2);
