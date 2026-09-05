@@ -457,6 +457,34 @@ model DajeongWeatherDigest {
   @@map("dajeong_weather_digests")
 }
 
+/** One outbound booking call 하루위드 placed on a user's behalf. Server-side because the call
+ * result arrives from the voice provider's webhook long after the browser moved on — the plan
+ * itself lives in the user's browser for solo plans, so there is nowhere else to land it. */
+model DajeongBookingCall {
+  id                 String    @id
+  planId             String
+  taskId             String
+  ownerId            String
+  providerCallId     String?   @unique
+  toNumber           String
+  placeName          String
+  status             String
+  outcome            String?
+  confirmedDetail    String?
+  offeredAlternative String?
+  quotedAmount       Int?
+  cancellationTerms  String?
+  summary            String?
+  failureReason      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  endedAt            DateTime?
+
+  @@index([planId])
+  @@index([ownerId])
+  @@map("dajeong_booking_calls")
+}
+
 /** Which discovery(발견) item ids a plan has already been notified about — without this, the
  * proactive-suggestion sweep would re-fire the same "○○ 떴어" push every 60s for as long as the
  * event stays within its notify window (worthNotifying stays true for up to 14 days). */

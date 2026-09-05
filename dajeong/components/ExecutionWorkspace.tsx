@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { resolveIdentity } from "../lib/identity";
-import { approvePayment, recordUserCompleted, requestPaymentReview } from "../lib/reservation-engine";
+import { applyBookingCallOutcome, approvePayment, markTaskCalling, recordUserCompleted, requestPaymentReview } from "../lib/reservation-engine";
+import { callPreviewScript, canCallForBooking, outcomeMessage } from "../lib/booking-call-brief";
 import { getPlan, savePlan } from "../lib/storage";
-import type { BookingMethod, DajeongPlan, ReservationOrder, ReservationTask, ReservationTaskStatus } from "../lib/types";
+import type { BookingCallRecord, BookingMethod, DajeongPlan, ReservationOrder, ReservationTask, ReservationTaskStatus } from "../lib/types";
 import { ArrowIcon, CheckIcon, ClockIcon, RefreshIcon, ShieldIcon, SparkleIcon, WalletIcon } from "./DajeongIcons";
 
 function money(value: number): string {
@@ -92,9 +93,89 @@ function executionLinkLabel(task: ReservationTask): string {
   return "상세 정보 확인";
 }
 
-function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport: () => void; onCopy: (text: string) => void }) {
+/** 하루위드가 대신 걸어줄 수 있는 항목인지 — 배포 설정과 항목 상태가 둘 다 맞아야 한다. */
+function canHaruwithCall(task: ReservationTask, configured: boolean): boolean {
+  return configured && task.capability === "automatic" && task.bookingMethod === "phone_only" && canCallForBooking(task);
+}
+
+const CALL_STATUS_LABEL: Record<BookingCallRecord["status"], string> = {
+  queued: "전화 거는 중",
+  in_progress: "통화 중",
+  finished: "통화 끝",
+  failed: "전화를 걸지 못했어",
+  cancelled: "취소했어",
+};
+
+function CallPanel({ task, plan, call, busy, onStart }: {
+  task: ReservationTask;
+  plan: DajeongPlan;
+  call?: BookingCallRecord;
+  busy: boolean;
+  onStart: (contact: { name?: string; phone?: string }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(plan.ownerName ?? "");
+  const [phone, setPhone] = useState("");
+
+  if (call && (call.status === "queued" || call.status === "in_progress")) {
+    return (
+      <div className="dj-call-live" aria-live="polite">
+        <span className="dj-spinner dj-spinner-coral" />
+        <p><strong>{CALL_STATUS_LABEL[call.status]}</strong> {call.placeName}에 걸고 있어. 끝나면 결과를 여기에 적을게.</p>
+      </div>
+    );
+  }
+
+  if (call && call.status === "finished") {
+    return <div className="dj-call-result"><CheckIcon size={14} /><p>{outcomeMessage(call)}{call.summary ? <em>{call.summary}</em> : null}</p></div>;
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="dj-btn dj-btn-primary dj-call-start" onClick={() => setOpen(true)} disabled={busy}>
+        하루위드가 대신 전화할게
+      </button>
+    );
+  }
+
+  return (
+    <div className="dj-call-consent">
+      <strong>가게에 이렇게 말할게</strong>
+      <p className="dj-call-script">{callPreviewScript({ task, plan, contact: { name: name.trim() || undefined, phone: phone.trim() || undefined } })}</p>
+      <label>
+        <span>예약자 이름</span>
+        <input value={name} onChange={(event) => setName(event.target.value)} placeholder="가게에 알려줄 이름" maxLength={40} />
+      </label>
+      <label>
+        <span>연락처</span>
+        <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="가게가 다시 연락할 번호" maxLength={30} inputMode="tel" />
+      </label>
+      <p className="dj-call-consent-note">
+        <ShieldIcon size={13} /> 적은 이름·번호는 이 가게에만 전달돼. 결제는 절대 대신 하지 않고, 가게가 확답한 것만 예약 완료로 적을게.
+      </p>
+      <div className="dj-call-consent-actions">
+        <button type="button" className="dj-btn dj-btn-primary" disabled={busy} onClick={() => { setOpen(false); onStart({ name: name.trim() || undefined, phone: phone.trim() || undefined }); }}>
+          {busy ? "거는 중…" : "지금 전화 걸기"}
+        </button>
+        <button type="button" className="dj-btn dj-btn-secondary" onClick={() => setOpen(false)}>취소</button>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({ task, plan, call, callConfigured, callBusy, onCall, onReport, onCopy }: {
+  task: ReservationTask;
+  plan: DajeongPlan;
+  call?: BookingCallRecord;
+  callConfigured: boolean;
+  callBusy: boolean;
+  onCall: (contact: { name?: string; phone?: string }) => void;
+  onReport: () => void;
+  onCopy: (text: string) => void;
+}) {
   const exact = task.price.confidence === "provider_quote";
   const link = task.bookingMethod === "phone_only" && task.phoneNumber ? `tel:${task.phoneNumber}` : task.bookingUrl;
+  const showCall = canHaruwithCall(task, callConfigured) || Boolean(call);
   return (
     <article className={`dj-execution-task dj-task-${task.status}`}>
       <div className="dj-execution-task-main">
@@ -109,7 +190,8 @@ function TaskCard({ task, onReport, onCopy }: { task: ReservationTask; onReport:
         {task.failureReason ? <p className="dj-execution-failure">{task.failureReason}</p> : null}
         {task.proposedChange ? <p className="dj-execution-proposal">대안 제안: {task.proposedChange.time ? `${task.proposedChange.time} · ` : ""}{task.proposedChange.title ?? task.proposedChange.reason}{task.proposedChange.amount != null ? ` · ${money(task.proposedChange.amount)}` : ""} — 네가 승인하기 전엔 확정 안 해.</p> : null}
         {task.confirmation ? <div className="dj-execution-confirmation"><CheckIcon size={14} /><span>{task.confirmation.source === "provider" ? "제공자 확인" : "사용자 완료 확인"} · {task.confirmation.confirmationId}</span></div> : null}
-        {task.phoneScript ? (
+        {showCall ? <CallPanel task={task} plan={plan} call={call} busy={callBusy} onStart={onCall} /> : null}
+        {task.phoneScript && !canHaruwithCall(task, callConfigured) ? (
           <div className="dj-phone-script">
             <strong>전화할 때 이렇게 말하면 돼</strong>
             <p>{task.phoneScript}</p>
@@ -140,9 +222,18 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
   const [reservationLoading, setReservationLoading] = useState(false);
   const [reservationError, setReservationError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [personId, setPersonId] = useState("");
+  const [calls, setCalls] = useState<BookingCallRecord[]>([]);
+  const [callConfigured, setCallConfigured] = useState(false);
+  const [callBusyTaskId, setCallBusyTaskId] = useState("");
+  const [callError, setCallError] = useState("");
+  // 이미 계획에 반영한 통화는 다시 반영하지 않는다 — 폴링할 때마다 같은 결과가 덮어써지면
+  // 사용자가 그 뒤에 손으로 고친 상태까지 되돌아간다.
+  const appliedCalls = useRef(new Set<string>());
 
   useEffect(() => {
-    void resolveIdentity().then(() => {
+    void resolveIdentity().then((identity) => {
+      setPersonId(identity.id);
       const stored = getPlan(planId);
       setPlan(stored);
       setReservationOrder(stored?.execution ?? null);
@@ -171,6 +262,77 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
       .finally(() => { if (active) setReservationLoading(false); });
     return () => { active = false; };
   }, [plan]);
+
+  const refreshCalls = useCallback(async () => {
+    if (!personId || !planId) return;
+    try {
+      const response = await fetch(`/api/dajeong/booking-calls?planId=${encodeURIComponent(planId)}&personId=${encodeURIComponent(personId)}`);
+      const data = await response.json() as { calls?: BookingCallRecord[]; configured?: boolean };
+      if (!response.ok) return;
+      setCallConfigured(Boolean(data.configured));
+      setCalls(data.calls ?? []);
+    } catch {
+      // 통화 목록을 못 불러왔다고 실행 화면 전체가 멈출 이유는 없다.
+    }
+  }, [personId, planId]);
+
+  useEffect(() => { void refreshCalls(); }, [refreshCalls]);
+
+  // 통화가 진행 중일 때만 주기적으로 확인한다 — 끝난 뒤에도 계속 물어보면 의미 없는 요청만 쌓인다.
+  useEffect(() => {
+    const waiting = calls.some((call) => call.status === "queued" || call.status === "in_progress");
+    if (!waiting) return;
+    const timer = window.setInterval(() => { void refreshCalls(); }, 5_000);
+    return () => window.clearInterval(timer);
+  }, [calls, refreshCalls]);
+
+  // 끝난 통화의 결과를 실행 목록에 한 번씩만 반영한다.
+  useEffect(() => {
+    if (!reservationOrder) return;
+    const fresh = calls.filter((call) => call.status === "finished" && call.outcome && !appliedCalls.current.has(call.id));
+    if (!fresh.length) return;
+    let next = reservationOrder;
+    for (const call of fresh) {
+      appliedCalls.current.add(call.id);
+      next = applyBookingCallOutcome(next, call);
+    }
+    saveOrder(next);
+    // saveOrder는 plan 상태에만 의존해서 의존성 배열에 넣으면 루프가 된다 — 통화 목록 변화에만 반응한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calls]);
+
+  async function startBookingCall(task: ReservationTask, contact: { name?: string; phone?: string }) {
+    if (!plan || !personId || !reservationOrder) return;
+    setCallBusyTaskId(task.id);
+    setCallError("");
+    try {
+      const response = await fetch("/api/dajeong/booking-calls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personId,
+          planId: plan.id,
+          plan,
+          taskId: task.id,
+          approveCall: true,
+          discloseName: contact.name,
+          disclosePhone: contact.phone,
+        }),
+      });
+      const data = await response.json() as { call?: BookingCallRecord; error?: string };
+      if (!response.ok || !data.call) {
+        setCallError(data.error ?? "전화를 걸지 못했어.");
+        if (data.call) setCalls((previous) => [data.call as BookingCallRecord, ...previous.filter((entry) => entry.id !== data.call?.id)]);
+        return;
+      }
+      setCalls((previous) => [data.call as BookingCallRecord, ...previous.filter((entry) => entry.id !== data.call?.id)]);
+      saveOrder(markTaskCalling(reservationOrder, task.id));
+    } catch {
+      setCallError("전화를 거는 중에 문제가 생겼어. 잠시 후 다시 해볼래?");
+    } finally {
+      setCallBusyTaskId("");
+    }
+  }
 
   function saveOrder(order: ReservationOrder) {
     if (!plan) return;
@@ -221,6 +383,12 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
   const progress = reservationOrder?.tasks.length ? Math.round(completedTasks / reservationOrder.tasks.length * 100) : 0;
   const complete = Boolean(reservationOrder?.tasks.length && completedTasks === reservationOrder.tasks.length);
   const nextTask = useMemo(() => reservationOrder?.tasks.find((task) => !isCompleted(task)), [reservationOrder]);
+  // 항목별 최신 통화 한 건만 보여준다 — 다시 건 경우 옛날 결과가 위에 남아 있으면 헷갈린다.
+  const callByTask = useMemo(() => {
+    const map = new Map<string, BookingCallRecord>();
+    for (const call of calls) if (!map.has(call.taskId)) map.set(call.taskId, call);
+    return map;
+  }, [calls]);
 
   if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>준비 목록 확인 중</p></div>;
   if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>계획을 못 찾았어</h1><p>새로 하나 만들어볼까?</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기</Link></div>;
@@ -266,17 +434,33 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
         )}
       </section>
 
+      {callError ? <p className="dj-call-error" role="alert">{callError}</p> : null}
+
       <section className="dj-exec-layout">
         <div className="dj-execution-list">
-          {reservationOrder?.tasks.map((task) => <TaskCard key={task.id} task={task} onReport={() => reportCompleted(task)} onCopy={copyText} />)}
+          {reservationOrder?.tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              plan={plan}
+              call={callByTask.get(task.id)}
+              callConfigured={callConfigured}
+              callBusy={callBusyTaskId === task.id}
+              onCall={(contact) => { void startBookingCall(task, contact); }}
+              onReport={() => reportCompleted(task)}
+              onCopy={copyText}
+            />
+          ))}
           {!reservationLoading && !reservationOrder?.tasks.length ? <div className="dj-card dj-no-execution"><CheckIcon size={20} /><p>예약하거나 살 건 없어. 가기 직전에 문 여는지만 확인해줘.</p></div> : null}
         </div>
         <aside className="dj-exec-help dj-card">
           <span className="dj-help-icon"><ShieldIcon size={22} /></span>
           <h2>확인된 사실만<br />실행 상태로</h2>
           <p>링크를 연 것, 검색 결과가 뜬 것, 네가 애매하게 좋다고 한 것은 예약·구매·결제가 된 게 아니야.</p>
-          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>연결된 예약·결제 제공자가 아직 없어서, 공식 예약 경로랑 전화할 때 쓸 문구를 준비해줘. 제공자 확인번호가 들어왔을 때만 자동으로 완료가 돼.</span></div>
-          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약에 꼭 필요하고 네가 동의했을 때만, 그 가게에 최소한으로 보내. 지금은 자동으로 넘기는 게 없어.</span></div>
+          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>{callConfigured
+            ? "전화로 예약받는 곳은 내가 대신 전화해서 가능 여부·금액·취소 조건까지 확인할게. 온라인 예약만 받는 곳은 공식 예약 화면으로 연결해주고, 결제는 어떤 경우에도 대신 하지 않아."
+            : "연결된 예약·결제 제공자가 아직 없어서, 공식 예약 경로랑 전화할 때 쓸 문구를 준비해줘. 제공자 확인번호가 들어왔을 때만 자동으로 완료가 돼."}</span></div>
+          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약에 꼭 필요하고 네가 그 항목에서 직접 적어 승인했을 때만, 그 가게에만 전달돼.</span></div>
           <Link href={`/dajeong/plan/${plan.id}`} className="dj-help-link"><RefreshIcon size={15} /> 같은 채팅에서 계획 수정</Link>
         </aside>
       </section>

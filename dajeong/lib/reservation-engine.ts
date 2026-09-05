@@ -1,4 +1,6 @@
+import { callTaskPatch, outcomeMessage } from "./booking-call-brief";
 import type {
+  BookingCallRecord,
   BookingMethod,
   DajeongPlan,
   DiscoveryBooking,
@@ -15,6 +17,12 @@ type PrepareOptions = {
   previous?: ReservationOrder;
   targetItemIds?: string[];
   includeTravel?: boolean;
+  /**
+   * 하루위드가 대신 전화를 걸 수 있는 배포인지. 켜져 있으면 전화 예약 항목이 "직접 해야 하는 일"이
+   * 아니라 "하루위드가 대신 해줄 수 있는 일"이 된다. 런타임 설정에 달린 값이라 계획 데이터가
+   * 아니라 호출하는 쪽에서 넘긴다. 넘기지 않으면 이전 주문의 값을 이어받는다.
+   */
+  autoCall?: boolean;
 };
 
 export type ProviderQuote = {
@@ -89,8 +97,18 @@ function taskKind(item: PlanItem): ExecutionTaskKind {
   return "reservation";
 }
 
-function fingerprint(item: PlanItem, method: BookingMethod): string {
-  return [item.id, item.title, item.time, item.dayNumber ?? 1, item.price, method, item.reality?.placeId ?? ""].join("|");
+function fingerprint(item: PlanItem, method: BookingMethod, autoCall: boolean): string {
+  return [item.id, item.title, item.time, item.dayNumber ?? 1, item.price, method, item.reality?.placeId ?? "", autoCall ? "call" : "manual"].join("|");
+}
+
+/**
+ * 전화로만 예약되는 곳이라도, 하루위드가 대신 전화를 걸 수 있는 배포에서는 사용자가 직접 할
+ * 일이 아니라 우리가 대신 처리할 수 있는 일이다. 전화번호가 있어야 가능하다는 게 유일한 조건.
+ */
+function capabilityFor(method: BookingMethod, hasPhone: boolean, autoCall: boolean): ReservationTask["capability"] {
+  if (method === "haruon_direct") return "automatic";
+  if (method === "phone_only" && autoCall && hasPhone) return "automatic";
+  return "assisted";
 }
 
 function initialStatus(method: BookingMethod): ReservationTaskStatus {
@@ -100,6 +118,8 @@ function initialStatus(method: BookingMethod): ReservationTaskStatus {
   if (method === "walk_in" || method === "no_reservation") return "not_started";
   return "unsupported";
 }
+
+const autoCallExplanation = "네가 승인하면 하루위드가 대신 전화해서 가능 여부·금액·취소 조건까지 확인할게. 가게가 확답한 것만 예약 완료로 적고, 결제는 절대 대신 하지 않아.";
 
 function explanation(method: BookingMethod): string {
   return {
@@ -119,10 +139,11 @@ function phoneScript(plan: DajeongPlan, item: PlanItem): string {
   return `안녕하세요. ${plan.situation.targetDate} ${day}${item.time}쯤 ${plan.situation.partySize}명 ${product}이 가능한지 문의드립니다. 가능하다면 정확한 가격과 취소 조건, 미리 준비할 정보를 알려주세요.`;
 }
 
-function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask): ReservationTask {
+function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask, autoCall = false): ReservationTask {
   const method = bookingMethodForItem(item);
-  const itemFingerprint = fingerprint(item, method);
+  const itemFingerprint = fingerprint(item, method, autoCall);
   if (previous?.itemFingerprint === itemFingerprint) return previous;
+  const canCall = method === "phone_only" && autoCall && Boolean(item.reality?.phoneNumber);
   const confidence = item.reality?.priceConfidence === "provider" ? "range" as const : "estimate" as const;
   return {
     id: `execute_${plan.id}_${item.id}`,
@@ -132,11 +153,11 @@ function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask)
     dayNumber: item.dayNumber,
     kind: taskKind(item),
     bookingMethod: method,
-    capability: method === "haruon_direct" ? "automatic" : "assisted",
+    capability: capabilityFor(method, Boolean(item.reality?.phoneNumber), autoCall),
     status: initialStatus(method),
-    providerLabel: method === "haruon_direct" ? "연결된 실행 파트너" : methodLabel(method),
+    providerLabel: method === "haruon_direct" ? "연결된 실행 파트너" : canCall ? "하루위드가 대신 전화" : methodLabel(method),
     bookingUrl: item.reality?.reservationUrl || item.reality?.websiteUrl || item.reality?.detailsUrl || item.href,
-    explanation: explanation(method),
+    explanation: canCall ? autoCallExplanation : explanation(method),
     availability: method === "haruon_direct" ? "checking" : "unknown",
     price: {
       currency: "KRW",
@@ -166,8 +187,8 @@ function bookingMethodForPrep(item: PrepItem): BookingMethod {
   return "unsupported";
 }
 
-function prepFingerprint(item: PrepItem, method: BookingMethod): string {
-  return [item.id, item.title, item.date, item.time ?? "", item.price ?? 0, method, item.reality?.placeId ?? ""].join("|");
+function prepFingerprint(item: PrepItem, method: BookingMethod, autoCall: boolean): string {
+  return [item.id, item.title, item.date, item.time ?? "", item.price ?? 0, method, item.reality?.placeId ?? "", autoCall ? "call" : "manual"].join("|");
 }
 
 function prepPhoneScript(item: PrepItem): string {
@@ -175,10 +196,11 @@ function prepPhoneScript(item: PrepItem): string {
   return `안녕하세요. ${when} ${item.title} 준비(주문/예약)가 가능한지 문의드립니다. 가능하다면 정확한 가격과 픽업·배송 조건, 미리 준비할 정보를 알려주세요.`;
 }
 
-function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask): ReservationTask {
+function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask, autoCall = false): ReservationTask {
   const method = bookingMethodForPrep(item);
-  const itemFingerprint = prepFingerprint(item, method);
+  const itemFingerprint = prepFingerprint(item, method, autoCall);
   if (previous?.itemFingerprint === itemFingerprint) return previous;
+  const canCall = method === "phone_only" && autoCall && Boolean(item.reality?.phoneNumber);
   const confidence = item.priceConfidence === "provider_quote" ? "range" as const : "estimate" as const;
   return {
     id: `execute_${plan.id}_prep_${item.id}`,
@@ -187,11 +209,11 @@ function prepTask(plan: DajeongPlan, item: PrepItem, previous?: ReservationTask)
     time: item.time ?? "미정",
     kind: "purchase",
     bookingMethod: method,
-    capability: "assisted",
+    capability: capabilityFor(method, Boolean(item.reality?.phoneNumber), autoCall),
     status: initialStatus(method),
-    providerLabel: methodLabel(method),
+    providerLabel: canCall ? "하루위드가 대신 전화" : methodLabel(method),
     bookingUrl: item.reality?.reservationUrl || item.reality?.websiteUrl || item.reality?.detailsUrl || "",
-    explanation: explanation(method),
+    explanation: canCall ? autoCallExplanation : explanation(method),
     availability: item.reality ? "unknown" : "unknown",
     price: { currency: "KRW", estimatedAmount: item.price ?? 0, onsiteAmount: item.price ?? 0, confidence },
     privacy: {
@@ -384,21 +406,25 @@ function totals(plan: DajeongPlan, tasks: ReservationTask[]) {
 
 function messageFor(tasks: ReservationTask[]): string {
   if (!tasks.length) return "실행할 예약·구매 항목은 없어. 방문 시간의 운영 여부만 다시 확인하면 돼.";
-  const phone = tasks.filter((task) => task.bookingMethod === "phone_only").length;
+  const autoCall = tasks.filter((task) => task.bookingMethod === "phone_only" && task.capability === "automatic").length;
+  const phone = tasks.filter((task) => task.bookingMethod === "phone_only" && task.capability !== "automatic").length;
   const external = tasks.filter((task) => ["external_online", "external_platform"].includes(task.bookingMethod)).length;
   const unsupported = tasks.filter((task) => task.bookingMethod === "unsupported").length;
-  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어.${external ? ` 외부 확인 ${external}개` : ""}${phone ? `, 직접 전화 필요 ${phone}개` : ""}${unsupported ? `, 연동 전 ${unsupported}개` : ""}. 실제로 확인되기 전에는 예약·결제 완료로 적지 않아.`;
+  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어.${autoCall ? ` 내가 대신 전화할 수 있는 게 ${autoCall}개` : ""}${external ? `, 외부 확인 ${external}개` : ""}${phone ? `, 직접 전화 필요 ${phone}개` : ""}${unsupported ? `, 연동 전 ${unsupported}개` : ""}. 실제로 확인되기 전에는 예약·결제 완료로 적지 않아.`;
 }
 
 export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptions = {}): ReservationOrder {
   const requested = new Set(options.targetItemIds ?? []);
+  // 한 번 켜진 자동 통화 설정은 이후 재계산(일정 수정·준비물 추가)에서도 유지돼야 한다 —
+  // 안 그러면 계획을 한 번 고칠 때마다 "대신 전화" 버튼이 사라진다.
+  const autoCall = options.autoCall ?? options.previous?.autoCallEnabled ?? false;
   const selectedItems = plan.items.filter((item) => item.reservationRequired && (!requested.size || requested.has(item.id)));
   const selectedPrep = (plan.prep ?? []).filter((item) => item.status !== "cancelled" && item.handling !== "self_prepared" && (!requested.size || requested.has(item.id)));
   const selectedDiscoveryBookings = (plan.discoveryBookings ?? []).filter((booking) => booking.status !== "cancelled" && (!requested.size || requested.has(booking.id)));
   const previousByItem = new Map(options.previous?.tasks.map((task) => [task.itemId, task]) ?? []);
   const tasks = [
-    ...selectedItems.map((item) => itemTask(plan, item, previousByItem.get(item.id))),
-    ...selectedPrep.map((item) => prepTask(plan, item, previousByItem.get(item.id))),
+    ...selectedItems.map((item) => itemTask(plan, item, previousByItem.get(item.id), autoCall)),
+    ...selectedPrep.map((item) => prepTask(plan, item, previousByItem.get(item.id), autoCall)),
     ...selectedDiscoveryBookings.map((booking) => discoveryBookingTask(plan, booking, previousByItem.get(booking.id))),
   ];
   if ((options.includeTravel ?? !requested.size) && plan.situation.planScope === "trip") tasks.push(...travelTasks(plan, options.previous));
@@ -426,6 +452,7 @@ export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptio
     unconfirmedPriceTaskIds: costs.unconfirmedPriceTaskIds,
     requestedItemIds: [...selectedItems.map((item) => item.id), ...selectedPrep.map((item) => item.id), ...selectedDiscoveryBookings.map((booking) => booking.id)],
     requestedScope: requested.size ? "selection" : "whole_plan",
+    autoCallEnabled: autoCall,
     approval,
     message: messageFor(tasks),
   };
@@ -600,6 +627,38 @@ export function recordProviderExecutionResult(order: ReservationOrder, taskId: s
     status: orderStatus(tasks, order.approval),
     message: result.ok ? `${task.title} 실행 성공을 확인번호와 함께 기록했어.` : `${task.title}만 실패했어. 성공한 다른 항목은 그대로 두고 이 항목의 대안을 선택해야 해.`,
   };
+}
+
+/**
+ * 하루위드가 대신 건 예약 전화의 결과를 실행 목록에 반영한다.
+ *
+ * 확정(confirmed)일 때만 예약 완료로 넘어간다. 안 받았거나 애매하게 끝난 통화는 "전화 필요"로
+ * 되돌려서 사용자가 직접 확인하게 남긴다 — 통화가 있었다는 사실만으로 예약이 된 것처럼
+ * 적으면, 사용자가 그 가게 앞에 가서야 알게 된다.
+ */
+export function applyBookingCallOutcome(order: ReservationOrder, record: BookingCallRecord): ReservationOrder {
+  const target = order.tasks.find((task) => task.id === record.taskId);
+  if (!target) return order;
+  const tasks = order.tasks.map((task) => task.id === record.taskId ? { ...task, ...callTaskPatch(task, record) } : task);
+  const payableNow = tasks.reduce((sum, task) => sum + (task.price.prepayAmount ?? 0), 0);
+  const onsiteEstimated = tasks.reduce((sum, task) => sum + (task.price.onsiteAmount ?? 0), 0);
+  return {
+    ...order,
+    tasks,
+    payableNow,
+    depositTotal: payableNow,
+    onsiteEstimated,
+    unconfirmedPriceTaskIds: order.unconfirmedPriceTaskIds.filter((taskId) => taskId !== record.taskId || record.quotedAmount == null),
+    status: orderStatus(tasks, order.approval),
+    updatedAt: record.endedAt ?? record.updatedAt,
+    message: outcomeMessage(record),
+  };
+}
+
+/** 통화가 시작되면 그 항목을 "진행 중"으로 잠근다 — 같은 항목에 두 번 전화가 걸리면 안 된다. */
+export function markTaskCalling(order: ReservationOrder, taskId: string): ReservationOrder {
+  const tasks = order.tasks.map((task) => task.id === taskId ? { ...task, status: "executing" as const, failureReason: undefined } : task);
+  return { ...order, tasks, status: orderStatus(tasks, order.approval), updatedAt: new Date().toISOString() };
 }
 
 export function recordUserCompleted(order: ReservationOrder, taskId: string, confirmationText: string): ReservationOrder {

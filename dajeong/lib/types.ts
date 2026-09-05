@@ -302,6 +302,65 @@ export type DiscoveryBooking = {
   updatedAt: string;
 };
 
+/**
+ * 하루위드가 사용자를 대신해 가게에 실제로 전화를 걸어 예약하는 통화 한 건.
+ *
+ * 전화는 실제 사람에게 걸린다 — 그래서 사용자가 항목·날짜·인원과 "내 이름·번호를 알려줘도
+ * 된다"까지 명시적으로 승인해야만 시작된다. 결과도 통화에서 실제로 확인된 것만 적는다.
+ * 못 받았거나 애매하게 끝난 통화를 "예약 완료"로 적으면 사용자가 그 가게 앞에서 낭패를 본다.
+ */
+export type BookingCallStatus =
+  /** 사용자 승인은 끝났고 발신 대기 중. */
+  | "queued"
+  /** 통화 중. */
+  | "in_progress"
+  /** 통화가 끝났고 결과가 정리됐다. */
+  | "finished"
+  /** 발신 자체가 실패(번호 오류·시스템 문제). */
+  | "failed"
+  /** 사용자가 중간에 취소. */
+  | "cancelled";
+
+export type BookingCallOutcome =
+  /** 가게가 예약을 확정해줬다. 이때만 예약 완료로 기록한다. */
+  | "confirmed"
+  /** 가게가 그 시간은 안 된다고 했다(대안 없음). */
+  | "declined"
+  /** 그 시간은 안 되지만 다른 시간을 제안받았다 — 사용자가 고를 문제다. */
+  | "alternative_offered"
+  /** 안 받거나 통화 자체가 안 됐다. */
+  | "unreachable"
+  /** 통화는 됐는데 사람이 판단해야 할 얘기가 나왔다(단체 예약 별도 협의 등). */
+  | "needs_human";
+
+export type BookingCallRecord = {
+  id: string;
+  planId: string;
+  taskId: string;
+  ownerId: string;
+  /** 통화 서비스 쪽 통화 id. 통화가 끝났다는 웹훅이 이 값으로 돌아와서 우리 기록과 연결된다. */
+  providerCallId?: string;
+  /** 실제로 전화를 건 번호. 기록에 남겨야 사용자가 "어디에 걸었는지" 확인할 수 있다. */
+  toNumber: string;
+  placeName: string;
+  status: BookingCallStatus;
+  outcome?: BookingCallOutcome;
+  /** 통화에서 실제로 들은 내용만 적는다. 없으면 비워둔다 — 지어내지 않는다. */
+  confirmedDetail?: string;
+  /** 가게가 제안한 다른 시간(있을 때만). */
+  offeredAlternative?: string;
+  /** 통화에서 확인된 금액. 확인 못 했으면 비운다. */
+  quotedAmount?: number;
+  /** 취소·환불 조건을 물어봐서 들은 대로. */
+  cancellationTerms?: string;
+  /** 통화 요약. 사용자가 무슨 대화였는지 볼 수 있어야 한다. */
+  summary?: string;
+  failureReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  endedAt?: string;
+};
+
 export type ReservationCapability = "automatic" | "assisted";
 export type BookingMethod = "haruon_direct" | "external_online" | "external_platform" | "phone_only" | "walk_in" | "no_reservation" | "unsupported";
 export type ExecutionTaskKind = "reservation" | "ticket" | "purchase" | "lodging" | "transport" | "rental_car" | "logistics";
@@ -395,6 +454,8 @@ export type ReservationOrder = {
   unconfirmedPriceTaskIds: string[];
   requestedItemIds: string[];
   requestedScope: "selection" | "whole_plan";
+  /** 하루위드가 대신 전화를 걸 수 있는 상태로 이 주문이 만들어졌는지. */
+  autoCallEnabled?: boolean;
   approval?: ExecutionApproval;
   message: string;
 };

@@ -154,6 +154,27 @@
 .dj-phone-script strong { font-size: 12px; }
 .dj-phone-script p { margin: 5px 0 8px; color: var(--dj-muted); font-size: 12px; line-height: 1.58; overflow-wrap: anywhere; }
 .dj-phone-script button { padding: 0; border: 0; background: none; color: var(--dj-accent-ink); font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+/* 하루위드가 대신 거는 예약 전화 — 승인·진행·결과 */
+.dj-call-start { width: 100%; margin-top: 13px; min-height: 44px; justify-content: center; font-size: 12px; }
+.dj-call-consent { margin-top: 13px; padding: 15px; border: 1px solid var(--dj-accent-border); border-radius: var(--dj-radius-sm); background: var(--dj-accent-softer); display: grid; gap: 9px; }
+.dj-call-consent > strong { font-size: 12px; }
+.dj-call-script { margin: 0; padding: 11px; border-radius: var(--dj-radius-xs); background: rgba(255, 255, 255, 0.75); color: var(--dj-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.dj-call-consent label { display: grid; gap: 4px; }
+.dj-call-consent label span { font-size: 11px; font-weight: 700; color: var(--dj-muted); }
+.dj-call-consent input { min-height: 42px; padding: 0 11px; border: 1px solid var(--dj-line-strong); border-radius: var(--dj-radius-xs); background: #fff; font: inherit; font-size: 13px; color: var(--dj-ink); }
+.dj-call-consent input:focus-visible { outline: 2px solid var(--dj-accent); outline-offset: 1px; }
+.dj-call-consent-note { display: flex; align-items: flex-start; gap: 6px; margin: 0; color: var(--dj-muted); font-size: 11px; line-height: 1.5; }
+.dj-call-consent-note svg { flex: 0 0 auto; color: var(--dj-accent); }
+.dj-call-consent-actions { display: flex; gap: 7px; }
+.dj-call-consent-actions .dj-btn { flex: 1; min-height: 44px; justify-content: center; font-size: 12px; }
+.dj-call-live { display: flex; align-items: center; gap: 10px; margin-top: 13px; padding: 13px; border-radius: var(--dj-radius-xs); background: #fffaf0; }
+.dj-call-live p { margin: 0; color: #8a6b2f; font-size: 12px; line-height: 1.55; }
+.dj-call-result { display: flex; align-items: flex-start; gap: 7px; margin-top: 13px; padding: 13px; border-radius: var(--dj-radius-xs); background: #f3fbf7; color: #3d7f72; }
+.dj-call-result svg { flex: 0 0 auto; margin-top: 2px; }
+.dj-call-result p { margin: 0; font-size: 12px; line-height: 1.58; }
+.dj-call-result em { display: block; margin-top: 5px; color: var(--dj-muted); font-style: normal; font-size: 11px; line-height: 1.5; }
+.dj-call-error { margin: 0 0 14px; padding: 12px 14px; border-radius: var(--dj-radius-xs); background: #fff2ef; color: #b8453a; font-size: 12px; }
+
 .dj-phone-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--dj-muted); font-size: 11px; }
 .dj-phone-facts span { padding: 5px 8px; border-radius: 9px; background: rgba(120, 142, 180, 0.1); }
 .dj-privacy-note { display: flex; align-items: flex-start; gap: 6px; margin-top: 11px; color: var(--dj-muted); font-size: 11px; line-height: 1.5; }
