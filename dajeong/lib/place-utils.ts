@@ -16,6 +16,9 @@ export type RealPlaceCandidate = {
   chainName?: string;
   selectionSignals?: string[];
   priceLevel?: number;
+  /** 제공자가 알려준 실제 1인 가격대(원). 있으면 추정 대신 이 값을 그대로 쓴다. */
+  priceRangeMin?: number;
+  priceRangeMax?: number;
   openNow: boolean | null;
   openingHours: string[];
   businessStatus: "operational" | "closed_temporarily" | "closed_permanently" | "unknown";
@@ -57,6 +60,19 @@ export function travelMinutes(distanceKm: number | undefined, transport: ParsedS
   const speed = transport === "walking" ? 4.2 : transport === "car" ? 23 : 15;
   const overhead = transport === "walking" ? 2 : transport === "car" ? 7 : 8;
   return Math.max(3, Math.round(distanceKm / speed * 60 + overhead));
+}
+
+/**
+ * 제공자가 실제 가격대를 알려준 경우에만 쓰는 값. 한쪽만 온 경우(상한 없음 등)는 범위로
+ * 보여줄 수 없으니 쓰지 않는다 — 반쪽짜리 범위를 "10,000원~"처럼 보여주면 총액 계산이 틀어진다.
+ * 예산에 넣는 값은 범위의 중간값이다: 최저가만 넣으면 예산이 항상 모자라고, 최고가만 넣으면
+ * 갈 수 있는 곳이 사라진다.
+ */
+export function realPriceRange(place: RealPlaceCandidate, partySize: number): { min: number; max: number; total: number } | undefined {
+  const { priceRangeMin: min, priceRangeMax: max } = place;
+  if (min == null || max == null || max < min) return undefined;
+  const people = Math.max(1, partySize);
+  return { min, max, total: Math.round((min + max) / 2) * people };
 }
 
 export function estimatePlacePrice(category: PlanCategory, priceLevel: number | undefined, fallback: number): number {
@@ -205,12 +221,16 @@ export function placeToPlanOption(params: {
   const { place, base, category, situation, previous, visitOnly = false } = params;
   const distance = haversineKm(previous, place);
   const minutes = travelMinutes(distance, situation.transport);
-  const estimatedPrice = visitOnly ? 0 : estimatePlacePrice(category, place.priceLevel, base.price);
+  const realRange = realPriceRange(place, situation.partySize);
+  const estimatedPrice = visitOnly ? 0 : realRange?.total ?? estimatePlacePrice(category, place.priceLevel, base.price);
   const priceLabel = visitOnly
     ? "입장 무료 · 구매 비용 별도"
-    : place.priceLevel == null
-      ? `2인 예상 ${estimatedPrice.toLocaleString("ko-KR")}원`
-      : `가격대 기반 2인 예상 ${estimatedPrice.toLocaleString("ko-KR")}원`;
+    : realRange
+      // 제공자가 준 실제 가격대는 추정이 아니라 그대로 보여준다.
+      ? `1인 ${realRange.min.toLocaleString("ko-KR")}~${realRange.max.toLocaleString("ko-KR")}원 · ${situation.partySize}인 ${realRange.total.toLocaleString("ko-KR")}원선`
+      : place.priceLevel == null
+        ? `2인 예상 ${estimatedPrice.toLocaleString("ko-KR")}원`
+        : `가격대 기반 2인 예상 ${estimatedPrice.toLocaleString("ko-KR")}원`;
   const reservationRequired = ["activity", "meal", "lodging", "cake", "flower"].includes(category);
   const openText = place.openNow === true ? "현재 영업 중" : place.openNow === false ? "현재 영업 종료" : "영업 여부 확인 필요";
   const distanceText = distance == null ? "" : ` · 이전 일정에서 약 ${distance.toFixed(distance < 1 ? 1 : 0)}km`;
@@ -257,8 +277,11 @@ export function placeToPlanOption(params: {
       chainName: place.chainName,
       selectionSignals: place.selectionSignals,
       priceLevel: place.priceLevel,
+      priceRangeMin: realRange?.min,
+      priceRangeMax: realRange?.max,
       priceLabel,
-      priceConfidence: place.priceLevel == null ? "estimated" : "provider",
+      priceConfidence: realRange ? "provider" : place.priceLevel == null ? "estimated" : "provider",
+      menuUrl: place.websiteUrl,
       openNow: place.openNow,
       openingHours: place.openingHours,
       businessStatus: place.businessStatus,

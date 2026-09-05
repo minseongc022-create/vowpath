@@ -219,6 +219,11 @@ export type PlaceReality = {
   chainName?: string;
   selectionSignals?: string[];
   priceLevel?: number;
+  /** 제공자가 알려준 실제 1인 가격대(원). 추정이 아니라 그대로 보여줘도 되는 값. */
+  priceRangeMin?: number;
+  priceRangeMax?: number;
+  /** 메뉴·가격을 직접 볼 수 있는 공식 페이지. 메뉴 내용을 우리가 옮겨 적지는 않는다. */
+  menuUrl?: string;
   priceLabel: string;
   priceConfidence: "provider" | "estimated" | "unknown";
   openNow: boolean | null;

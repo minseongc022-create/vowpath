@@ -18,6 +18,8 @@ type GoogleNewPlace = {
   rating?: number;
   userRatingCount?: number;
   priceLevel?: string;
+  /** 실제 가격대(예: 10,000~50,000원). priceLevel(1~4단계)과 달리 진짜 금액이 온다. */
+  priceRange?: { startPrice?: { units?: string; currencyCode?: string }; endPrice?: { units?: string; currencyCode?: string } };
   currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
   regularOpeningHours?: { weekdayDescriptions?: string[] };
   businessStatus?: string;
@@ -175,6 +177,7 @@ function normalizeNew(place: GoogleNewPlace, checkedAt: string): RealPlaceCandid
     localIndependent: !chainName,
     chainName,
     priceLevel: place.priceLevel ? PRICE_LEVEL[place.priceLevel] : undefined,
+    ...priceRangeKrw(place.priceRange),
     openNow: place.currentOpeningHours?.openNow ?? null,
     openingHours: place.currentOpeningHours?.weekdayDescriptions ?? place.regularOpeningHours?.weekdayDescriptions ?? [],
     businessStatus: businessStatus(place.businessStatus),
@@ -188,6 +191,23 @@ function normalizeNew(place: GoogleNewPlace, checkedAt: string): RealPlaceCandid
   };
   candidate.selectionSignals = selectionSignals(candidate);
   return candidate;
+}
+
+/**
+ * 구글이 공식으로 주는 실제 가격대(1인 기준 최저~최고). 1~4단계짜리 priceLevel과 달리 진짜
+ * 금액이라 "10,000~50,000원"처럼 그대로 보여줄 수 있다. 원화가 아닌 통화로 오면 환산하지 않고
+ * 버린다 — 환율을 추측해 만든 금액은 가짜 가격이다.
+ */
+function priceRangeKrw(range?: GoogleNewPlace["priceRange"]): { priceRangeMin?: number; priceRangeMax?: number } {
+  if (!range) return {};
+  const currencies = [range.startPrice?.currencyCode, range.endPrice?.currencyCode].filter(Boolean);
+  if (currencies.some((code) => code !== "KRW")) return {};
+  const min = Number(range.startPrice?.units);
+  const max = Number(range.endPrice?.units);
+  return {
+    priceRangeMin: Number.isFinite(min) && min > 0 ? min : undefined,
+    priceRangeMax: Number.isFinite(max) && max > 0 ? max : undefined,
+  };
 }
 
 function normalizeLegacy(place: GoogleLegacyPlace, checkedAt: string): RealPlaceCandidate | null {
@@ -236,7 +256,7 @@ async function searchNew(apiKey: string, query: string, near?: Coordinates): Pro
         headers: headers(referer, {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.regularOpeningHours,places.photos,places.businessStatus,places.editorialSummary,places.reviews,places.types",
+          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.websiteUri,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.priceLevel,places.priceRange,places.currentOpeningHours,places.regularOpeningHours,places.photos,places.businessStatus,places.editorialSummary,places.reviews,places.types",
         }),
         body: JSON.stringify({
           textQuery: query,
@@ -557,6 +577,9 @@ function mergeSources(kakao: RealPlaceCandidate[], google: RealPlaceCandidate[])
       reviewAuthors: match.reviewAuthors,
       editorialSummary: match.editorialSummary,
       priceLevel: match.priceLevel,
+      // 실제 가격대는 구글 쪽에만 있다 — 카카오 정보에 얹어야 살아남는다.
+      priceRangeMin: match.priceRangeMin,
+      priceRangeMax: match.priceRangeMax,
       openNow: match.openNow,
       openingHours: match.openingHours.length ? match.openingHours : place.openingHours,
       photoUrl: place.photoUrl ?? match.photoUrl,

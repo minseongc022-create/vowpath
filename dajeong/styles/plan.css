@@ -277,6 +277,7 @@
 .dj-plan-price { font-size: 15px; font-weight: 750; }
 .dj-plan-item h3 { margin: 13px 0 5px; font-size: 19px; letter-spacing: -.04em; font-weight: 750; }
 .dj-plan-subtitle { margin: 0; color: var(--dj-muted); font-size: 13px; line-height: 1.6; }
+.dj-price-range-note { margin: 7px 0 0; padding: 9px 11px; border-radius: var(--dj-radius-xs); background: var(--dj-accent-softer); color: var(--dj-muted); font-size: 11px; line-height: 1.55; }
 .dj-flow-story { display: block; margin-top: 9px; color: var(--dj-accent-ink); font-size: 12px; font-weight: 700; letter-spacing: -.015em; }
 
 .dj-reality-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }

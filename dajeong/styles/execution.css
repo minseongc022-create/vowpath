@@ -173,6 +173,7 @@
 .dj-call-result svg { flex: 0 0 auto; margin-top: 2px; }
 .dj-call-result p { margin: 0; font-size: 12px; line-height: 1.58; }
 .dj-call-result em { display: block; margin-top: 5px; color: var(--dj-muted); font-style: normal; font-size: 11px; line-height: 1.5; }
+.dj-prefilled-note { margin: 11px 0 0 !important; padding: 10px 12px; border-radius: var(--dj-radius-xs); background: var(--dj-accent-softer); color: var(--dj-accent-ink) !important; font-size: 11px; line-height: 1.55; }
 .dj-call-error { margin: 0 0 14px; padding: 12px 14px; border-radius: var(--dj-radius-xs); background: #fff2ef; color: #b8453a; font-size: 12px; }
 
 .dj-phone-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--dj-muted); font-size: 11px; }

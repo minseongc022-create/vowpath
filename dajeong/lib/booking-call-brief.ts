@@ -37,21 +37,45 @@ export function spokenTime(time: string): string {
   return minute ? `${part} ${display}시 ${minute}분` : `${part} ${display}시`;
 }
 
-/** 카테고리별로 용건이 다르다 — 식당 예약과 케이크 픽업은 물어볼 것도 다르다. */
-function purposeFor(task: ReservationTask): { purpose: string; ask: string } {
+/**
+ * 카테고리별로 용건이 다르다 — 식당 예약, 케이크 픽업, 공연 관람, 숙박은 물어볼 것이 전부 다르다.
+ * 전화 한 통에 다 못 물어보면 사용자가 결국 다시 전화해야 하므로, 그 업종에서 실제로 중요한
+ * 것만 골라 넣는다.
+ */
+function purposeFor(task: ReservationTask): { purpose: string; ask: string; extras: string[] } {
   if (task.kind === "purchase") {
     return {
       purpose: "픽업 주문",
       ask: "그 시간에 찾아갈 수 있는지, 미리 주문해둬야 하는지",
+      extras: ["주문 마감 시간", "픽업 가능 시간대", "문구·디자인 요청 가능 여부"],
     };
   }
   if (task.kind === "ticket") {
-    return { purpose: "입장·관람 예약", ask: "그 시간에 자리가 있는지, 현장 구매가 되는지" };
+    return {
+      purpose: "관람 예약",
+      ask: "그 시간 회차에 자리가 있는지, 현장에서 바로 구매할 수 있는지",
+      extras: ["회차 시간", "현장 구매 가능 여부", "1인 요금", "입장 마감 시간"],
+    };
   }
   if (task.kind === "lodging") {
-    return { purpose: "숙박 예약", ask: "그날 방이 있는지" };
+    return {
+      purpose: "숙박 예약",
+      ask: "그날 빈 방이 있는지",
+      extras: ["1박 요금", "체크인·체크아웃 시간", "주차 가능 여부", "예약금 필요 여부"],
+    };
   }
-  return { purpose: "예약", ask: "그 시간에 자리가 있는지" };
+  if (task.kind === "transport" || task.kind === "rental_car") {
+    return {
+      purpose: "예약",
+      ask: "그 시간에 이용할 수 있는지",
+      extras: ["요금", "필요 서류", "취소 조건"],
+    };
+  }
+  return {
+    purpose: "예약",
+    ask: "그 시간에 자리가 있는지",
+    extras: ["1인 예상 금액", "주차 가능 여부", "예약 시간 유지 시간"],
+  };
 }
 
 export type BookingCallContact = {
@@ -129,7 +153,7 @@ export function bookingCallVariables(params: {
   contact: BookingCallContact;
 }): Record<string, string> {
   const { task, plan, contact } = params;
-  const { purpose, ask } = purposeFor(task);
+  const { purpose, ask, extras } = purposeFor(task);
   const notes: string[] = [];
   if (plan.situation.constraints.length) notes.push(plan.situation.constraints.join(", "));
   if (task.kind === "purchase") notes.push("픽업 시간에 맞춰 준비 가능한지 확인 필요");
@@ -137,6 +161,8 @@ export function bookingCallVariables(params: {
     place_name: task.title,
     purpose,
     primary_question: ask,
+    // 그 업종에서 안 물어보면 나중에 다시 전화하게 되는 것들.
+    extra_questions: extras.join(", "),
     visit_date: spokenDate(plan.situation.targetDate),
     visit_time: spokenTime(task.time),
     party_size: String(plan.situation.partySize),

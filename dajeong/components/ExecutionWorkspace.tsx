@@ -6,6 +6,7 @@ import { DAJEONG_BRAND } from "../lib/brand";
 import { resolveIdentity } from "../lib/identity";
 import { applyBookingCallOutcome, approvePayment, markTaskCalling, recordUserCompleted, requestPaymentReview } from "../lib/reservation-engine";
 import { callPreviewScript, canCallForBooking, outcomeMessage } from "../lib/booking-call-brief";
+import { prefilledBookingLink, prefilledLinkNote } from "../lib/booking-links";
 import { getPlan, savePlan } from "../lib/storage";
 import type { BookingCallRecord, BookingMethod, DajeongPlan, ReservationOrder, ReservationTask, ReservationTaskStatus } from "../lib/types";
 import { ArrowIcon, CheckIcon, ClockIcon, RefreshIcon, ShieldIcon, SparkleIcon, WalletIcon } from "./DajeongIcons";
@@ -174,7 +175,11 @@ function TaskCard({ task, plan, call, callConfigured, callBusy, onCall, onReport
   onCopy: (text: string) => void;
 }) {
   const exact = task.price.confidence === "provider_quote";
-  const link = task.bookingMethod === "phone_only" && task.phoneNumber ? `tel:${task.phoneNumber}` : task.bookingUrl;
+  const online = ["external_online", "external_platform"].includes(task.bookingMethod);
+  const prefilled = online ? prefilledBookingLink(task, plan) : null;
+  const link = task.bookingMethod === "phone_only" && task.phoneNumber
+    ? `tel:${task.phoneNumber}`
+    : prefilled?.url || task.bookingUrl;
   const showCall = canHaruwithCall(task, callConfigured) || Boolean(call);
   return (
     <article className={`dj-execution-task dj-task-${task.status}`}>
@@ -191,6 +196,7 @@ function TaskCard({ task, plan, call, callConfigured, callBusy, onCall, onReport
         {task.proposedChange ? <p className="dj-execution-proposal">대안 제안: {task.proposedChange.time ? `${task.proposedChange.time} · ` : ""}{task.proposedChange.title ?? task.proposedChange.reason}{task.proposedChange.amount != null ? ` · ${money(task.proposedChange.amount)}` : ""} — 네가 승인하기 전엔 확정 안 해.</p> : null}
         {task.confirmation ? <div className="dj-execution-confirmation"><CheckIcon size={14} /><span>{task.confirmation.source === "provider" ? "제공자 확인" : "사용자 완료 확인"} · {task.confirmation.confirmationId}</span></div> : null}
         {showCall ? <CallPanel task={task} plan={plan} call={call} busy={callBusy} onStart={onCall} /> : null}
+        {prefilled?.filled.length ? <p className="dj-prefilled-note">{prefilledLinkNote(prefilled)}</p> : null}
         {task.phoneScript && !canHaruwithCall(task, callConfigured) ? (
           <div className="dj-phone-script">
             <strong>전화할 때 이렇게 말하면 돼</strong>

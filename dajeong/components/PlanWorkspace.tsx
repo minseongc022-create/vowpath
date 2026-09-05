@@ -136,10 +136,18 @@ function TimelineItem({
           <div className="dj-plan-item-body">
             <div className="dj-plan-item-top">
               <div className="dj-plan-category"><span>{item.categoryLabel}</span>{highlight ? <em className="dj-highlight-badge">이번 코스의 하이라이트</em> : item.badge ? <em>{item.badge}</em> : null}</div>
-              <strong className="dj-plan-price">{money(item.price)}</strong>
+              <strong className="dj-plan-price">
+                {item.reality?.priceRangeMin != null && item.reality.priceRangeMax != null
+                  // 제공자가 준 실제 가격대는 추정 한 숫자로 뭉개지 않고 범위 그대로 보여준다.
+                  ? `${item.reality.priceRangeMin.toLocaleString("ko-KR")}~${item.reality.priceRangeMax.toLocaleString("ko-KR")}원`
+                  : money(item.price)}
+              </strong>
             </div>
             <h3>{item.title}</h3>
             <p className="dj-plan-subtitle">{item.subtitle}</p>
+            {item.reality?.priceRangeMin != null && item.reality.priceRangeMax != null ? (
+              <p className="dj-price-range-note">1인 기준 실제 가격대야. {item.price.toLocaleString("ko-KR")}원은 {item.reality.priceRangeMin.toLocaleString("ko-KR")}~{item.reality.priceRangeMax.toLocaleString("ko-KR")}원의 중간으로 잡은 예산이고, 뭘 시키냐에 따라 달라져.</p>
+            ) : null}
             {item.reality ? (
               <div className="dj-reality-strip">
                 <span className={item.reality.openNow === true ? "dj-open-now" : ""}>{openLabel}</span>
@@ -182,6 +190,11 @@ function TimelineItem({
                   {item.reality?.freshness === "reference" ? "지도에서 가게 찾아보기" : "사진·리뷰 더 보기"} <ArrowIcon size={16} />
                 </a>
               )}
+              {item.reality?.menuUrl && ["meal", "cafe", "cake"].includes(item.category) ? (
+                <a href={item.reality.menuUrl} target="_blank" rel="noreferrer" className="dj-btn dj-btn-secondary dj-connect-link">
+                  메뉴·가격 보기 <ArrowIcon size={16} />
+                </a>
+              ) : null}
               <button type="button" className="dj-change-button dj-item-change-button" onClick={() => setOpen((value) => !value)}>
                 <SparkleIcon size={15} /> {open ? "변경 창 닫기" : `${DAJEONG_BRAND.assistantName}와 이 일정 바꾸기`}
               </button>
