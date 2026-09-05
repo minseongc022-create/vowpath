@@ -12,12 +12,18 @@ import { isDatabaseConfigured, prisma } from "./db";
  * 실패해도 조용히 넘어간다. 이 기록 하나 때문에 실제 알림 발송이 멈추면 본말이 전도된다.
  */
 
-export type SweepHeartbeat = {
-  lastRunAt: string;
-  detail?: Record<string, unknown>;
-  /** 마지막 실행이 몇 초 전이었는지. 60초 cron이 살아 있으면 보통 60 언저리다. */
-  secondsAgo: number;
-};
+export type SweepHeartbeat =
+  | {
+      state: "recorded";
+      lastRunAt: string;
+      detail?: Record<string, unknown>;
+      /** 마지막 실행이 몇 초 전이었는지. 60초 cron이 살아 있으면 보통 60 언저리다. */
+      secondsAgo: number;
+    }
+  /** 기록할 자리는 있는데 아직 한 번도 안 돌았다 — cron이 안 오고 있다는 뜻이다. */
+  | { state: "never_ran" }
+  /** 표가 아직 없거나 DB를 못 읽었다 — cron 문제인지 아닌지 여기선 알 수 없다. */
+  | { state: "unavailable"; reason: string };
 
 const KEY = "notifications";
 
@@ -35,17 +41,25 @@ export async function recordSweepRun(detail: Record<string, unknown>): Promise<v
   }
 }
 
-export async function readSweepHeartbeat(): Promise<SweepHeartbeat | null> {
-  if (!isDatabaseConfigured()) return null;
+export async function readSweepHeartbeat(): Promise<SweepHeartbeat> {
+  if (!isDatabaseConfigured()) return { state: "unavailable", reason: "운영 DB가 연결돼 있지 않아 기록을 남길 수 없어." };
   try {
     const row = await prisma.dajeongSweepHeartbeat.findUnique({ where: { key: KEY } });
-    if (!row) return null;
+    // 조회가 성공했는데 행이 없다 = 표는 있고 스윕이 한 번도 안 돌았다. 이건 결론이 난 상태다.
+    if (!row) return { state: "never_ran" };
     return {
+      state: "recorded",
       lastRunAt: row.lastRunAt.toISOString(),
       detail: (row.detail ?? undefined) as Record<string, unknown> | undefined,
       secondsAgo: Math.round((Date.now() - row.lastRunAt.getTime()) / 1000),
     };
-  } catch {
-    return null;
+  } catch (error) {
+    // 표가 없으면(마이그레이션 전) 여기로 온다 — cron이 도는지 아닌지는 아직 알 수 없다.
+    return {
+      state: "unavailable",
+      reason: error instanceof Error && /relation|table|does not exist/i.test(error.message)
+        ? "기록용 표가 아직 없어(prisma db push 필요). 이것만으로는 cron이 도는지 알 수 없어."
+        : "기록을 읽지 못했어.",
+    };
   }
 }

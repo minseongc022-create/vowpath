@@ -40,22 +40,23 @@ export async function GET() {
     database: isDatabaseConfigured(),
   };
 
-  const notificationSweep = heartbeat
+  const notificationSweep = heartbeat.state === "recorded"
     ? {
+        state: heartbeat.state,
         lastRunAt: heartbeat.lastRunAt,
         secondsAgo: heartbeat.secondsAgo,
         // 60초 cron이 살아 있으면 마지막 실행이 2분 안쪽이어야 한다.
         looksAlive: heartbeat.secondsAgo <= 120,
         lastRun: heartbeat.detail,
       }
-    : {
-        lastRunAt: null,
-        secondsAgo: null,
-        looksAlive: false,
-        note: features.database
-          ? "아직 한 번도 기록되지 않았어. 외부 cron이 안 돌고 있거나, 이 기능 배포 후 첫 실행 전이야."
-          : "운영 DB가 연결돼 있지 않아 기록을 남길 수 없어.",
-      };
+    : heartbeat.state === "never_ran"
+      ? {
+          state: heartbeat.state,
+          looksAlive: false,
+          // 표는 있는데 기록이 없다 — 외부 cron이 안 오고 있다는 결론이다.
+          note: "기록할 자리는 있는데 스윕이 한 번도 안 돌았어. 외부 cron(cron-job.org)이 이 주소를 안 부르고 있다는 뜻이야.",
+        }
+      : { state: heartbeat.state, looksAlive: false, note: heartbeat.reason };
 
   const blocked = Object.entries(features).filter(([, on]) => !on).map(([name]) => name);
 
