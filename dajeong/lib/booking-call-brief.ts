@@ -95,6 +95,39 @@ export function canCallForBooking(task: ReservationTask): boolean {
   return true;
 }
 
+/** 같은 항목에 전화를 다시 걸어도 되는지. 방금 끊었는데 또 걸거나, 이미 여러 번
+ * 시도했는데 계속 거는 건 가게에도 민폐고 통화 요금만 나간다. */
+export const CALL_COOLDOWN_MS = 10 * 60 * 1000;
+export const MAX_ATTEMPTS_PER_TASK = 3;
+
+export type CallGate = { ok: true } | { ok: false; reason: string };
+
+/**
+ * 이 항목에 지금 전화를 걸어도 되는지 판단한다. 통화 기록(이 항목에 걸었던 것만)과 현재
+ * 시각을 받아서, 진행 중인 통화가 있는지·시도 횟수를 다 썼는지·너무 최근에 끊었는지를 본다.
+ */
+export function callGateStatus(taskId: string, historyForTask: BookingCallRecord[], now = new Date()): CallGate {
+  const attempts = historyForTask.filter((call) => call.taskId === taskId);
+  if (attempts.some((call) => call.status === "queued" || call.status === "in_progress")) {
+    return { ok: false, reason: "이 항목은 지금 통화 중이야. 끝나면 결과를 알려줄게." };
+  }
+  if (attempts.length >= MAX_ATTEMPTS_PER_TASK) {
+    return { ok: false, reason: `이 항목은 이미 ${MAX_ATTEMPTS_PER_TASK}번 시도했어. 직접 확인해봐야 할 것 같아.` };
+  }
+  const lastEnded = attempts
+    .filter((call) => call.status === "finished" || call.status === "failed")
+    .map((call) => new Date(call.endedAt ?? call.updatedAt).getTime())
+    .sort((a, b) => b - a)[0];
+  if (lastEnded != null) {
+    const elapsed = now.getTime() - lastEnded;
+    if (elapsed < CALL_COOLDOWN_MS) {
+      const minutesLeft = Math.max(1, Math.ceil((CALL_COOLDOWN_MS - elapsed) / 60_000));
+      return { ok: false, reason: `방금 이 항목에 전화했어. ${minutesLeft}분 뒤에 다시 걸 수 있어.` };
+    }
+  }
+  return { ok: true };
+}
+
 const KST_OFFSET_MINUTES = 9 * 60;
 
 /** 서버가 어느 시간대에서 돌든 한국 시각으로 몇 시인지. 한국은 서머타임이 없어 고정 +9다. */

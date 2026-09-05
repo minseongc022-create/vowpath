@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canCallForBooking, callPreviewScript, withinCallableHours } from "@/dajeong/lib/booking-call-brief";
+import { callGateStatus, callPreviewScript, canCallForBooking, withinCallableHours } from "@/dajeong/lib/booking-call-brief";
 import { bookingCallsConfigured, placeBookingCall, toE164Korea } from "@/dajeong/lib/booking-call";
-import { activeCallForTask, createBookingCall, listBookingCallsForPlan, newBookingCallId, updateBookingCall } from "@/dajeong/lib/booking-call-store";
+import { checkBookingCallRateLimits } from "@/dajeong/lib/booking-call-limits";
+import { createBookingCall, listBookingCallsForPlan, newBookingCallId, updateBookingCall } from "@/dajeong/lib/booking-call-store";
 import { IDENTITY_MISMATCH_ERROR, verifyClaimedIdentity } from "@/dajeong/lib/identity-guard";
 import { dajeongAiRateLimit } from "@/lib/security/ai-route-guard";
 import type { BookingCallRecord, DajeongPlan } from "@/dajeong/lib/types";
@@ -59,10 +60,14 @@ export async function POST(request: Request) {
   const hours = withinCallableHours(new Date(), task.phoneHours);
   if (!hours.ok) return NextResponse.json({ error: hours.reason }, { status: 409 });
 
-  const existing = await activeCallForTask(plan.id, task.id);
-  if (existing) {
-    return NextResponse.json({ error: "이 항목은 지금 통화 중이야. 끝나면 결과를 알려줄게.", call: existing }, { status: 409 });
-  }
+  // 통화 요금이 실제로 나가는 지점이라 두 겹으로 막는다: 이 항목 자체의 재시도/쿨다운
+  // 제한(callGateStatus)과, 사람·계획·서비스 전체의 하루 상한(checkBookingCallRateLimits).
+  const history = await listBookingCallsForPlan(plan.id, parsed.data.personId);
+  const gate = callGateStatus(task.id, history);
+  if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 409 });
+
+  const rateLimit = await checkBookingCallRateLimits({ personId: parsed.data.personId, planId: plan.id });
+  if (!rateLimit.ok) return NextResponse.json({ error: rateLimit.error }, { status: 429 });
 
   const now = new Date().toISOString();
   const record: BookingCallRecord = {

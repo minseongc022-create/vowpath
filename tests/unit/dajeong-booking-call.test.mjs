@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createDajeongPlan } from "../../dajeong/lib/plan-engine.ts";
 import { prepareReservationOrder, applyBookingCallOutcome, markTaskCalling } from "../../dajeong/lib/reservation-engine.ts";
 import {
+  callGateStatus,
   callPreviewScript,
   bookingCallVariables,
   canCallForBooking,
@@ -183,4 +184,72 @@ test("자동 통화 설정은 계획을 다시 계산해도 유지된다", () =>
   const first = prepareReservationOrder(plan, { autoCall: true });
   const again = prepareReservationOrder(plan, { previous: first });
   assert.equal(again.autoCallEnabled, true);
+});
+
+// ── 통화 안전장치: 재시도 제한·쿨다운 ────────────────────────────────────────
+
+function callRecordFor(taskId, overrides = {}) {
+  const now = new Date("2026-09-10T05:00:00Z").toISOString(); // 한국시간 14시
+  return {
+    id: `call_${Math.random().toString(36).slice(2, 8)}`,
+    planId: "p1",
+    taskId,
+    ownerId: "person_A",
+    toNumber: "+820212345678",
+    placeName: "까사올리브",
+    status: "finished",
+    createdAt: now,
+    updatedAt: now,
+    endedAt: now,
+    ...overrides,
+  };
+}
+
+test("진행 중인 통화가 있으면 같은 항목에 다시 걸 수 없다", () => {
+  const history = [callRecordFor("t1", { status: "in_progress", endedAt: undefined })];
+  const gate = callGateStatus("t1", history);
+  assert.equal(gate.ok, false);
+  assert.match(gate.reason, /지금 통화 중/);
+});
+
+test("방금 끊은 통화는 쿨다운 시간 안에는 다시 못 건다", () => {
+  const now = new Date("2026-09-10T05:00:00Z");
+  const twoMinutesAgo = new Date(now.getTime() - 2 * 60_000).toISOString();
+  const history = [callRecordFor("t1", { endedAt: twoMinutesAgo, updatedAt: twoMinutesAgo })];
+  const gate = callGateStatus("t1", history, now);
+  assert.equal(gate.ok, false);
+  assert.match(gate.reason, /분 뒤에 다시/);
+});
+
+test("쿨다운이 지나면 다시 걸 수 있다", () => {
+  const now = new Date("2026-09-10T05:00:00Z");
+  const twentyMinutesAgo = new Date(now.getTime() - 20 * 60_000).toISOString();
+  const history = [callRecordFor("t1", { endedAt: twentyMinutesAgo, updatedAt: twentyMinutesAgo })];
+  const gate = callGateStatus("t1", history, now);
+  assert.equal(gate.ok, true);
+});
+
+test("같은 항목에 3번 넘게 시도했으면 더 안 건다", () => {
+  const now = new Date("2026-09-10T05:00:00Z");
+  const longAgo = new Date(now.getTime() - 60 * 60_000).toISOString();
+  const history = [
+    callRecordFor("t1", { endedAt: longAgo, updatedAt: longAgo }),
+    callRecordFor("t1", { endedAt: longAgo, updatedAt: longAgo }),
+    callRecordFor("t1", { endedAt: longAgo, updatedAt: longAgo }),
+  ];
+  const gate = callGateStatus("t1", history, now);
+  assert.equal(gate.ok, false);
+  assert.match(gate.reason, /3번/);
+});
+
+test("다른 항목의 통화 기록은 이 항목의 쿨다운·횟수에 영향을 안 준다", () => {
+  const now = new Date("2026-09-10T05:00:00Z");
+  const history = [
+    callRecordFor("other-task", { status: "in_progress", endedAt: undefined }),
+    callRecordFor("other-task"),
+    callRecordFor("other-task"),
+    callRecordFor("other-task"),
+  ];
+  const gate = callGateStatus("t1", history, now);
+  assert.equal(gate.ok, true);
 });
