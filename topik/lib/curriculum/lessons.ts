@@ -289,3 +289,19 @@ export function tierForLevel(level: TopikLevel): "topik-i" | "topik-ii" {
 export function getCuratedVideoCount(): number {
   return TOPIK_CURRICULUM.filter((l) => l.videoUrl).length;
 }
+
+/** First incomplete lesson at or below target level + 1 — academy curriculum path */
+export function getNextIncompleteLesson(progress: {
+  targetLevel: TopikLevel;
+  lessons: Record<string, { completed: boolean }>;
+}) {
+  const sorted = [...TOPIK_CURRICULUM].sort(
+    (a, b) => a.level - b.level || a.sortOrder - b.sortOrder,
+  );
+  const maxLevel = Math.min(6, progress.targetLevel + 1) as TopikLevel;
+  for (const lesson of sorted) {
+    if (lesson.level > maxLevel) continue;
+    if (!progress.lessons[lesson.id]?.completed) return lesson;
+  }
+  return sorted.find((l) => l.level <= progress.targetLevel) ?? sorted[0];
+}

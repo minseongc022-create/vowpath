@@ -1,4 +1,6 @@
 import type { PassProbabilityReport, StudyPlanDay, TopikLevel, UserProgress } from "@/topik/types";
+import { getNextIncompleteLesson } from "@/topik/lib/curriculum/lessons";
+import { estimateLevelFromScore } from "@/topik/lib/quiz/placement-scoring";
 import { l } from "@/topik/lib/i18n/locale-text";
 
 export type JourneyStepStatus = "done" | "current" | "upcoming";
@@ -30,29 +32,51 @@ type Input = {
   report: PassProbabilityReport;
 };
 
-/**
- * Guided study path — inspired by Duolingo (one clear next step), Babbel (structure),
- * Migii (weak-area focus), Anki (review before new). Avoids: ads, confusing UI, no progress sync.
- */
+/** Full learning path — diagnostic → lesson → review → skills → mock */
 export function buildStudyJourney(input: Input): StudyJourney {
-  const { progress, dueCards, wrongCount, todayFocus, report } = input;
+  const { progress, wrongCount, report, todayFocus, dueCards } = input;
   const steps: JourneyStep[] = [];
   let order = 1;
+  const level = progress.targetLevel;
+  const today = new Date().toISOString().slice(0, 10);
+  const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
-  // 1. SRS first (Anki/Duolingo: review due before new)
+  if (!progress.placementLevel) {
+    steps.push({
+      id: "placement",
+      order: order++,
+      titleVi: l("Kiểm tra trình độ", "레벨 테스트"),
+      descVi: l("12 câu — biết cấp độ và điểm yếu ngay", "12문항 — 급수와 약점 진단"),
+      href: "/topik/placement",
+      status: "upcoming",
+      whyVi: l("Làm trước khi luyện — tránh học sai hướng", "연습 전 진단 — 방향 오류 방지"),
+    });
+  }
+
+  const nextLesson = getNextIncompleteLesson(progress);
+  if (nextLesson) {
+    steps.push({
+      id: "lesson",
+      order: order++,
+      titleVi: l("Video bài học", "영상 수업"),
+      descVi: nextLesson.titleVi,
+      href: `/topik/lessons/${nextLesson.level}/${nextLesson.id}`,
+      status: "upcoming",
+      whyVi: l("Nền tảng ngữ pháp & từ vựng", "문법·어휘 기초"),
+    });
+  }
+
   if (dueCards > 0) {
     steps.push({
       id: "srs",
       order: order++,
-      titleVi: l("Ôn tập SRS", "SRS 복습"),
-      descVi: l(`${dueCards} thẻ đến hạn — nhớ lâu, quên chậm`, `복습 ${dueCards}장 — 오래 기억`),
+      titleVi: l("Ôn SRS", "SRS 복습"),
+      descVi: l(`${dueCards} thẻ đến hạn`, `복습 ${dueCards}장`),
       href: "/topik/review",
       status: "upcoming",
-      whyVi: l("Lặp lại đúng lúc giúp nhớ từ vựng lâu hơn 80%", "적시 반복으로 어휘 기억 80% 향상"),
     });
   }
 
-  // 2. Wrong notes (Migii weakness: we fix with auto SRS + dedicated step)
   if (wrongCount > 0) {
     steps.push({
       id: "wrong",
@@ -65,66 +89,74 @@ export function buildStudyJourney(input: Input): StudyJourney {
     });
   }
 
-  // IBT type drill — TOPIK Coach-style mini sets
-  const today = new Date().toISOString().slice(0, 10);
-  const doneToday = progress.dailyStepsDone?.[today] ?? [];
   if (!doneToday.includes("drill")) {
+    const weakSection = pickWeakSection(progress, todayFocus);
     steps.push({
       id: "drill",
       order: order++,
-      titleVi: l("Drill IBT theo dạng", "IBT 유형별 드릴"),
-      descVi: l("10 câu nghe/đọc · sắp xếp câu IBT", "듣기/읽기 10문항 · 문장 배열"),
-      href: "/topik/drill?type=mixed",
+      titleVi: l(`Drill ${weakSection.labelVi}`, `${weakSection.labelVi} 드릴`),
+      descVi: weakSection.descVi,
+      href: weakSection.href,
       status: "upcoming",
-      whyVi: l("TOPIK Coach: luyện nhanh theo dạng — không quảng cáo", "TOPIK Coach: 유형별 빠른 연습 — 광고 없음"),
+      whyVi: l("Luyện theo dạng IBT — khó hơn đề thật một chút", "IBT 유형 연습 — 실전보다 약간 어렵게"),
     });
   }
 
-  // 3b. Vocab drill — built-in dictionary + TTS (no external lookup)
-  if (!doneToday.includes("vocab")) {
+  if (!doneToday.includes("practice")) {
+    steps.push({
+      id: "practice",
+      order: order++,
+      titleVi: l("Luyện đề TOPIK", "TOPIK 문제 풀이"),
+      descVi: l("Trắc nghiệm theo cấp mục tiêu", "목표 급수 맞춤 객관식"),
+      href: `/topik/practice?level=${level}`,
+      status: "upcoming",
+    });
+  }
+
+  if (todayFocus === "vocab" || todayFocus === "grammar") {
     steps.push({
       id: "vocab",
       order: order++,
-      titleVi: l("Sổ từ vựng TOPIK", "TOPIK 단어장"),
-      descVi: l("Chạm từ → nghĩa tiếng Việt + phát âm", "단어 탭 → 뜻 + 발음"),
+      titleVi: l("Sổ từ vựng", "단어장"),
+      descVi: l("TOPIK từ theo cấp", "급수별 TOPIK 어휘"),
       href: "/topik/vocab",
       status: "upcoming",
-      whyVi: l("Học từ trong app — không cần tra từ điển ngoài", "앱 내 단어 — 외부 사전 불필요"),
     });
   }
 
-  // 4. Placement if never done
-  if (!progress.placementLevel) {
+  if (todayFocus === "speaking" || level >= 3) {
     steps.push({
-      id: "placement",
+      id: "speaking",
       order: order++,
-      titleVi: l("Kiểm tra trình độ", "레벨 테스트"),
-      descVi: l("8 câu nhanh — biết điểm yếu ngay", "8문항 빠른 진단"),
-      href: "/topik/placement",
+      titleVi: l("Luyện nói IBT", "IBT 말하기"),
+      descVi: l("AI chấm + sửa phát âm", "AI 채점 + 발음"),
+      href: "/topik/speaking",
       status: "upcoming",
-      whyVi: l("Migii có entrance test — chúng ta cũng có, miễn phí", "Migii 입학 테스트 — 우리도 무료"),
     });
   }
 
-  // 4. Focus-based practice (Babbel structured module)
-  const focusStep = focusToStep(todayFocus, progress);
-  if (focusStep) {
-    steps.push({ ...focusStep, order: order++ });
+  if (todayFocus === "writing" || level >= 4) {
+    steps.push({
+      id: "writing",
+      order: order++,
+      titleVi: l("Chấm bài viết", "쓰기 채점"),
+      descVi: l("Q51–54", "51–54번"),
+      href: "/topik/writing",
+      status: "upcoming",
+    });
   }
 
-  // 5. Section drill — weak area from report
-  const weakSection = pickWeakSection(report, progress);
-  steps.push({
-    id: "section-drill",
-    order: order++,
-    titleVi: l(`Luyện ${weakSection.labelVi}`, `${weakSection.labelVi} 연습`),
-    descVi: weakSection.descVi,
-    href: weakSection.href,
-    status: "upcoming",
-    whyVi: l("Luyện theo điểm yếu — cách Migii/Duolingo adaptive", "약점 맞춤 — Migii/Duolingo 방식"),
-  });
+  if (level >= 3 && ((progress.bestTypingCpm ?? 0) < 30 || todayFocus === "writing")) {
+    steps.push({
+      id: "typing",
+      order: order++,
+      titleVi: l("Luyện gõ IBT", "IBT 타이핑"),
+      descVi: l("30+ ký tự/phút", "30+타/분"),
+      href: "/topik/typing",
+      status: "upcoming",
+    });
+  }
 
-  // 6. Mock exam (Migii strength — we add no paywall)
   const mockDue =
     !progress.bestMockScore ||
     progress.mockExamCount < 1 ||
@@ -144,13 +176,12 @@ export function buildStudyJourney(input: Input): StudyJourney {
     });
   }
 
-  // Mark statuses: first 2 actionable as current/upcoming, completed ones as done
   const dailyCompleted = progress.dailyGoalCompleted ?? 0;
-  const dailyTotal = Math.min(steps.length, 5);
+  const dailyTotal = Math.min(steps.length, 6);
 
   let foundCurrent = false;
   for (const step of steps) {
-    if (isStepDone(step.id, progress, dueCards, wrongCount)) {
+    if (isStepDone(step.id, progress, wrongCount, dueCards)) {
       step.status = "done";
     } else if (!foundCurrent) {
       step.status = "current";
@@ -166,139 +197,75 @@ export function buildStudyJourney(input: Input): StudyJourney {
 
   const currentStep = steps.find((s) => s.status === "current") ?? steps[0]!;
 
-  const confidenceVi = buildConfidenceMessage(report, progress);
-
   return {
     steps: steps.slice(0, 6),
     currentStep,
     dailyCompleted: Math.min(dailyCompleted, dailyTotal),
     dailyTotal,
-    confidenceVi,
+    confidenceVi: buildConfidenceMessage(report, progress),
   };
 }
 
-function focusToStep(
-  focus: StudyPlanDay["focus"] | undefined,
-  progress: UserProgress,
-): Omit<JourneyStep, "order"> | null {
-  switch (focus) {
-    case "speaking":
-      return {
-        id: "speaking",
-        titleVi: l("Luyện nói IBT", "IBT 말하기"),
-        descVi: l("6 dạng bài nói · AI chấm + sửa lỗi người Việt", "말하기 6유형 · AI 채점"),
-        href: "/topik/speaking",
-        status: "upcoming",
-      };
-    case "writing":
-      return {
-        id: "writing",
-        titleVi: l("Chấm bài viết TOPIK", "TOPIK 쓰기 채점"),
-        descVi: l("Q51–54 · tiêu chí thi thật", "51–54번 · 실전 기준"),
-        href: "/topik/writing",
-        status: "upcoming",
-      };
-    case "listening":
-      return {
-        id: "listening",
-        titleVi: l("Luyện nghe + script", "듣기 + 스크립트"),
-        descVi: l("Script tiếng Việt · không như app lỗi audio", "스크립트 제공 · 오디오 버그 없음"),
-        href: `/topik/drill?type=listening&level=${progress.targetLevel}`,
-        status: "upcoming",
-      };
-    case "reading":
-      return {
-        id: "reading",
-        titleVi: l("Luyện đọc hiểu", "독해 연습"),
-        descVi: l("Đoạn văn TOPIK + giải thích", "TOPIK 지문 + 해설"),
-        href: `/topik/drill?type=reading&level=${progress.targetLevel}`,
-        status: "upcoming",
-      };
-    case "mock":
-      return {
-        id: "mock-focus",
-        titleVi: l("Thi thử mini", "미니 모의고사"),
-        descVi: l("20 phút · lưu điểm cao nhất", "20분 · 최고 점수 저장"),
-        href: "/topik/mock-exam",
-        status: "upcoming",
-      };
-    case "vocab":
-      return {
-        id: "vocab",
-        titleVi: l("Sổ từ vựng TOPIK", "TOPIK 단어장"),
-        descVi: l("Chạm từ → nghĩa + phát âm", "단어 탭 → 뜻 + 발음"),
-        href: "/topik/vocab",
-        status: "upcoming",
-      };
-    case "grammar":
-    default:
-      if ((progress.bestTypingCpm ?? 0) < 30 && progress.targetLevel >= 3) {
-        return {
-          id: "typing",
-          titleVi: l("Luyện gõ tiếng Hàn", "한국어 타이핑"),
-          descVi: l("Mục tiêu 30+ ký tự/phút cho IBT", "IBT 목표 30+타/분"),
-          href: "/topik/typing",
-          status: "upcoming",
-        };
-      }
-      return {
-        id: "practice",
-        titleVi: l("Luyện đề TOPIK", "TOPIK 문제 풀이"),
-        descVi: l("Trắc nghiệm theo cấp mục tiêu", "목표 급수 맞춤 객관식"),
-        href: `/topik/practice?level=${progress.targetLevel}`,
-        status: "upcoming",
-      };
-  }
-}
-
 function pickWeakSection(
-  report: PassProbabilityReport,
   progress: UserProgress,
+  todayFocus?: StudyPlanDay["focus"],
 ): { labelVi: string; descVi: string; href: string } {
-  if (progress.speakingCount < 2) {
+  const level = progress.targetLevel;
+  const gaps = progress.placementGaps ?? [];
+
+  if (todayFocus === "listening" || gaps.includes("listening")) {
     return {
-      labelVi: l("nói IBT", "IBT 말하기"),
-      descVi: l("Điểm yếu phổ biến của người Việt", "베트남 학습자 흔한 약점"),
-      href: "/topik/speaking",
+      labelVi: l("nghe IBT", "IBT 듣기"),
+      descVi: l("10 câu nghe · script tiếng Việt", "듣기 10문항 · 스크립트"),
+      href: `/topik/drill?type=listening&level=${level}`,
     };
   }
-  if (progress.writingCount < 2 || (progress.bestTypingCpm ?? 0) < 30) {
+  if (todayFocus === "reading" || gaps.includes("reading")) {
     return {
-      labelVi: l("viết & gõ", "쓰기 & 타이핑"),
-      descVi: l("IBT viết trên màn hình", "IBT 화면 쓰기"),
-      href: "/topik/typing",
+      labelVi: l("đọc IBT", "IBT 독해"),
+      descVi: l("10 câu đọc hiểu", "독해 10문항"),
+      href: `/topik/drill?type=reading&level=${level}`,
     };
   }
-  if (!progress.bestMockScore) {
+  if (
+    todayFocus === "grammar" ||
+    todayFocus === "vocab" ||
+    gaps.includes("grammar") ||
+    gaps.includes("vocabulary")
+  ) {
     return {
-      labelVi: l("thi thử", "모의고사"),
-      descVi: l("Chưa có điểm mock — làm ngay", "모의 점수 없음 — 지금 하기"),
-      href: "/topik/mock-exam",
+      labelVi: l("ngữ pháp & từ", "문법 & 어휘"),
+      descVi: l("Mini set hỗn hợp", "혼합 미니 세트"),
+      href: `/topik/drill?type=mixed&level=${level}`,
     };
   }
+
   return {
-    labelVi: l("nghe", "듣기"),
-    descVi: l("Script + đáp án tiếng Việt", "스크립트 + 해설"),
-    href: `/topik/drill?type=listening&level=${progress.targetLevel}`,
+    labelVi: l("IBT theo dạng", "IBT 유형별"),
+    descVi: l("10 câu nghe/đọc · sắp xếp câu IBT", "듣기/읽기 10문항 · 문장 배열"),
+    href: `/topik/drill?type=mixed&level=${level}`,
   };
 }
 
 function isStepDone(
   id: string,
   progress: UserProgress,
-  dueCards: number,
   wrongCount: number,
+  dueCards: number,
 ): boolean {
   const today = new Date().toISOString().slice(0, 10);
   const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
   if (doneToday.includes(id)) return true;
-
-  if (id === "srs" && dueCards === 0 && (progress.reviewSessions ?? 0) > 0) return true;
   if (id === "wrong" && wrongCount === 0) return true;
   if (id === "placement" && progress.placementLevel) return true;
-  if (id === "vocab" && doneToday.includes("vocab")) return true;
+  if (id === "srs" && dueCards === 0) return true;
+  if (id === "lesson") {
+    const next = getNextIncompleteLesson(progress);
+    if (!next) return true;
+  }
   if (id === "drill" && doneToday.includes("drill")) return true;
+  if (id === "practice" && doneToday.includes("practice")) return true;
 
   return false;
 }
@@ -312,20 +279,17 @@ function buildConfidenceMessage(report: PassProbabilityReport, progress: UserPro
   }
   if (report.probability >= 50) {
     return l(
-      `Đang tiến bộ (${report.probability}%) — làm đủ 5 bước hôm nay, điểm sẽ tăng nhanh.`,
-      `진행 중 (${report.probability}%) — 오늘 5단계 완료하면 점수 빠르게 상승.`,
+      `Đang tiến bộ (${report.probability}%) — làm đủ bước hôm nay, điểm sẽ tăng nhanh.`,
+      `진행 중 (${report.probability}%) — 오늘 단계 완료하면 점수 빠르게 상승.`,
     );
   }
   return l(
-    `Bắt đầu từ bước 1 — mỗi ngày 5 bước nhỏ, vài tuần nữa bạn sẽ thấy khác biệt rõ.`,
-    `1단계부터 시작 — 매일 5개 작은 단계, 몇 주 후 확실한 변화.`,
+    `Bắt đầu từ kiểm tra trình độ — biết điểm yếu trước khi luyện đề.`,
+    `레벨 테스트부터 — 연습 전 약점 파악.`,
   );
 }
 
+/** @deprecated use estimateLevelFromScore from placement-scoring */
 export function estimateLevelFromPlacement(correct: number, total: number): TopikLevel {
-  const pct = correct / total;
-  if (pct >= 0.9) return 4;
-  if (pct >= 0.75) return 3;
-  if (pct >= 0.6) return 2;
-  return 1;
+  return estimateLevelFromScore(correct, total);
 }
