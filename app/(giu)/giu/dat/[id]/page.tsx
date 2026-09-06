@@ -84,24 +84,14 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
             {t(locale, "pickupQr")}
           </p>
-          {sp.paid === "1" ? (
-            <p className="text-[11px] font-semibold text-giu-accent">{t(locale, "settleHeld")}</p>
-          ) : null}
-          <p className="text-[13px] font-medium text-giu-muted">{t(locale, "showCode")}</p>
-          <p className="text-[12px] leading-relaxed text-giu-muted">{t(locale, "pickupPinHint")}</p>
           {pickedUp ? (
-            <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
-          ) : hasPromise ? (
-            <p className="text-[12px] font-semibold text-giu-primary">{t(locale, "cPickupPromisedHint")}</p>
+            <p className="text-[13px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
           ) : expired ? (
-            <p className="text-[12px] font-semibold text-amber-800">{t(locale, "cPickupExpiredHint")}</p>
+            <p className="text-[13px] font-semibold text-amber-800">{t(locale, "cPickupExpiredHint")}</p>
+          ) : hasPromise ? (
+            <p className="text-[13px] font-semibold text-giu-primary">{t(locale, "cPickupPromisedHint")}</p>
           ) : (
-            <p className="text-[12px] font-semibold text-giu-ink">{t(locale, "settleHeld")}</p>
-          )}
-          {reservation.smsSent ? (
-            <p className="text-[11px] text-giu-muted">{t(locale, "paidSms")}</p>
-          ) : (
-            <p className="text-[11px] text-giu-muted">{t(locale, "paidAppOnly")}</p>
+            <p className="text-[13px] text-giu-muted">{t(locale, "settleHeld")}</p>
           )}
           <ReservationTicketExtras
             reservationId={id}

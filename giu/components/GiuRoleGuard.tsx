@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { GIU_ROUTES, homePathForRole } from "@/giu/lib/routes";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
@@ -84,7 +84,9 @@ export function GiuAuthRedirect({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading || !account || forceLogin) return;
     if (requestedRole && account.role !== requestedRole) return;
-    router.replace(href(homePathForRole(account.role)));
+    router.replace(
+      href(account.role === "merchant" ? GIU_ROUTES.merchant.home : GIU_ROUTES.customer.home),
+    );
   }, [account, loading, requestedRole, forceLogin, router, href]);
 
   if (loading) {
