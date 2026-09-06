@@ -57,6 +57,9 @@ export function MerchantOrderRow({
         <div className="min-w-0">
           <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
           <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+          {!expanded ? (
+            <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mOrderTapDetail")}</p>
+          ) : null}
         </div>
         <span
           className={`shrink-0 text-[11px] font-bold text-giu-muted transition ${
