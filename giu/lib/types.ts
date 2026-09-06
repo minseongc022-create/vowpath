@@ -32,7 +32,27 @@ export type GiuStorageMethod = "room" | "fridge" | "freezer" | "display" | "othe
 
 export type GiuBoxStatus = "mo" | "het" | "huy";
 
-export type GiuReservationStatus = "giu_cho" | "da_lay" | "het_han" | "huy";
+export type GiuOrderStatus =
+  | "payment_completed"
+  | "merchant_confirmed"
+  | "pickup_preparing"
+  | "pickup_waiting"
+  | "pickup_completed"
+  | "not_picked_up"
+  | "pickup_change_requested"
+  | "pickup_change_completed"
+  | "cancel_requested"
+  | "refund_requested"
+  | "refund_processing"
+  | "refund_completed"
+  | "dispute_processing"
+  | "settlement_pending"
+  | "settlement_completed"
+  | "no_show_review"
+  | "order_cancelled";
+
+/** @deprecated Use GiuOrderStatus */
+export type GiuReservationStatus = GiuOrderStatus;
 
 export type GiuPaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
@@ -134,6 +154,20 @@ export type GiuChatMessage = {
   createdAt: string;
 };
 
+export type GiuOrderStatusLog = {
+  id: string;
+  reservationId: string;
+  orderCode: string;
+  fromStatus: GiuOrderStatus | null;
+  toStatus: GiuOrderStatus;
+  changedAt: string;
+  changedByRole: "customer" | "merchant" | "system" | "admin";
+  changedById: string;
+  reason?: string;
+  customerId: string;
+  merchantId: string;
+};
+
 export type GiuReservation = {
   id: string;
   boxId: string;
@@ -185,9 +219,18 @@ export type GiuReservation = {
   pickupRemindersSent?: { at70?: string; at30?: string };
   refundedAt?: string;
   refundType?: "full" | "partial";
+  /** When order entered 미수령 (not_picked_up). */
+  notPickedUpAt?: string;
+  /** In-app pickup change requests used (max 2). */
+  pickupChangeCount?: number;
+  /** Customer dispute / problem report count on this order. */
+  disputeReportCount?: number;
+  /** Soft risk flags — do not auto-deny legal rights. */
+  customerRiskFlag?: boolean;
+  merchantRiskFlag?: boolean;
   chatLastReadCustomerAt?: string;
   chatLastReadMerchantAt?: string;
-  status: GiuReservationStatus;
+  status: GiuOrderStatus;
   createdAt: string;
   expiresAt: string;
 };
@@ -217,6 +260,8 @@ export type GiuStore = {
   accounts: GiuAccount[];
   reviews: GiuReview[];
   chatMessages: GiuChatMessage[];
+  /** Audit trail for order status changes. */
+  orderStatusLogs: GiuOrderStatusLog[];
   /** customerId → favorited merchantIds */
   customerFavorites: Record<string, string[]>;
 };

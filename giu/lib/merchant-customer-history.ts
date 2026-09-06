@@ -56,7 +56,10 @@ export function listMerchantCustomers(
     };
 
     base.orderCount += 1;
-    if (r.status === "da_lay" && r.paymentStatus === "paid") {
+    if (
+      (r.status === "pickup_completed" || r.status === "settlement_completed") &&
+      r.paymentStatus === "paid"
+    ) {
       base.completedCount += 1;
       base.totalSpentVnd += r.totalVnd;
     }
@@ -104,9 +107,21 @@ export function customerVisitLabel(
   orders: GiuReservation[],
   locale: "ko",
 ): string {
-  const completed = orders.filter((r) => r.status === "da_lay" && r.paymentStatus === "paid").length;
+  const completed = orders.filter(
+    (r) =>
+      (r.status === "pickup_completed" || r.status === "settlement_completed") &&
+      r.paymentStatus === "paid",
+  ).length;
   const hasActive = orders.some(
-    (r) => r.paymentStatus === "paid" && (r.status === "giu_cho" || r.status === "het_han"),
+    (r) =>
+      r.paymentStatus === "paid" &&
+      (r.status === "pickup_waiting" ||
+        r.status === "not_picked_up" ||
+        r.status === "payment_completed" ||
+        r.status === "merchant_confirmed" ||
+        r.status === "pickup_preparing" ||
+        r.status === "pickup_change_requested" ||
+        r.status === "pickup_change_completed"),
   );
   const visitNo = completed + (hasActive ? 1 : 0);
   if (visitNo <= 0) return locale === "ko" ? "첫 방문 예정" : "First visit";
@@ -190,7 +205,10 @@ export function buildReservationTimelineEvents(
     });
   }
 
-  if (reservation.status === "da_lay" && reservation.settledAt) {
+  if (
+    (reservation.status === "pickup_completed" || reservation.status === "settlement_completed") &&
+    reservation.settledAt
+  ) {
     events.push({
       id: `${reservation.id}-pickup`,
       at: reservation.settledAt,
@@ -241,17 +259,20 @@ export function buildReservationTimelineEvents(
     });
   }
 
-  if (reservation.status === "het_han") {
+  if (reservation.status === "not_picked_up") {
     events.push({
-      id: `${reservation.id}-expired`,
-      at: reservation.expiresAt,
+      id: `${reservation.id}-not-picked-up`,
+      at: reservation.notPickedUpAt ?? reservation.expiresAt,
       kind: "expired",
       reservationId: reservation.id,
       productTitle,
     });
   }
 
-  if (reservation.status === "huy" && reservation.paymentStatus !== "refunded") {
+  if (
+    reservation.status === "order_cancelled" ||
+    (reservation.status === "refund_completed" && reservation.paymentStatus !== "refunded")
+  ) {
     events.push({
       id: `${reservation.id}-cancel`,
       at: reservation.refundedAt ?? reservation.createdAt,

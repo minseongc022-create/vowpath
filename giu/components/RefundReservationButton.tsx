@@ -55,7 +55,7 @@ export function RefundReservationButton({ reservationId }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status: "huy" }),
+        body: JSON.stringify({ action: "cancel" }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };

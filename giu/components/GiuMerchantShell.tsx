@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { GiuQrScanIcon } from "@/giu/components/GiuQrScanIcon";
 import { MerchantPickupProvider, useMerchantPickupOptional } from "@/giu/components/MerchantPickupProvider";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import { t, welcomeMessage } from "@/giu/lib/i18n";
+import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
@@ -36,8 +36,8 @@ function MerchantShellInner({ children }: { children: React.ReactNode }) {
   const { locale } = useGiuLocale();
   const href = useGiuHref();
   const pathname = usePathname();
-  const displayName = account?.name?.trim() || t(locale, "mStoreFallback");
-  const headerText = welcomeMessage(locale, "merchant", displayName);
+  const headerText =
+    merchant?.name?.trim() || account?.name?.trim() || t(locale, "mStoreFallback");
   const showQr = Boolean(account) && pathname.includes("/panel");
 
   return (

@@ -1,5 +1,6 @@
 import type { GiuLocale } from "./i18n";
 import { t } from "./i18n";
+import { orderStatusLabelKo } from "./order-status";
 import type { GiuBoxStatus, GiuPaymentStatus, GiuReservationStatus } from "./types";
 
 /** Low quantity urgency — price stays fixed; scarcity via remaining count only. */
@@ -31,12 +32,9 @@ export function formatBoxStatusLocale(status: GiuBoxStatus, locale: GiuLocale): 
 
 export function formatReservationStatusLocale(
   status: GiuReservationStatus,
-  locale: GiuLocale,
+  _locale: GiuLocale,
 ): string {
-  if (status === "giu_cho") return t(locale, "statusGiuCho");
-  if (status === "da_lay") return t(locale, "statusDaLay");
-  if (status === "het_han") return t(locale, "statusHetHan");
-  return t(locale, "statusResHuy");
+  return orderStatusLabelKo(status);
 }
 
 export function formatPaymentStatusLocale(status: GiuPaymentStatus, locale: GiuLocale): string {
