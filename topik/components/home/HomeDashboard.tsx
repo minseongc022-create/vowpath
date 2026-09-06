@@ -4,38 +4,28 @@ import Link from "next/link";
 import { StudyJourneyCard } from "@/topik/components/home/StudyJourneyCard";
 import { WeakAreaDrillCard } from "@/topik/components/home/WeakAreaDrillCard";
 import { StudyModeGrid } from "@/topik/components/home/StudyModeGrid";
-import { OfficialResourcesCard } from "@/topik/components/home/OfficialResourcesCard";
 import { PassProbabilitySection } from "@/topik/components/dashboard/PassProbabilitySection";
-import { StudyPlanCard } from "@/topik/components/dashboard/StudyPlanCard";
 import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
-import type { PassProbabilityReport, StudyPlanDay, TopikLevel } from "@/topik/types";
+import type { PassProbabilityReport, TopikLevel } from "@/topik/types";
 import type { StudyJourney } from "@/topik/lib/journey/study-journey";
 
 type Props = {
   streak: number;
   targetLevel: number;
   report: PassProbabilityReport;
-  todayPlan: StudyPlanDay | null;
-  planDay: number;
-  planDays: number;
-  srsTotal: number;
-  srsMastered: number;
   journey: StudyJourney;
   sectionStats?: Record<string, { correct: number; total: number }>;
+  placementDone?: boolean;
 };
 
-/** TOPIK Master home — guided journey, pass probability, study modes */
+/** TOPIK home — core exam prep: diagnostic, drill, mock, wrong notes */
 export function HomeDashboard({
   streak,
   targetLevel,
   report,
-  todayPlan,
-  planDay,
-  planDays,
-  srsTotal,
-  srsMastered,
   journey,
   sectionStats,
+  placementDone,
 }: Props) {
   const vi = useTopikVi();
   return (
@@ -44,6 +34,16 @@ export function HomeDashboard({
         <h1 className="topik-home-title">{vi.home.greeting}</h1>
         <p className="topik-home-subtitle">{vi.home.subtitle}</p>
       </header>
+
+      {!placementDone && (
+        <Link href="/topik/placement" className="topik-today-hero mb-4">
+          <div className="topik-today-hero-body">
+            <p className="topik-today-hero-label">{vi.placement.bannerLabel}</p>
+            <p className="topik-today-hero-title">{vi.placement.title}</p>
+            <p className="topik-today-hero-task">{vi.placement.bannerDesc}</p>
+          </div>
+        </Link>
+      )}
 
       <StudyJourneyCard journey={journey} />
 
@@ -63,17 +63,9 @@ export function HomeDashboard({
         </div>
       </div>
 
-      <StudyModeGrid srsTotal={srsTotal} srsMastered={srsMastered} />
-
-      <StudyPlanCard today={todayPlan} planDay={planDay} totalDays={planDays} />
+      <StudyModeGrid />
 
       <PassProbabilitySection report={report} />
-
-      <OfficialResourcesCard />
-
-      <Link href="/topik/study" className="topik-btn topik-btn-outline topik-btn-lg">
-        {vi.stats.allModes}
-      </Link>
     </main>
   );
 }

@@ -97,15 +97,22 @@ export function getStudyModes(vi: ViStrings): StudyMode[] {
   ];
 }
 
-export const HOME_FAVORITE_MODES: StudyModeId[] = [
-  "mock-exam",
+export const CORE_STUDY_MODE_IDS: StudyModeId[] = [
   "drill",
-  "vocab",
-  "typing",
-  "speaking",
-  "writing",
   "practice",
+  "mock-exam",
+  "wrong-notes",
 ];
+
+/** Shown on home quick grid — core exam prep only */
+export const CORE_HOME_MODES: StudyModeId[] = CORE_STUDY_MODE_IDS;
+
+export const HOME_FAVORITE_MODES: StudyModeId[] = CORE_HOME_MODES;
+
+export function getCoreStudyModes(vi: ViStrings): StudyMode[] {
+  const ids = new Set(CORE_STUDY_MODE_IDS);
+  return getStudyModes(vi).filter((m) => ids.has(m.id));
+}
 
 export function getStudyMode(id: StudyModeId, vi: ViStrings): StudyMode {
   return getStudyModes(vi).find((m) => m.id === id)!;

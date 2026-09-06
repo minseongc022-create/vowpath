@@ -5,18 +5,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/learn/lib/utils";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
-import { getStudyModes } from "@/topik/lib/study-modes";
+import { getCoreStudyModes } from "@/topik/lib/study-modes";
 import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import {
-  IconBook,
   IconChevronRight,
   IconClose,
   IconFlame,
-  IconHome,
   IconMenu,
-  IconReview,
-  IconStats,
-  IconStudy,
   StudyModeIcon,
 } from "@/topik/components/ui/TopikIcons";
 
@@ -27,7 +22,7 @@ type Props = {
 
 export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
   const vi = useTopikVi();
-  const studyModes = useMemo(() => getStudyModes(vi), [vi]);
+  const studyModes = useMemo(() => getCoreStudyModes(vi), [vi]);
 
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -88,6 +83,17 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
               </button>
             </div>
             <div className="topik-mode-list mx-3 my-3 !border-0 !shadow-none">
+              <Link
+                href="/topik/placement"
+                className={cn(
+                  "topik-mode-row",
+                  pathname.startsWith("/topik/placement") && "bg-[var(--topik-soft)]",
+                )}
+              >
+                <StudyModeIcon id="practice" tint="primary" />
+                <span className="flex-1 text-sm font-medium text-learn-ink">{vi.placement.title}</span>
+                <IconChevronRight className="text-learn-ink-subtle" />
+              </Link>
               {studyModes.map((mode) => (
                 <Link
                   key={mode.href}

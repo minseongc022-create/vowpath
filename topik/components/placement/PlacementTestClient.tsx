@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PLACEMENT_TEST } from "@/topik/lib/quiz/placement-test";
-import { estimateLevelFromPlacement } from "@/topik/lib/journey/study-journey";
-import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
+import type { PlacementGap, PlacementSectionScore } from "@/topik/lib/quiz/placement-scoring";
+import { placementSectionLabel } from "@/topik/lib/quiz/placement-scoring";
+import { useTopikVi, useIsKoLocale } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { quizQuestionText } from "@/topik/lib/i18n/content-locale";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
@@ -13,14 +14,26 @@ import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 
 type Phase = "intro" | "test" | "result";
 
+type PlacementApiResult = {
+  placementLevel: number;
+  targetLevel: number;
+  correct: number;
+  total: number;
+  accuracy: number;
+  sectionScores: PlacementSectionScore[];
+  gaps: PlacementGap[];
+  recommendations: { titleVi: string; titleKo: string; href: string }[];
+};
+
 export function PlacementTestClient() {
   const vi = useTopikVi();
+  const ko = useIsKoLocale();
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [correct, setCorrect] = useState(0);
-  const [estimatedLevel, setEstimatedLevel] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<{ questionId: string; selectedIndex: number }[]>([]);
+  const [result, setResult] = useState<PlacementApiResult | null>(null);
   const [loading, setLoading] = useState(false);
   const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
@@ -30,7 +43,7 @@ export function PlacementTestClient() {
     } else {
       leaveFocus();
     }
-  }, [phase, enterFocus, leaveFocus]);
+  }, [phase, enterFocus, leaveFocus, vi.placement.title]);
 
   useEffect(() => {
     if (phase === "test") {
@@ -42,25 +55,24 @@ export function PlacementTestClient() {
 
   async function handleNext() {
     if (!q || selected === null) return;
-    const isCorrect = selected === q.correctIndex;
-    const nextCorrect = isCorrect ? correct + 1 : correct;
+    const nextAnswers = [...answers, { questionId: q.id, selectedIndex: selected }];
 
     if (idx + 1 >= PLACEMENT_TEST.length) {
       setLoading(true);
-      const level = estimateLevelFromPlacement(nextCorrect, PLACEMENT_TEST.length);
-      await fetch("/topik/api/placement", {
+      const res = await fetch("/topik/api/placement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level, correct: nextCorrect, total: PLACEMENT_TEST.length }),
+        body: JSON.stringify({ answers: nextAnswers }),
       });
-      setCorrect(nextCorrect);
-      setEstimatedLevel(level);
+      const data = (await res.json()) as PlacementApiResult;
+      setAnswers(nextAnswers);
+      setResult(data);
       setPhase("result");
       setLoading(false);
       return;
     }
 
-    setCorrect(nextCorrect);
+    setAnswers(nextAnswers);
     setIdx((i) => i + 1);
     setSelected(null);
   }
@@ -88,24 +100,68 @@ export function PlacementTestClient() {
     );
   }
 
-  if (phase === "result" && estimatedLevel !== null) {
-    const pct = Math.round((correct / PLACEMENT_TEST.length) * 100);
+  if (phase === "result" && result) {
+    const pct = Math.round(result.accuracy * 100);
     return (
-      <div className="topik-quiz-shell topik-animate-in text-center">
-        <div className="topik-card topik-card-pad">
+      <div className="topik-quiz-shell topik-animate-in">
+        <div className="topik-card topik-card-pad text-center">
           <IconCheckCircle className="mx-auto text-learn-primary" size={52} />
           <p className="topik-result-label">{vi.placement.result}</p>
-          <p className="topik-result-score">TOPIK {estimatedLevel}</p>
+          <p className="topik-result-score">TOPIK {result.placementLevel}</p>
           <p className="topik-result-hint">
-            {correct}/{PLACEMENT_TEST.length} ({pct}%) — {vi.placement.resultHint}
+            {result.correct}/{result.total} ({pct}%) — {vi.placement.resultHint}
           </p>
         </div>
-        <Link href="/topik" className="topik-btn topik-btn-primary topik-btn-lg">
-          {vi.placement.backHome}
-        </Link>
-        <Link href={`/topik/practice?level=${estimatedLevel}`} className="topik-btn topik-btn-outline topik-btn-lg">
-          {vi.placement.startPractice}
-        </Link>
+
+        {result.sectionScores.length > 0 && (
+          <div className="topik-card topik-card-pad">
+            <p className="topik-section-title">{vi.placement.sectionBreakdown}</p>
+            <ul className="topik-setup-list">
+              {result.sectionScores.map((s) => {
+                const label = placementSectionLabel(s.section, ko);
+                const acc = Math.round(s.accuracy * 100);
+                return (
+                  <li key={s.section}>
+                    {label}: {s.correct}/{s.total} ({acc}%)
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {result.gaps.length > 0 ? (
+          <div className="topik-card topik-card-pad">
+            <p className="topik-section-title">{vi.placement.gapsTitle}</p>
+            <ul className="topik-setup-list">
+              {result.gaps.map((gap) => (
+                <li key={gap.section}>
+                  <strong>{ko ? gap.labelKo : gap.labelVi}</strong> —{" "}
+                  {ko ? gap.reasonKo : gap.reasonVi}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="topik-card topik-card-pad">
+            <p className="text-sm text-learn-ink-muted">{vi.placement.noGaps}</p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {result.recommendations.map((rec) => (
+            <Link
+              key={rec.href}
+              href={rec.href}
+              className="topik-btn topik-btn-accent topik-btn-lg"
+            >
+              {ko ? rec.titleKo : rec.titleVi}
+            </Link>
+          ))}
+          <Link href="/topik" className="topik-btn topik-btn-outline topik-btn-lg">
+            {vi.placement.backHome}
+          </Link>
+        </div>
       </div>
     );
   }

@@ -5,10 +5,9 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/learn/lib/utils";
 import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import {
-  IconBook,
   IconHome,
-  IconReview,
-  IconStats,
+  IconMonitor,
+  IconNotebook,
   IconStudy,
 } from "@/topik/components/ui/TopikIcons";
 import type { ViStrings } from "@/topik/lib/i18n/strings";
@@ -16,33 +15,26 @@ import type { ViStrings } from "@/topik/lib/i18n/strings";
 function getNav(vi: ViStrings) {
   return [
     { href: "/topik", label: vi.nav.home, Icon: IconHome, match: (p: string) => p === "/topik" },
-    { href: "/topik/stats", label: vi.nav.stats, Icon: IconStats, match: (p: string) => p.startsWith("/topik/stats") },
     {
-      href: "/topik/study",
-      label: vi.nav.studyHub,
+      href: "/topik/drill",
+      label: vi.drill.navShort,
       Icon: IconStudy,
+      match: (p: string) => p.startsWith("/topik/drill"),
+    },
+    {
+      href: "/topik/practice",
+      label: vi.nav.practice,
+      Icon: IconNotebook,
       match: (p: string) =>
-        p.startsWith("/topik/study") ||
-        p.startsWith("/topik/speaking") ||
-        p.startsWith("/topik/writing") ||
         p.startsWith("/topik/practice") ||
-        p.startsWith("/topik/drill") ||
-        p.startsWith("/topik/mock-exam") ||
-        p.startsWith("/topik/typing") ||
-        p.startsWith("/topik/vocab") ||
-        p.startsWith("/topik/placement"),
+        p.startsWith("/topik/placement") ||
+        p.startsWith("/topik/wrong-notes"),
     },
     {
-      href: "/topik/lessons",
-      label: vi.nav.lessons,
-      Icon: IconBook,
-      match: (p: string) => p.startsWith("/topik/lessons"),
-    },
-    {
-      href: "/topik/review",
-      label: vi.nav.review,
-      Icon: IconReview,
-      match: (p: string) => p.startsWith("/topik/review") || p.startsWith("/topik/wrong-notes"),
+      href: "/topik/mock-exam",
+      label: vi.nav.mockExam,
+      Icon: IconMonitor,
+      match: (p: string) => p.startsWith("/topik/mock-exam"),
     },
   ] as const;
 }

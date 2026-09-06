@@ -370,9 +370,15 @@ export async function setExamDate(userId: string, examDate: string): Promise<Use
 export async function savePlacementResult(
   userId: string,
   level: TopikLevel,
+  extras?: {
+    gaps?: string[];
+    sectionScores?: Record<string, { correct: number; total: number }>;
+  },
 ): Promise<UserProgress> {
   const store = await loadStore(userId);
   store.progress.placementLevel = level;
+  if (extras?.gaps) store.progress.placementGaps = extras.gaps;
+  if (extras?.sectionScores) store.progress.placementSectionScores = extras.sectionScores;
   if (level > store.progress.targetLevel) {
     store.progress.targetLevel = level;
   }
