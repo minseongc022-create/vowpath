@@ -68,12 +68,9 @@ const BOX_STATUS_LABELS: Record<GiuBoxStatus, string> = {
   huy: "취소됨",
 };
 
-const RESERVATION_STATUS_LABELS: Record<GiuReservationStatus, string> = {
-  giu_cho: "예약 중",
-  da_lay: "픽업 완료",
-  het_han: "만료됨",
-  huy: "취소됨",
-};
+import { ORDER_STATUS_LABEL_KO } from "./order-status";
+
+const RESERVATION_STATUS_LABELS: Record<GiuReservationStatus, string> = ORDER_STATUS_LABEL_KO;
 
 const PAYMENT_STATUS_LABELS: Record<GiuPaymentStatus, string> = {
   pending: "결제 대기",

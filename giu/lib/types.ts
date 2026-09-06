@@ -1,5 +1,7 @@
 export type GiuMarket = "vn" | "kr";
 
+import type { GiuPlatformSettings } from "./platform-settings";
+
 export type GiuDistrict =
   | "quan_1"
   | "quan_3"
@@ -32,7 +34,29 @@ export type GiuStorageMethod = "room" | "fridge" | "freezer" | "display" | "othe
 
 export type GiuBoxStatus = "mo" | "het" | "huy";
 
-export type GiuReservationStatus = "giu_cho" | "da_lay" | "het_han" | "huy";
+export type GiuOrderStatus =
+  | "payment_completed"
+  | "merchant_confirmed"
+  | "pickup_preparing"
+  | "pickup_waiting"
+  | "pickup_completed"
+  | "not_picked_up"
+  | "pickup_change_requested"
+  | "pickup_change_completed"
+  | "cancel_requested"
+  | "refund_requested"
+  | "refund_review"
+  | "refund_processing"
+  | "refund_completed"
+  | "dispute_processing"
+  | "admin_review_required"
+  | "settlement_pending"
+  | "settlement_completed"
+  | "no_show_review"
+  | "order_cancelled";
+
+/** @deprecated Use GiuOrderStatus */
+export type GiuReservationStatus = GiuOrderStatus;
 
 export type GiuPaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
@@ -88,7 +112,6 @@ export type GiuMerchant = {
     pickupGraceMinutes: number;
     lateCancelFeeRate: number;
     noShowFeeRate: number;
-    merchantNoShowMarkAfterHours: number;
   }>;
   createdAt: string;
 };
@@ -118,6 +141,8 @@ export type GiuBox = {
   /** Custom storage note when storageMethod is "other". */
   storageCustom?: string;
   freshnessNote?: string;
+  /** 픽업일 변경 요청 허용 (기본 true). */
+  pickupChangeAllowed?: boolean;
   status: GiuBoxStatus;
   /** Set when merchant cancels listing (status → huy). */
   cancelledAt?: string;
@@ -132,6 +157,20 @@ export type GiuChatMessage = {
   senderId: string;
   body: string;
   createdAt: string;
+};
+
+export type GiuOrderStatusLog = {
+  id: string;
+  reservationId: string;
+  orderCode: string;
+  fromStatus: GiuOrderStatus | null;
+  toStatus: GiuOrderStatus;
+  changedAt: string;
+  changedByRole: "customer" | "merchant" | "system" | "admin";
+  changedById: string;
+  reason?: string;
+  customerId: string;
+  merchantId: string;
 };
 
 export type GiuReservation = {
@@ -174,7 +213,31 @@ export type GiuReservation = {
     reviewedAt?: string;
     merchantNote?: string;
     merchantPingAt?: string;
+    merchantStorageConfirmed?: boolean;
   };
+  /** Merchant-initiated pickup change proposal awaiting customer approval. */
+  merchantPickupProposal?: {
+    status: "pending" | "approved" | "rejected";
+    plannedPickupAt: string;
+    reason?: string;
+    proposedAt: string;
+    reviewedAt?: string;
+    merchantStorageConfirmed?: boolean;
+  };
+  /** Original box pickup end at order time — for change limit validation. */
+  originalPickupEnd?: string;
+  /** Pickup change audit trail on this order. */
+  pickupChangeHistory?: Array<{
+    id: string;
+    fromPickupEnd: string;
+    toPickupEnd: string;
+    requestedByRole: "customer" | "merchant";
+    approvedByRole?: "customer" | "merchant";
+    reason: string;
+    requestedAt: string;
+    reviewedAt?: string;
+    status: "pending" | "approved" | "rejected";
+  }>;
   /** Merchant agreed to hold (e.g. after phone call) — QR valid until then. */
   merchantPickupPromiseUntil?: string;
   /** Merchant confirmed silent no-show for compensation. */
@@ -185,9 +248,53 @@ export type GiuReservation = {
   pickupRemindersSent?: { at70?: string; at30?: string };
   refundedAt?: string;
   refundType?: "full" | "partial";
+  /** When order entered 미수령 (not_picked_up). */
+  notPickedUpAt?: string;
+  /** In-app pickup change requests used. */
+  pickupChangeCount?: number;
+  /** Refund request detail. */
+  refundRequest?: {
+    reason: string;
+    detail?: string;
+    evidenceUrls?: string[];
+    problemType?: string;
+    requestedAt: string;
+    reviewedAt?: string;
+    reviewedBy?: string;
+    rejectReason?: string;
+    status: "requested" | "review" | "approved" | "rejected" | "processing" | "completed";
+  };
+  /** Product / food-safety reports on this order. */
+  productReports?: Array<{
+    id: string;
+    kind: string;
+    description?: string;
+    evidenceUrls?: string[];
+    storageNote?: string;
+    isFoodSafety: boolean;
+    status: "open" | "merchant_review" | "disputed" | "resolved";
+    createdAt: string;
+  }>;
+  /** Merchant problem reports by customer. */
+  merchantProblemReports?: Array<{
+    id: string;
+    reason: string;
+    detail?: string;
+    createdAt: string;
+  }>;
+  /** Internal risk tier — never auto-deny rights. */
+  customerRiskLevel?: "normal" | "needs_review" | "caution";
+  merchantRiskLevel?: "normal" | "needs_review" | "caution";
+  /** Admin dispute resolution. */
+  adminDisputeResolution?: {
+    outcome: "customer_fault" | "merchant_fault" | "needs_more_info" | "no_issue";
+    reason: string;
+    resolvedAt: string;
+    adminId: string;
+  };
   chatLastReadCustomerAt?: string;
   chatLastReadMerchantAt?: string;
-  status: GiuReservationStatus;
+  status: GiuOrderStatus;
   createdAt: string;
   expiresAt: string;
 };
@@ -217,6 +324,10 @@ export type GiuStore = {
   accounts: GiuAccount[];
   reviews: GiuReview[];
   chatMessages: GiuChatMessage[];
+  /** Audit trail for order status changes. */
+  orderStatusLogs: GiuOrderStatusLog[];
+  /** Platform-wide settings (admin). */
+  platformSettings?: Partial<GiuPlatformSettings>;
   /** customerId → favorited merchantIds */
   customerFavorites: Record<string, string[]>;
 };

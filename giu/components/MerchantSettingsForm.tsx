@@ -54,6 +54,7 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
   const policy = resolvePickupPolicy(merchant);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -165,6 +166,14 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
           <input name="bankHolder" defaultValue={merchant.bankHolder ?? ""} className="giu-input giu-input-hint" placeholder={merchant.name} />
         </div>
       </div>
+      <button
+        type="button"
+        onClick={() => setShowPolicy((v) => !v)}
+        className="w-full rounded-xl bg-giu-bg/80 px-3 py-2.5 text-left text-[13px] font-bold text-giu-primary ring-1 ring-giu-border"
+      >
+        {showPolicy ? t(locale, "mPolicyHideAdvanced") : t(locale, "mPolicyShowAdvanced")}
+      </button>
+      {showPolicy ? (
       <div className="space-y-3 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
         <div>
           <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPolicySection")}</p>
@@ -193,17 +202,9 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
             label={t(locale, "mPolicyGraceMin")}
             name="pickupGraceMinutes"
             defaultValue={policy.pickupGraceMinutes}
-            min={10}
-            max={120}
+            min={30}
+            max={480}
             unit={t(locale, "mPolicyUnitMinAfter")}
-          />
-          <PolicyNumberField
-            label={t(locale, "mPolicyNoShowHours")}
-            name="merchantNoShowMarkAfterHours"
-            defaultValue={policy.merchantNoShowMarkAfterHours}
-            min={6}
-            max={72}
-            unit={t(locale, "mPolicyUnitHoursAfter")}
           />
           <PolicyNumberField
             label={t(locale, "mPolicyLateCancelPct")}
@@ -223,6 +224,7 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
           />
         </div>
       </div>
+      ) : null}
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
       {saved ? <p className="giu-info-banner">{t(locale, "mSettingsSaved")}</p> : null}
       <button type="submit" disabled={busy} className="giu-btn-primary giu-btn-3d w-full py-3.5">

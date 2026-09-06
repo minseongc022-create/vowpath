@@ -166,6 +166,10 @@ export function ReservationChatSheet({
           ) : null}
         </header>
 
+        <p className="border-b border-giu-border/60 bg-giu-primary-soft/40 px-4 py-2 text-[11px] leading-snug text-giu-ink">
+          {t(locale, "chatOfficialNotice")}
+        </p>
+
         <div
           ref={listRef}
           className="giu-chat-thread giu-tab-panel-3d is-forward min-h-[240px] flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 py-3"

@@ -145,6 +145,13 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
         <ProductFreshnessTrust locale={locale} box={box} />
 
+        <div className="rounded-[14px] bg-giu-primary-soft px-3 py-3 ring-1 ring-giu-primary/15">
+          <p className="text-[12px] font-bold text-giu-primary">{t(locale, "pickupWindowConfirm")}</p>
+          <p className="mt-1 text-[15px] font-extrabold text-giu-ink">
+            {formatPickupDate(box.pickupStart)} · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+          </p>
+        </div>
+
         <dl className="grid grid-cols-2 gap-2 text-[13px]">
           {(
             [

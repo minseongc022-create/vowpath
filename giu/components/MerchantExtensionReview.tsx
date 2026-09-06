@@ -22,12 +22,17 @@ export function MerchantExtensionReview({
   onDone,
 }: Props) {
   const [loading, setLoading] = useState<"approve" | "reject" | null>(null);
+  const [storageOk, setStorageOk] = useState(false);
   const req = reservation.extensionRequest;
 
   if (!req || req.status !== "pending") return null;
 
   async function act(action: "approve" | "reject") {
     if (loading) return;
+    if (action === "approve" && !storageOk) {
+      window.alert(t(locale, "merchantStorageConfirmRequired"));
+      return;
+    }
     const note =
       action === "reject"
         ? window.prompt(t(locale, "mExtendRejectNotePh"), t(locale, "mExtendRejectDefault")) ?? ""
@@ -42,7 +47,11 @@ export function MerchantExtensionReview({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ action, note: note || undefined }),
+        body: JSON.stringify({
+          action,
+          note: note || undefined,
+          merchantStorageConfirmed: action === "approve" ? storageOk : undefined,
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -59,19 +68,23 @@ export function MerchantExtensionReview({
 
   return (
     <div className="mt-2 space-y-2 rounded-[14px] border border-amber-200 bg-amber-50/80 p-3">
-      <p className="text-[12px] font-bold text-amber-900">{t(locale, "mExtendPendingTitle")}</p>
+      <p className="text-[12px] font-bold text-amber-900">{t(locale, "pickupChangeRequestArrived")}</p>
       {boxPickupStart && boxPickupEnd ? (
         <p className="text-[11px] text-amber-900/80">
-          {t(locale, "mOrderProduct")}: {formatPickupDate(boxPickupStart)} ·{" "}
+          {t(locale, "pickupChangeFrom")}: {formatPickupDate(boxPickupStart)} ·{" "}
           {formatPickupWindow(boxPickupStart, boxPickupEnd, "kr")}
         </p>
       ) : null}
       <p className="text-[11px] leading-snug text-amber-950">
-        <span className="font-semibold">{t(locale, "cExtendReasonLabel")}</span> {req.reason}
+        <span className="font-semibold">{t(locale, "pickupChangeTo")}</span> {planned}
       </p>
       <p className="text-[11px] leading-snug text-amber-950">
-        <span className="font-semibold">{t(locale, "cExtendWhenLabel")}</span> {planned}
+        <span className="font-semibold">{t(locale, "cExtendReasonLabel")}</span> {req.reason}
       </p>
+      <label className="flex items-start gap-2 text-[11px] text-amber-950">
+        <input type="checkbox" checked={storageOk} onChange={(e) => setStorageOk(e.target.checked)} className="mt-0.5" />
+        {t(locale, "merchantStorageConfirm")}
+      </label>
       <div className="flex gap-2">
         <button
           type="button"
