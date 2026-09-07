@@ -246,7 +246,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Dajeong — occasion planning product, isolated from every legacy shell.
-  if (pathname.startsWith("/dajeong")) {
+  // Its API must follow the same host exception as the UI. Otherwise the UI
+  // renders on effiroad.com while every /api/dajeong request is swallowed by
+  // the retired Effiroad apex gate below. Machine endpoints still enforce
+  // their own access token, rate-limit, or ClawOps webhook signature.
+  if (pathname.startsWith("/dajeong") || pathname.startsWith("/api/dajeong")) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "dajeong");
     requestHeaders.set("x-pathname", pathname);

@@ -137,6 +137,11 @@ test("다정 경로는 기존 제품 셸과 격리된다", () => {
   assert.equal(isIsolatedProductPath("/dajeong/plan/demo"), true);
 });
 
+test("하루위드 API도 화면과 같은 제품 경계로 공개 호스트에서 통과한다", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../../middleware.ts", import.meta.url), "utf8"));
+  assert.match(source, /pathname\.startsWith\("\/dajeong"\) \|\| pathname\.startsWith\("\/api\/dajeong"\)/);
+});
+
 test("실제 장소 후보는 평점뿐 아니라 앞 일정과의 거리와 예산을 함께 반영한다", () => {
   const checkedAt = new Date().toISOString();
   const candidates = [
