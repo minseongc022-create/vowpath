@@ -36,7 +36,7 @@ ClawOps의 `completed`는 통화 연결 생명주기가 끝났다는 뜻이지 �
 ```dotenv
 CLAWOPS_API_KEY=sk_...
 CLAWOPS_ACCOUNT_ID=AC...
-CLAWOPS_FROM_NUMBER=+82...
+CLAWOPS_FROM_NUMBER=07012345678
 CLAWOPS_AGENT_ID=...
 CLAWOPS_SIGNING_KEY=...
 # 공식 기본 API를 쓸 때는 비워 둔다.
@@ -68,6 +68,17 @@ Vercel Hobby cron에는 초·분 단위 schedule을 추가하지 않는다. call
 ```bash
 npm run haruwith:reservation-worker
 ```
+
+ClawOps가 계정에 할당한 발신번호는 대시보드와 공식 API 예시처럼 국내 `070...` 형식으로 넣는 것을 권장한다. `+8270...`로 넣어도 서버가 국내 형식으로 정규화한다.
+
+배포 환경의 비밀값을 노출하거나 실제 전화를 걸지 않고 준비 상태만 확인하려면 운영 토큰으로 다음 읽기 전용 API를 호출한다.
+
+```bash
+curl -H "Authorization: Bearer $HARUWITH_OPS_TOKEN" \
+  "$HARUWITH_PUBLIC_BASE_URL/api/dajeong/reservations/health"
+```
+
+`ready: true`, `clawops.configured: true`, `persistence: "vercel_kv"`를 확인한다. 이 API는 Queue를 tick하지 않고 전화를 시작하지 않는다.
 
 worker는 기본 5초마다 `POST /api/cron/haruwith-reservations`를 호출하며 이전 tick과 겹치지 않는다. `Authorization: Bearer <HARUWITH_WORKER_TOKEN>`이 필요하다. 서버리스 callback만으로 운영하면 callback이 오지 않은 통화의 240초 강제 종료를 보장할 수 없으므로 출시 구성으로 인정하지 않는다.
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { adFunnel, createMemoryAdStore, recordAdEvent, serveSponsoredPlacement } from "../../dajeong/lib/ads.ts";
+import { clawOpsReadiness, monthlyMinuteAllowance, normalizeClawOpsFromNumber, reservationWorkerCapacity } from "../../dajeong/lib/clawops-config.ts";
 import { createDajeongPlan } from "../../dajeong/lib/plan-engine.ts";
 import { prepareReservationOrder } from "../../dajeong/lib/reservation-engine.ts";
 import { reservationMetrics } from "../../dajeong/lib/reservation-metrics.ts";
@@ -8,7 +9,7 @@ import { buildClawOpsCallInstruction, enforceAuthorizationBoundary, koreanPhoneT
 import { routeReservationProvider } from "../../dajeong/lib/reservation-provider-router.ts";
 import { approveReservationJob, canAccessBatch, createMemoryReservationStore, enqueueReservationBatch, recordClawOpsWebhook, retryFailedReservationJob, tickReservationQueue } from "../../dajeong/lib/reservation-queue.ts";
 
-const contact = { name: "최민성", phone: "01012345678", approvedFields: ["name", "phone"], approvedAt: "2026-09-07T00:00:00.000Z", purpose: "식당 예약" };
+const contact = { name: "하루고객", phone: "01012345678", approvedFields: ["name", "phone"], approvedAt: "2026-09-07T00:00:00.000Z", purpose: "식당 예약" };
 
 function phonePlan(title = "성수 식당") {
   const base = createDajeongPlan({ request: "토요일 7시쯤 성수에서 여자친구와 식사", region: "성수", targetDate: "2026-09-12", budget: 150_000, partySize: 2 });
@@ -228,6 +229,30 @@ test("ClawOps 발신 대상은 한국 국내번호를 E.164로 변환하고 잘�
   assert.equal(koreanPhoneToE164("010 1234 5678"), "+821012345678");
   assert.equal(koreanPhoneToE164("+82 10 1234 5678"), "+821012345678");
   assert.throws(() => koreanPhoneToE164("1234"), /INVALID_KOREAN_PHONE_NUMBER/);
+});
+
+test("ClawOps 보유 발신번호는 국내 070과 +82 입력을 같은 국내 형식으로 정규화한다", () => {
+  assert.equal(normalizeClawOpsFromNumber("070-1234-5678"), "07012345678");
+  assert.equal(normalizeClawOpsFromNumber("+82 70 1234 5678"), "07012345678");
+  assert.throws(() => normalizeClawOpsFromNumber("0101"), /CLAWOPS_FROM_NUMBER_MUST_BE_KOREAN_OWNED_NUMBER/);
+});
+
+test("ClawOps readiness는 비밀값을 노출하지 않고 누락된 환경변수 이름만 반환한다", () => {
+  const ready = clawOpsReadiness({ CLAWOPS_API_KEY: "key", CLAWOPS_ACCOUNT_ID: "account", CLAWOPS_FROM_NUMBER: "07012345678", CLAWOPS_AGENT_ID: "agent", CLAWOPS_SIGNING_KEY: "sign" });
+  assert.deepEqual(ready, { configured: true, missing: [], invalid: [] });
+  const missing = clawOpsReadiness({ CLAWOPS_API_KEY: "key" });
+  assert.equal(missing.configured, false);
+  assert.deepEqual(missing.missing, ["CLAWOPS_ACCOUNT_ID", "CLAWOPS_FROM_NUMBER", "CLAWOPS_AGENT_ID", "CLAWOPS_SIGNING_KEY"]);
+  assert.deepEqual(missing.invalid, []);
+  const invalid = clawOpsReadiness({ CLAWOPS_API_KEY: "key", CLAWOPS_ACCOUNT_ID: "account", CLAWOPS_FROM_NUMBER: "1234", CLAWOPS_AGENT_ID: "agent", CLAWOPS_SIGNING_KEY: "sign" });
+  assert.deepEqual(invalid.invalid, ["CLAWOPS_FROM_NUMBER"]);
+});
+
+test("예약 worker capacity와 월 분 한도는 운영 설정값을 안전 범위로 정규화한다", () => {
+  assert.equal(reservationWorkerCapacity({ HARUWITH_RESERVATION_CONCURRENCY: "10" }), 10);
+  assert.equal(reservationWorkerCapacity({ HARUWITH_RESERVATION_CONCURRENCY: "999" }), 50);
+  assert.equal(reservationWorkerCapacity({ HARUWITH_RESERVATION_CONCURRENCY: "invalid" }), 1);
+  assert.equal(monthlyMinuteAllowance({ HARUWITH_MONTHLY_MINUTE_ALLOWANCE: "100" }), 100);
 });
 
 test("예약 provider router는 direct/partner/전화/manual 경계를 분리한다", () => {

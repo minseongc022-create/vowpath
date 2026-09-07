@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { reservationWorkerCapacity } from "@/dajeong/lib/clawops-config";
 import { clawOpsConfigured, clawOpsReservationProvider } from "@/dajeong/lib/clawops-provider";
 import { reservationMetrics } from "@/dajeong/lib/reservation-metrics";
 import { tickReservationQueue } from "@/dajeong/lib/reservation-queue";
@@ -13,19 +14,15 @@ function authorized(request: Request): boolean {
   return Boolean(token && [process.env.HARUWITH_WORKER_TOKEN, process.env.CRON_SECRET].filter(Boolean).includes(token));
 }
 
-function capacity(): number {
-  const parsed = Number(process.env.HARUWITH_RESERVATION_CONCURRENCY ?? "1");
-  return Number.isFinite(parsed) ? Math.max(1, Math.min(50, Math.floor(parsed))) : 1;
-}
-
 export async function POST(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!clawOpsConfigured()) return NextResponse.json({ error: "ClawOps 환경변수가 준비되지 않았어요.", configured: false }, { status: 503 });
-  const tick = await tickReservationQueue(reservationStateStore, clawOpsReservationProvider, { capacity: capacity(), extractResult: extractReservationResult });
+  const capacity = reservationWorkerCapacity();
+  const tick = await tickReservationQueue(reservationStateStore, clawOpsReservationProvider, { capacity, extractResult: extractReservationResult });
   const state = await reservationStateStore.read();
   await recordAllReservationSuccessAttributions(state);
   const notificationsDelivered = await deliverReservationNotifications(reservationStateStore);
-  return NextResponse.json({ ok: true, tick, notificationsDelivered, capacity: capacity(), persistence: reservationPersistenceMode(), metrics: reservationMetrics(state) });
+  return NextResponse.json({ ok: true, tick, notificationsDelivered, capacity, persistence: reservationPersistenceMode(), metrics: reservationMetrics(state) });
 }
 
 export async function GET(request: Request) {

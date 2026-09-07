@@ -1,6 +1,7 @@
 import "server-only";
 
 import ClawOps from "@teamlearners/clawops";
+import { clawOpsReadiness, normalizeClawOpsFromNumber } from "./clawops-config";
 import { buildClawOpsCallInstruction, koreanPhoneToE164 } from "./reservation-policy";
 import type { ReservationExecutionProvider } from "./reservation-queue";
 
@@ -32,8 +33,7 @@ function client(): ClawOps {
 export const clawOpsReservationProvider: ReservationExecutionProvider = {
   id: "clawops_phone",
   async start(job) {
-    const from = required("CLAWOPS_FROM_NUMBER");
-    if (!/^\+[1-9]\d{7,14}$/.test(from)) throw new Error("CLAWOPS_FROM_NUMBER_MUST_BE_E164");
+    const from = normalizeClawOpsFromNumber(required("CLAWOPS_FROM_NUMBER"));
     const result = await client().calls.create({
       to: koreanPhoneToE164(job.goal.venuePhone),
       from,
@@ -90,5 +90,5 @@ export function verifyClawOpsWebhook(url: string, params: Record<string, string>
 }
 
 export function clawOpsConfigured(): boolean {
-  return ["CLAWOPS_API_KEY", "CLAWOPS_ACCOUNT_ID", "CLAWOPS_FROM_NUMBER", "CLAWOPS_AGENT_ID", "CLAWOPS_SIGNING_KEY"].every((key) => Boolean(process.env[key]?.trim()));
+  return clawOpsReadiness().configured;
 }
