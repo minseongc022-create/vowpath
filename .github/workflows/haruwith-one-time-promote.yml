@@ -1,4 +1,4 @@
-name: Haruwith one-time production promote
+name: Haruwith one-time production verify
 
 on:
   push:
@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      HARUWITH_PREVIEW_URL: vowpath-git-codex-dajeong-ev-447412-minseongc022-2196s-projects.vercel.app
+      HARUWITH_PRODUCTION_DEPLOYMENT: Bcic6HjSd2h3h445kpgmFUkagqoN
       VERCEL_SCOPE: minseongc022-2196s-projects
     steps:
       - name: Verify Vercel credentials
         run: test -n "$VERCEL_TOKEN"
 
-      - name: Promote verified Haruwith preview
-        run: npx --yes vercel@58.9.2 promote "$HARUWITH_PREVIEW_URL" --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE"
+      - name: Wait for promoted production deployment
+        run: npx --yes vercel@58.9.2 inspect "$HARUWITH_PRODUCTION_DEPLOYMENT" --wait --timeout 5m --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE"
