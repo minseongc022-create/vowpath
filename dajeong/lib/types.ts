@@ -12,6 +12,19 @@ export type RequestKind = "day_plan" | "trip_plan" | "place_search" | "reservati
 
 export type ScheduleDensity = "compact" | "balanced" | "relaxed";
 
+export type PlanVisibility = "personal" | "shared" | "secret";
+export type ItemVisibility = "shared" | "details_hidden" | "owner_only";
+export type MessageAudience = "shared" | "owner_only";
+
+export type PacePreference = {
+  density?: ScheduleDensity;
+  preferredDailyStops?: number;
+  cafeMinutes?: number;
+  avoidFrequentMoves?: boolean;
+  evidenceCount: number;
+  updatedAt: string;
+};
+
 export type TemporaryCondition = {
   energy: "low" | "normal";
   walkingLimited: boolean;
@@ -73,7 +86,55 @@ export type PersonProfile = {
   likedPlanIds?: string[];
   dislikedPlanIds?: string[];
   notes: string[];
+  pacePreference?: PacePreference;
   updatedAt: string;
+};
+
+export type PlanParticipant = {
+  id: string;
+  name: string;
+  relation?: string;
+  role: "owner" | "editor" | "viewer";
+  joinedAt: string;
+  preferences: string[];
+  constraints: string[];
+  pacePreference?: PacePreference;
+};
+
+export type PlanCollaboration = {
+  ownerId: string;
+  visibility: PlanVisibility;
+  revision: number;
+  updatedAt: string;
+  participants: PlanParticipant[];
+  share?: {
+    token: string;
+    ownerToken?: string;
+    access: "viewer" | "editor";
+    createdAt: string;
+  };
+  pendingDisclosure?: {
+    itemIds: string[];
+    requestedAt: string;
+  };
+};
+
+export type LiveDayItemProgress = {
+  itemId: string;
+  state: "upcoming" | "current" | "done" | "skipped";
+  actualStart?: string;
+  actualEnd?: string;
+  delayMinutes: number;
+};
+
+export type LiveDayState = {
+  mode: "planning" | "active" | "completed";
+  activeDate: string;
+  currentItemId?: string;
+  delayMinutes: number;
+  lastUpdatedAt: string;
+  lastKnownLocation?: string;
+  itemProgress: LiveDayItemProgress[];
 };
 
 export type PersonMemoryUpdate = {
@@ -416,6 +477,7 @@ export type PlanItem = PlanOption & {
   placeLocked?: boolean;
   timeLocked?: boolean;
   lockReason?: string;
+  visibility?: ItemVisibility;
 };
 
 export type PlanRevision = {
@@ -424,6 +486,9 @@ export type PlanRevision = {
   summary: string;
   createdAt: string;
   changedCategories: PlanCategory[];
+  actorId?: string;
+  actorName?: string;
+  audience?: MessageAudience;
 };
 
 export type PlanLogisticsItem = {
@@ -453,6 +518,7 @@ export type PlanVersion = {
   experienceFlow?: DajeongPlan["experienceFlow"];
   discovery?: DajeongPlan["discovery"];
   schedule?: DajeongPlan["schedule"];
+  liveDay?: LiveDayState;
 };
 
 export type DajeongPlan = {
@@ -498,6 +564,9 @@ export type DajeongPlan = {
     warnings: string[];
     weather: WeatherContext;
   };
+  updatedAt?: string;
+  collaboration?: PlanCollaboration;
+  liveDay?: LiveDayState;
 };
 
 export type ConciergeMessage = {
@@ -506,6 +575,9 @@ export type ConciergeMessage = {
   text: string;
   status: "done" | "searching" | "proposal" | "error";
   createdAt: string;
+  actorId?: string;
+  actorName?: string;
+  audience?: MessageAudience;
 };
 
 export type PlanChangeProposal = {

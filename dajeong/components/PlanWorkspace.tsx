@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getPlan, rememberPersonProfile, savePlan } from "../lib/storage";
+import { getLocalActor, getPlan, rememberPersonProfile, savePlan } from "../lib/storage";
 import { appendPlanConversation, appendPlanVersion, replacePlanItem } from "../lib/plan-engine";
+import { ensurePlanCollaboration, setItemVisibility, setPlanVisibility } from "../lib/collaboration";
+import { activateLiveDay, liveDaySnapshot } from "../lib/live-day-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import { prepareReservationOrder } from "../lib/reservation-engine";
@@ -26,6 +28,12 @@ function checkedLabel(value?: string): string {
   if (elapsed < 60_000) return "방금 확인";
   if (elapsed < 3_600_000) return `${Math.max(1, Math.floor(elapsed / 60_000))}분 전 확인`;
   return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function currentLocalDate(): string {
+  const date = new Date();
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
 }
 
 function chatMessage(role: ConciergeMessage["role"], text: string, status: ConciergeMessage["status"] = "done"): ConciergeMessage {
@@ -60,6 +68,8 @@ function TimelineItem({
   onReplace,
   onAsk,
   onApplyProposal,
+  onVisibility,
+  onToggleLock,
 }: {
   item: PlanItem;
   isLast: boolean;
@@ -68,6 +78,8 @@ function TimelineItem({
   onReplace: (optionId: string) => void;
   onAsk: (instruction: string) => Promise<PlanRevisionResult>;
   onApplyProposal: (proposal: PlanChangeProposal) => void;
+  onVisibility: (visibility: "shared" | "details_hidden" | "owner_only") => void;
+  onToggleLock: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [localInstruction, setLocalInstruction] = useState("");
@@ -149,8 +161,18 @@ function TimelineItem({
               {item.placeLocked || item.timeLocked ? <span className="dj-fixed-chip"><ShieldIcon size={14} /> 사용자 고정</span> : null}
               {item.category === "lodging" ? <span><ClockIcon size={14} /> 체크인 {item.time}</span> : null}
               <span><ShieldIcon size={14} /> {reservationLabel}</span>
+              {(item.visibility ?? "shared") !== "shared" ? <span className="dj-secret-chip"><ShieldIcon size={14} /> {item.visibility === "owner_only" ? "나만 보기" : "상세 비공개"}</span> : null}
               {item.reality?.distanceFromPreviousKm != null ? <span><MapPinIcon size={14} /> 앞 일정에서 약 {item.reality.distanceFromPreviousKm.toFixed(1)}km</span> : null}
             </div>
+            <details className="dj-item-control-menu">
+              <summary>일정 설정</summary>
+              <div>
+                <button type="button" onClick={onToggleLock}>{item.placeLocked || item.timeLocked ? "고정 해제" : "장소·시간 고정"}</button>
+                <button type="button" onClick={() => onVisibility("details_hidden")}>동반자에게 상세 숨기기</button>
+                <button type="button" onClick={() => onVisibility("owner_only")}>일정 전체 숨기기</button>
+                {(item.visibility ?? "shared") !== "shared" ? <button type="button" onClick={() => onVisibility("shared")}>다시 공개</button> : null}
+              </div>
+            </details>
             {item.reality?.reviewHighlights?.length ? <div className="dj-review-glance"><strong>Google 지도 실제 리뷰</strong>{item.reality.reviewHighlights.slice(0, 2).map((review, index) => <p key={`${item.id}-review-${index}`}>“{review}” <small>— {item.reality?.reviewAuthors?.[index] || "지도 이용자"}</small></p>)}</div> : item.reality?.editorialSummary ? <div className="dj-review-glance"><strong>장소 한눈에 보기</strong><p>{item.reality.editorialSummary}</p></div> : null}
             <div className="dj-plan-reason"><SparkleIcon size={15} /><p><strong>{highlight ? "이 하루의 하이라이트인 이유" : "당신에게 맞춰 고른 이유"}</strong>{item.reason || "전체 흐름과 예산을 함께 고려했어요."}{item.experience?.highlightReason ? ` ${item.experience.highlightReason}` : ""}</p></div>
             <div className="dj-plan-actions">
@@ -192,6 +214,12 @@ const revisionExamples = ["조금 더 싸게 해줘", "저녁 식당만 바꿔�
 export function PlanWorkspace({ planId }: { planId: string }) {
   const router = useRouter();
   const [plan, setPlan] = useState<DajeongPlan | null | undefined>(undefined);
+  const [actor, setActor] = useState({ id: "owner_local", name: "나" });
+  const [dayMode, setDayMode] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const [sharePanel, setSharePanel] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
+  const [sharing, setSharing] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [revisionMessage, setRevisionMessage] = useState("");
   const [changed, setChanged] = useState<PlanCategory[]>([]);
@@ -203,8 +231,13 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = getPlan(planId);
+    const localActor = getLocalActor();
+    setActor(localActor);
+    const storedPlan = getPlan(planId);
+    const stored = storedPlan ? ensurePlanCollaboration(storedPlan, localActor) : null;
+    if (stored && !storedPlan?.collaboration) savePlan(stored);
     setPlan(stored);
+    if (stored?.situation.targetDate === currentLocalDate()) setDayMode(true);
     if (stored?.conversation?.length) setMessages(stored.conversation);
     else if (stored?.revisions?.length) {
       const restored = [...stored.revisions].reverse().flatMap((revision) => [
@@ -219,9 +252,103 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   }, [planId]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const share = plan?.collaboration?.share;
+    if (!share?.token || !share.ownerToken) return;
+    const currentRevision = plan?.collaboration?.revision ?? 0;
+    const refreshShared = async () => {
+      try {
+        const response = await fetch(`/api/dajeong/shares/${encodeURIComponent(share.token)}?actorId=${encodeURIComponent(actor.id)}`, { cache: "no-store", headers: { "x-haruon-owner-token": share.ownerToken! } });
+        const data = await response.json() as { plan?: DajeongPlan; revision?: number };
+        if (response.ok && data.plan && (data.revision ?? 0) > currentRevision) {
+          savePlan(data.plan);
+          setPlan(data.plan);
+          setShareMessage("동반자가 수정한 최신 공유 계획을 반영했어요.");
+        }
+      } catch { /* 다음 자동 확인에서 다시 시도 */ }
+    };
+    const timer = window.setInterval(() => void refreshShared(), 15_000);
+    return () => window.clearInterval(timer);
+  }, [actor.id, plan?.collaboration?.revision, plan?.collaboration?.share]);
+
+  useEffect(() => {
     const chat = chatRef.current;
     if (chat) chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   }, [messages.length, proposal]);
+
+  const today = useMemo(() => plan ? liveDaySnapshot(plan, now) : null, [plan, now]);
+
+  async function persist(next: DajeongPlan, base: DajeongPlan | null = plan ?? null) {
+    savePlan(next);
+    setPlan(next);
+    const share = base?.collaboration?.share;
+    if (!share?.ownerToken) return;
+    try {
+      const response = await fetch(`/api/dajeong/shares/${encodeURIComponent(share.token)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actor, baseRevision: base?.collaboration?.revision ?? 0, ownerToken: share.ownerToken, plan: next }),
+      });
+      const data = await response.json() as { ownerPlan?: DajeongPlan; plan?: DajeongPlan; error?: string };
+      if (response.status === 409) {
+        if (data.plan) { savePlan(data.plan); setPlan(data.plan); }
+        setShareMessage("동반자가 먼저 수정해서 최신 공유 계획을 불러왔어요. 방금 변경은 자동 덮어쓰기하지 않았습니다.");
+      }
+      else if (!response.ok) setShareMessage(data.error || "공유 계획 동기화가 잠시 지연되고 있어요.");
+      else if (data.ownerPlan) { savePlan(data.ownerPlan); setPlan(data.ownerPlan); }
+    } catch { setShareMessage("내 계획에는 저장됐지만 공유 동기화는 잠시 지연되고 있어요."); }
+  }
+
+  async function createShare() {
+    if (!plan || sharing) return;
+    setSharing(true);
+    try {
+      const response = await fetch("/api/dajeong/shares", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, owner: actor, access: "editor", companionName: plan.situation.recipient }) });
+      const data = await response.json() as { plan?: DajeongPlan; shareUrl?: string; error?: string };
+      if (!response.ok || !data.plan || !data.shareUrl) throw new Error(data.error || "공유 링크를 만들지 못했어요.");
+      savePlan(data.plan);
+      setPlan(data.plan);
+      const url = `${window.location.origin}${data.shareUrl}`;
+      await navigator.clipboard?.writeText(url).catch(() => undefined);
+      setShareMessage(`동반자 초대 링크를 만들었어요. ${navigator.clipboard ? "클립보드에 복사했습니다." : url}`);
+    } catch (error) { setShareMessage(error instanceof Error ? error.message : "공유 링크를 만들지 못했어요."); }
+    finally { setSharing(false); }
+  }
+
+  function changeVisibility(visibility: "personal" | "shared" | "secret") {
+    if (!plan) return;
+    if (visibility === "shared" && !plan.collaboration?.share) { void createShare(); return; }
+    if (visibility === "shared" && plan.collaboration?.visibility !== "shared" && !window.confirm("이 계획을 동반자에게 다시 공개할까요? 비공개로 지정한 개별 일정은 계속 숨겨집니다.")) return;
+    const next = setPlanVisibility(plan, visibility, actor);
+    void persist(next, plan);
+    setShareMessage(visibility === "secret" ? "전체 계획을 나만 보는 시크릿으로 바꿨어요." : visibility === "personal" ? "공유를 해제했어요." : "공유 계획으로 다시 열었어요.");
+  }
+
+  function changeItemPrivacy(item: PlanItem, visibility: "shared" | "details_hidden" | "owner_only") {
+    if (!plan) return;
+    if (visibility === "shared" && !window.confirm(`‘${item.title}’의 장소·예약·가격을 동반자에게 공개할까요?`)) return;
+    const next = setItemVisibility(plan, item.id, visibility, actor);
+    void persist(next, plan);
+    setShareMessage(visibility === "shared" ? "선택한 일정을 다시 공개했어요." : visibility === "owner_only" ? "선택한 일정 전체를 나만 볼 수 있어요." : "시간만 남기고 상세정보를 숨겼어요.");
+  }
+
+  function toggleItemLock(item: PlanItem) {
+    if (!plan) return;
+    const locked = item.placeLocked || item.timeLocked;
+    const next = { ...plan, items: plan.items.map((entry) => entry.id === item.id ? { ...entry, placeLocked: !locked, timeLocked: !locked, lockReason: locked ? undefined : "UI에서 사용자 고정" } : entry) };
+    void persist(next, plan);
+  }
+
+  function openToday() {
+    if (!plan) return;
+    const next = activateLiveDay(plan, now);
+    void persist(next, plan);
+    setDayMode(true);
+  }
 
   function replace(item: PlanItem, optionId: string) {
     if (!plan) return;
@@ -241,8 +368,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       }, ...(next.revisions ?? [])].slice(0, 12),
     };
     next = appendPlanVersion(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
-    savePlan(next);
-    setPlan(next);
+    void persist(next, plan);
     setChanged([category]);
     setRevisionMessage(`${next.items.find((item) => item.category === category)?.categoryLabel ?? "일정"}만 바꿨어요. 전체 비용도 다시 계산했습니다.`);
     setMessages((current) => [...current, chatMessage("assistant", response)]);
@@ -262,12 +388,11 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       const response = await fetch("/api/dajeong/plans/revise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, instruction: nextInstruction }),
+        body: JSON.stringify({ plan, instruction: nextInstruction, actor }),
       });
       const result = await response.json() as PlanRevisionResult & { error?: string };
       if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
-      setPlan(result.plan);
-      savePlan(result.plan);
+      await persist(result.plan, plan);
       if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
       setChanged(result.changedCategories);
       setRevisionMessage(result.message);
@@ -290,12 +415,11 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     const response = await fetch("/api/dajeong/plans/revise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan, instruction: nextInstruction, targetCategory: item.category, targetItemId: item.id }),
+      body: JSON.stringify({ plan, instruction: nextInstruction, targetCategory: item.category, targetItemId: item.id, actor }),
     });
     const result = await response.json() as PlanRevisionResult & { error?: string };
     if (!response.ok || !result.plan) throw new Error(result.error || "새 후보를 찾지 못했어요.");
-    setPlan(result.plan);
-    savePlan(result.plan);
+    await persist(result.plan, plan);
     if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
     setChanged(result.changedCategories);
     setRevisionMessage(result.message);
@@ -304,8 +428,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
 
   function applyItemProposal(nextProposal: PlanChangeProposal) {
     const next = appendPlanConversation(nextProposal.plan, "추천한 동선으로 바꿔줘", "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요.");
-    setPlan(next);
-    savePlan(next);
+    void persist(next, plan);
     setChanged(next.items.map((item) => item.category));
     setRevisionMessage("이동이 덜 끊기도록 일정 순서를 바꿨어요.");
   }
@@ -313,8 +436,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   function acceptProposal() {
     if (!proposal) return;
     const next = appendPlanConversation(proposal.plan, "추천한 순서로 바꿔줘", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.");
-    setPlan(next);
-    savePlan(next);
+    void persist(next, plan);
     setChanged(next.items.map((item) => item.category));
     setMessages((current) => [...current, chatMessage("user", "추천한 순서로 바꿔줘"), chatMessage("assistant", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.")]);
     setProposal(null);
@@ -323,15 +445,15 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   function keepCurrentOrder() {
     if (plan) {
       const next = appendPlanConversation(plan, "지금 순서를 유지할게", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.");
-      setPlan(next);
-      savePlan(next);
+      void persist(next, plan);
     }
     setMessages((current) => [...current, chatMessage("user", "지금 순서를 유지할게"), chatMessage("assistant", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.")]);
     setProposal(null);
   }
 
-  function confirmPlan() {
+  async function confirmPlan() {
     if (!plan || plan.budgetRemaining < 0) return;
+    if (plan.status !== "draft") { router.push(`/dajeong/plan/${plan.id}/execute`); return; }
     const confirmed: DajeongPlan = {
       ...plan,
       status: "confirmed",
@@ -341,7 +463,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       ...confirmed,
       execution: prepareReservationOrder(confirmed, { previous: plan.execution, includeTravel: true }),
     };
-    savePlan(next);
+    await persist(next, plan);
     router.push(`/dajeong/plan/${plan.id}/execute`);
   }
 
@@ -354,10 +476,27 @@ export function PlanWorkspace({ planId }: { planId: string }) {
   const end = plan.schedule?.estimatedEndTime ?? plan.items.at(-1)?.endTime ?? plan.items.at(-1)?.time ?? plan.situation.preferredTime;
   const tripLabel = plan.situation.planScope === "trip" ? ` · ${plan.situation.tripNights ?? 0}박 ${plan.situation.tripDays ?? 1}일` : "";
   const constraints = plan.situation.constraints ?? [];
+  const visibility = plan.collaboration?.visibility ?? "personal";
+  const hiddenCount = plan.items.filter((item) => (item.visibility ?? "shared") !== "shared").length;
 
   return (
     <div className="dj-plan-page dj-container">
       <div className="dj-plan-breadcrumb"><Link href="/dajeong">새 계획</Link><ChevronIcon size={14} /><span>계획 검토</span></div>
+      <div className="dj-plan-command-bar">
+        <button type="button" className={dayMode ? "active" : ""} onClick={() => dayMode ? setDayMode(false) : openToday()}><ClockIcon size={16} /> {dayMode ? "현재 계획으로 돌아가기" : "오늘 일정"}</button>
+        <button type="button" className={sharePanel ? "active" : ""} onClick={() => setSharePanel((value) => !value)}><ShieldIcon size={16} /> {visibility === "shared" ? "공유 중" : visibility === "secret" ? "시크릿 계획" : "나만 보는 계획"}{hiddenCount ? ` · ${hiddenCount}개 비공개` : ""}</button>
+      </div>
+      {sharePanel ? <section className="dj-share-panel dj-card">
+        <div><strong>{visibility === "shared" ? `${plan.situation.recipient}와 함께 보는 계획` : visibility === "secret" ? "전체 시크릿 계획" : "개인 계획"}</strong><p>하루온은 비공개 일정까지 계산하지만 동반자에게는 허용된 정보만 전달해요.</p></div>
+        <div className="dj-share-actions">
+          {!plan.collaboration?.share ? <button type="button" onClick={() => void createShare()} disabled={sharing}>{sharing ? "초대 링크 만드는 중" : "동반자 초대·공유"}</button> : null}
+          {plan.collaboration?.share && visibility !== "shared" ? <button type="button" onClick={() => changeVisibility("shared")}>다시 공유</button> : null}
+          {visibility === "shared" ? <button type="button" onClick={() => changeVisibility("personal")}>공유 해제</button> : null}
+          {visibility !== "secret" ? <button type="button" className="secret" onClick={() => changeVisibility("secret")}>전체 시크릿</button> : null}
+          {plan.collaboration?.share ? <button type="button" onClick={async () => { const url = `${window.location.origin}/dajeong/shared/${plan.collaboration?.share?.token}`; await navigator.clipboard?.writeText(url); setShareMessage("초대 링크를 다시 복사했어요."); }}>초대 링크 복사</button> : null}
+        </div>
+        {shareMessage ? <p className="dj-share-message" role="status">{shareMessage}</p> : null}
+      </section> : null}
       <section className="dj-plan-hero dj-animate">
         <div>
           <span className="dj-kicker"><SparkleIcon size={15} /> 상황을 읽고 하루로 만들었어요</span>
@@ -367,6 +506,13 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         </div>
         <div className="dj-readiness"><div className="dj-readiness-ring" style={{ "--readiness": `${plan.readiness * 3.6}deg` } as React.CSSProperties}><strong>{plan.readiness}</strong><span>조건 일치도</span></div></div>
       </section>
+
+      {dayMode && today ? <section className="dj-live-day-panel">
+        <div className="dj-live-now"><span>지금</span><strong>{today.nowTime}</strong><small>{today.date === plan.situation.targetDate ? "오늘 일정 진행 중" : "선택한 일정 미리보기"}</small></div>
+        <div className="dj-live-focus"><span>{today.current ? "현재 일정" : "지금 할 일"}</span><strong>{today.current?.title ?? today.next?.title ?? "오늘 남은 일정이 없어요"}</strong><p>{today.current ? `${today.current.endTime ?? "종료시간 확인 중"}까지 · ${today.current.location}` : today.next ? `${today.next.time} 시작 · ${today.next.location}` : "계획을 마쳤다면 완료 상태로 정리할 수 있어요."}</p></div>
+        <div className="dj-live-next"><span>다음</span><strong>{today.next?.title ?? "마지막 일정"}</strong><p>{today.next ? `${today.next.time} · 이동 약 ${today.nextTravelMinutes ?? "확인 중"}분${today.next.timeLocked ? " · 예약/고정 시간" : " · 유동 일정"}` : `예상 귀가 ${plan.schedule?.estimatedHomeArrival ?? "시간 확인 중"}`}</p></div>
+        <div className="dj-live-actions"><button type="button" onClick={() => revise(undefined, "우리 아직 밥 먹고 있어")}>지연 알려주기</button><button type="button" onClick={() => revise(undefined, "여기 더 있고 싶어")}>여기 더 있기</button><button type="button" onClick={() => revise(undefined, "집에 좀 일찍 갈래")}>일찍 귀가</button></div>
+      </section> : null}
 
       {plan.discovery ? (
         <div className={`dj-discovery-banner dj-discovery-${plan.discovery.status}`}>
@@ -419,7 +565,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
           <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>실제로 따라갈 수 있는 시간표</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {plan.schedule?.density === "compact" ? "알차게" : plan.schedule?.density === "relaxed" ? "여유롭게" : "균형 있게"}</p></div>
           {plan.logistics?.length ? <div className="dj-trip-logistics"><strong>현실 이동 기준</strong>{plan.logistics.map((item) => <div key={item.id}><span>{item.dayNumber}일차 · {item.time}</span><p><b>{item.title}</b>{item.note}</p></div>)}</div> : null}
           <div className="dj-timeline">
-            {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} /></Fragment>)}
+            {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} onVisibility={(nextVisibility) => changeItemPrivacy(item, nextVisibility)} onToggleLock={() => toggleItemLock(item)} /></Fragment>)}
           </div>
         </section>
 
@@ -433,7 +579,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
             <p>{overBudget ? "더 가벼운 선택으로 바꿔 주세요." : "교통비와 현장 변동을 위해 일부러 남겨뒀어요."}</p>
           </div>
           <div className="dj-booking-summary"><strong>확인할 예약</strong>{plan.items.filter((item) => item.reservationRequired).map((item) => <span key={item.id}><i />{item.dayNumber && plan.situation.planScope === "trip" ? `${item.dayNumber}일차 ` : ""}{item.time} {item.title}</span>)}</div>
-          <button className="dj-btn dj-btn-primary dj-confirm-button" type="button" onClick={confirmPlan} disabled={overBudget}>확정하고 예약 준비하기 <ArrowIcon size={17} /></button>
+          <button className="dj-btn dj-btn-primary dj-confirm-button" type="button" onClick={confirmPlan} disabled={overBudget}>{plan.status === "draft" ? "확정하고 예약 준비하기" : "예약·준비 상태 보기"} <ArrowIcon size={17} /></button>
           <p className="dj-summary-trust"><ShieldIcon size={14} /> 다음 화면에서 예약할 곳과 예약금을 먼저 확인합니다. 최종 승인 전에는 결제하거나 예약 완료로 표시하지 않아요.</p>
         </aside>
       </div>

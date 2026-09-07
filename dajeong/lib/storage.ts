@@ -1,9 +1,43 @@
 "use client";
 
-import type { AgeBand, DajeongPlan, ExperienceMood, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
+import type { AgeBand, DajeongPlan, ExperienceMood, PacePreference, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
 
 const STORAGE_KEY = "dajeong:plans:v1";
 const PEOPLE_STORAGE_KEY = "haruon:people:v1";
+const ACTOR_STORAGE_KEY = "haruon:actor:v1";
+const PACE_STORAGE_KEY = "haruon:pace:v1";
+
+export function getLocalActor(): { id: string; name: string } {
+  if (typeof window === "undefined") return { id: "owner_local", name: "나" };
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(ACTOR_STORAGE_KEY) ?? "null") as { id?: string; name?: string } | null;
+    if (parsed?.id) return { id: parsed.id, name: parsed.name?.trim() || "나" };
+  } catch { /* create a new local actor below */ }
+  const actor = { id: `actor_${crypto.randomUUID()}`, name: "나" };
+  window.localStorage.setItem(ACTOR_STORAGE_KEY, JSON.stringify(actor));
+  return actor;
+}
+
+type StoredPace = { actorId: string; companionRelation: string; pace: PacePreference };
+
+function readPaces(): StoredPace[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(PACE_STORAGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(value) ? value as StoredPace[] : [];
+  } catch { return []; }
+}
+
+export function getPacePreference(actorId: string, companionRelation: string): PacePreference | undefined {
+  return readPaces().find((entry) => entry.actorId === actorId && entry.companionRelation === companionRelation)?.pace;
+}
+
+export function rememberPacePreference(actorId: string, companionRelation: string, pace: PacePreference): void {
+  if (typeof window === "undefined") return;
+  const record = { actorId, companionRelation, pace };
+  const next = [record, ...readPaces().filter((entry) => entry.actorId !== actorId || entry.companionRelation !== companionRelation)].slice(0, 40);
+  window.localStorage.setItem(PACE_STORAGE_KEY, JSON.stringify(next));
+}
 
 function readAll(): DajeongPlan[] {
   if (typeof window === "undefined") return [];
@@ -58,7 +92,7 @@ export function listPersonProfiles(): PersonProfile[] {
 
 export function rememberPersonProfile(
   situation: ParsedSituation,
-  extras: { ageBand?: AgeBand; preferences?: string[]; moodPreferences?: ExperienceMood[]; notes?: string[]; memoryUpdate?: PersonMemoryUpdate } = {},
+  extras: { ageBand?: AgeBand; preferences?: string[]; moodPreferences?: ExperienceMood[]; notes?: string[]; memoryUpdate?: PersonMemoryUpdate; pacePreference?: PacePreference } = {},
 ): PersonProfile | null {
   if (typeof window === "undefined" || situation.recipient === "함께할 사람") return null;
   const current = getPersonProfile(situation.recipient);
@@ -85,6 +119,7 @@ export function rememberPersonProfile(
     likedPlanIds: current?.likedPlanIds ?? [],
     dislikedPlanIds: current?.dislikedPlanIds ?? [],
     notes: unique([...(current?.notes ?? []), ...(extras.notes ?? [])]).slice(-20),
+    pacePreference: extras.pacePreference ?? current?.pacePreference,
     updatedAt: new Date().toISOString(),
   };
   const next = [profile, ...readPeople().filter((entry) => entry.id !== profile.id)].slice(0, 20);

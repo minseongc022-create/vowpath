@@ -8,11 +8,12 @@ const schema = z.object({
   plan: z.record(z.string(), z.unknown()),
   targetCategory: z.enum(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"]).optional(),
   targetItemId: z.string().trim().min(1).max(140).optional(),
+  actor: z.object({ id: z.string().trim().min(4).max(120), name: z.string().trim().min(1).max(40), relation: z.string().trim().max(40).optional() }).optional(),
 });
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "바꾸고 싶은 내용을 한 문장으로 적어 주세요." }, { status: 400 });
-  const result = await reviseDajeongPlanWithDiscovery(parsed.data.plan as DajeongPlan, parsed.data.instruction, parsed.data.targetCategory, parsed.data.targetItemId);
+  const result = await reviseDajeongPlanWithDiscovery(parsed.data.plan as DajeongPlan, parsed.data.instruction, parsed.data.targetCategory, parsed.data.targetItemId, parsed.data.actor);
   return NextResponse.json(result);
 }

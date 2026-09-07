@@ -9,6 +9,8 @@ import { handleExecutionInstruction } from "../../dajeong/lib/execution-conversa
 import { applyProviderQuote, approvePayment, prepareReservationOrder, recordProviderExecutionResult, requestPaymentReview } from "../../dajeong/lib/reservation-engine.ts";
 import { isIsolatedProductPath } from "../../lib/shell-route.ts";
 import { clockToMinutes, lockPlanItem, scheduleDajeongPlan, setItemDuration } from "../../dajeong/lib/schedule-engine.ts";
+import { activateLiveDay, applyLiveDayInstruction, liveDaySnapshot } from "../../dajeong/lib/live-day-engine.ts";
+import { applyPrivacyInstruction, calendarItemsForActor, canDeliverPlanNotification, ensurePlanCollaboration, learnPacePreference, projectPlanForViewer, setItemVisibility, setPlanVisibility } from "../../dajeong/lib/collaboration.ts";
 
 test("상황 문장에서 대상·지역·예산·제약을 읽는다", () => {
   const situation = parseSituation({
@@ -649,4 +651,137 @@ test("현실 일정 J: 사용자가 꼭 간다고 고정한 장소는 일반 재
   const revised = reviseDajeongPlan(locked, "너무 평범한데 더 특별하게 바꿔줘").plan;
   assert.equal(revised.items.find((item) => item.id === activity.id).title, activity.title);
   assert.equal(revised.items.find((item) => item.id === activity.id).placeLocked, true);
+});
+
+test("함께 관리 A: 실제 지연은 뒤의 유동 일정만 밀고 고정 일정은 유지한다", () => {
+  let plan = createDajeongPlan({ request: "오늘 서울에서 여자친구와 14시부터 22시까지 데이트", region: "서울", targetDate: "2026-09-02", availabilityStartTime: "14:00", availabilityEndTime: "22:00", budget: 250_000 });
+  const meal = plan.items.find((item) => item.category === "meal");
+  const fixed = plan.items.at(-1);
+  plan = lockPlanItem(plan, fixed.id, "both", "꼭 유지");
+  const fixedTime = plan.items.find((item) => item.id === fixed.id).time;
+  const beforeFlexible = plan.items.filter((item) => clockToMinutes(item.time) > clockToMinutes(meal.time) && item.id !== fixed.id).map((item) => ({ id: item.id, time: item.time }));
+  const result = applyLiveDayInstruction(plan, "우리 아직 밥 먹고 있어.", meal.id, new Date("2026-09-02T19:50:00"));
+  assert.equal(result.handled, true);
+  assert.equal(result.plan.items.find((item) => item.id === fixed.id).time, fixedTime);
+  assert.ok(beforeFlexible.every((old) => clockToMinutes(result.plan.items.find((item) => item.id === old.id)?.time) >= clockToMinutes(old.time)));
+  assert.ok(result.plan.schedule.warnings.some((warning) => /고정|충돌/.test(warning)) || result.message.includes("고정"));
+});
+
+test("함께 관리 B: 현재 선택 장소에 더 있겠다는 말은 체류시간과 이후 시간을 함께 늘린다", () => {
+  const plan = createDajeongPlan({ request: "오늘 성수 데이트", region: "성수", targetDate: "2026-09-02", budget: 200_000 });
+  const target = plan.items[0];
+  const result = applyLiveDayInstruction(plan, "여기 더 있고 싶어.", target.id, new Date("2026-09-02T14:30:00"));
+  assert.equal(result.handled, true);
+  assert.ok(result.plan.items.find((item) => item.id === target.id).durationMinutes >= target.durationMinutes + 30);
+  assert.deepEqual(result.plan.items.map((item) => item.id), plan.items.map((item) => item.id));
+});
+
+test("함께 관리 C: 일찍 귀가 요청은 귀가 목표를 당기고 낮은 우선순위 일정부터 맞춘다", () => {
+  const plan = createDajeongPlan({ request: "오늘 2시부터 10시까지 서울 데이트", region: "서울", targetDate: "2026-09-02", availabilityStartTime: "14:00", availabilityEndTime: "22:00", budget: 250_000, homeByTime: "23:00" });
+  const result = applyLiveDayInstruction(plan, "집에 좀 일찍 갈래.", undefined, new Date("2026-09-02T18:00:00"));
+  assert.equal(result.plan.situation.homeByTime, "22:00");
+  assert.ok(result.plan.items.length <= plan.items.length);
+  assert.ok(clockToMinutes(result.plan.schedule.estimatedHomeArrival) <= clockToMinutes("22:00"));
+});
+
+test("함께 관리 D: 공유 계획은 허용된 동반자용 최신 투영본을 만든다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  const base = createDajeongPlan({ request: "서울 여자친구 데이트", region: "서울", budget: 200_000 });
+  const shared = setPlanVisibility(ensurePlanCollaboration(base, owner), "shared", owner);
+  const viewer = projectPlanForViewer(shared, "actor_partner");
+  assert.ok(viewer);
+  assert.deepEqual(viewer.items.map((item) => item.id), shared.items.map((item) => item.id));
+  assert.equal(viewer.collaboration.visibility, "shared");
+  assert.equal(viewer.collaboration.participants.some((entry) => entry.id === owner.id), false);
+});
+
+test("함께 관리 E: 전체 시크릿 계획은 저장 후에도 소유자만 보고 동반자에게는 반환하지 않는다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  const base = createDajeongPlan({ request: "여자친구 생일 이벤트", region: "서울", budget: 300_000 });
+  const secret = setPlanVisibility(ensurePlanCollaboration(base, owner), "secret", owner);
+  const restored = JSON.parse(JSON.stringify(secret));
+  assert.equal(restored.collaboration.visibility, "secret");
+  assert.equal(projectPlanForViewer(restored, owner.id)?.items.length, secret.items.length);
+  assert.equal(projectPlanForViewer(restored, "actor_partner"), null);
+});
+
+test("함께 관리 F: 마지막 일정 상세 비공개는 소유자와 AI 원본을 유지하고 동반자에게 익명 슬롯만 보인다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "서울 데이트", region: "서울", budget: 200_000 }), owner), "shared", owner);
+  const last = plan.items.at(-1);
+  const hidden = applyPrivacyInstruction(plan, "마지막 장소는 여자친구한테 비밀로 해줘.", owner);
+  plan = hidden.plan;
+  const viewer = projectPlanForViewer(plan, "actor_partner");
+  assert.equal(plan.items.at(-1).title, last.title);
+  assert.equal(plan.items.at(-1).time, last.time);
+  assert.equal(viewer.items.at(-1).title, "비공개 일정");
+  assert.equal(viewer.items.at(-1).time, last.time);
+  assert.equal(viewer.items.at(-1).reality, undefined);
+});
+
+test("함께 관리 G: 20시 시크릿 이벤트는 엔진 시간에는 남고 동반자에게 장소를 노출하지 않는다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "14시부터 22시 서울 데이트", region: "서울", budget: 250_000, availabilityStartTime: "14:00", availabilityEndTime: "22:00" }), owner), "shared", owner);
+  const last = plan.items.at(-1);
+  plan = { ...plan, items: plan.items.map((item) => item.id === last.id ? { ...item, time: "20:00", endTime: "21:00", timeLocked: true, placeLocked: true, visibility: "details_hidden" } : item) };
+  const viewer = projectPlanForViewer(plan, "actor_partner");
+  assert.equal(plan.items.find((item) => item.id === last.id).location, last.location);
+  assert.equal(viewer.items.find((item) => item.id === last.id).title, "비공개 일정");
+  assert.equal(viewer.items.find((item) => item.id === last.id).time, "20:00");
+  assert.equal(viewer.items.find((item) => item.id === last.id).location, "");
+});
+
+test("함께 관리 H: 시크릿 꽃·케이크는 공유 대화·예약·가격·버전에서 유출되지 않는다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "여자친구 꽃다발 예약", planScope: "single", singleCategory: "flower", requestKind: "reservation", region: "서울", budget: 50_000 }), owner), "shared", owner);
+  const flower = plan.items[0];
+  plan = setItemVisibility({ ...plan, execution: prepareReservationOrder(plan), conversation: [...(plan.conversation ?? []), { id: "secret-chat", role: "assistant", text: `${flower.title} 꽃 예약금 ${flower.price}원`, status: "done", createdAt: new Date().toISOString(), audience: "owner_only" }] }, flower.id, "owner_only", owner);
+  const viewer = projectPlanForViewer(plan, "actor_partner");
+  assert.equal(viewer.items.length, 0);
+  assert.equal(viewer.execution.tasks.length, 0);
+  assert.equal(viewer.conversation.some((message) => /꽃|예약금/.test(message.text)), false);
+  assert.equal(viewer.versions, undefined);
+  assert.equal(viewer.total, 0);
+  assert.equal(canDeliverPlanNotification(plan, "actor_partner", flower.id), false);
+  assert.equal(calendarItemsForActor(plan, "actor_partner").length, 0);
+});
+
+test("함께 관리 I: 공개 요청은 한 번 확인하고 명시적 확정 뒤에만 공개한다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "서울 데이트", region: "서울", budget: 200_000 }), owner), "shared", owner);
+  const last = plan.items.at(-1);
+  plan = setItemVisibility(plan, last.id, "details_hidden", owner);
+  const review = applyPrivacyInstruction(plan, "이제 공개해도 돼.", owner, last.id);
+  assert.equal(review.plan.items.find((item) => item.id === last.id).visibility, "details_hidden");
+  assert.ok(review.plan.collaboration.pendingDisclosure);
+  const confirmed = applyPrivacyInstruction(review.plan, "응 공개 확정해줘.", owner);
+  assert.equal(confirmed.plan.items.find((item) => item.id === last.id).visibility, "shared");
+});
+
+test("함께 관리 J: UI와 AI는 같은 비공개 상태를 기준으로 노출 여부를 답한다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "서울 데이트", region: "서울", budget: 200_000 }), owner), "shared", owner);
+  const item = plan.items[0];
+  plan = setItemVisibility(plan, item.id, "details_hidden", owner);
+  const answer = applyPrivacyInstruction(plan, "이거 여자친구도 볼 수 있어?", owner, item.id);
+  assert.match(answer.message, /아니요|보이지/);
+});
+
+test("함께 관리 K: 천천히 놀자는 자연어는 기존 일정 밀도 상태를 여유롭게 바꾼다", () => {
+  const draft = applyDeterministicConversation([{ role: "user", text: "오늘 좀 천천히 놀자." }], { request: "오늘 서울 데이트", region: "서울", budget: 200_000, targetDate: "2026-09-02" });
+  assert.equal(draft.scheduleDensity, "relaxed");
+  assert.equal(draft.densitySpecified, true);
+});
+
+test("함께 관리 L: 공동 계획의 서로 다른 페이스 취향은 각 사용자 프로필에 따로 남는다", () => {
+  const owner = { id: "actor_owner", name: "민성" };
+  const partner = { id: "actor_partner", name: "동반자" };
+  let plan = setPlanVisibility(ensurePlanCollaboration(createDajeongPlan({ request: "서울 데이트", region: "서울", budget: 200_000 }), owner), "shared", owner);
+  plan = learnPacePreference(plan, "난 원래 데이트할 때 여기저기 알차게 다니는 게 좋아.", owner);
+  plan = learnPacePreference(plan, "나는 보통 천천히 다니고 이동 많은 건 싫어.", partner);
+  const ownerPace = plan.collaboration.participants.find((entry) => entry.id === owner.id).pacePreference;
+  const partnerPace = plan.collaboration.participants.find((entry) => entry.id === partner.id).pacePreference;
+  assert.equal(ownerPace.density, "compact");
+  assert.equal(partnerPace.density, "relaxed");
+  assert.notDeepEqual(ownerPace, partnerPace);
 });

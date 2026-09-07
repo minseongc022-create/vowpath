@@ -7,6 +7,14 @@ import { enrichPlanWithWeather } from "@/dajeong/lib/weather";
 
 const ageBandSchema = z.enum(["10대", "20대", "30대", "40대", "50대", "60대 이상", "미상"]);
 const moodSchema = z.enum(["romantic", "mysterious", "trendy", "calm", "luxurious", "playful", "warm", "nature", "artistic", "hidden"]);
+const pacePreferenceSchema = z.object({
+  density: z.enum(["compact", "balanced", "relaxed"]).optional(),
+  preferredDailyStops: z.number().int().min(1).max(12).optional(),
+  cafeMinutes: z.number().int().min(20).max(240).optional(),
+  avoidFrequentMoves: z.boolean().optional(),
+  evidenceCount: z.number().int().min(1).max(100),
+  updatedAt: z.string().max(40),
+});
 const personProfileSchema = z.object({
   id: z.string().max(80),
   name: z.string().max(40),
@@ -29,6 +37,7 @@ const personProfileSchema = z.object({
   walkingTolerance: z.enum(["low", "medium", "high", "unknown"]).optional(),
   likedPlanIds: z.array(z.string().max(180)).max(100).optional(),
   dislikedPlanIds: z.array(z.string().max(180)).max(100).optional(),
+  pacePreference: pacePreferenceSchema.optional(),
   notes: z.array(z.string().max(180)).max(20),
   updatedAt: z.string().max(40),
 });

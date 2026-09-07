@@ -4,7 +4,7 @@ import { haversineKm, travelMinutes } from "./place-utils";
 import { parseSituation } from "./situation";
 import { reconcileReservationOrder } from "./reservation-engine";
 import { clockToMinutes, scheduleDajeongPlan } from "./schedule-engine";
-import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
+import type { ConciergeMessage, DajeongPlan, MessageAudience, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
   activity: "경험",
@@ -42,23 +42,24 @@ const CATEGORY_TERMS: Array<[PlanCategory, RegExp]> = [
   ["moment", /편지|카드|마음/],
 ];
 
-function planConversationMessage(role: ConciergeMessage["role"], text: string): ConciergeMessage {
+function planConversationMessage(role: ConciergeMessage["role"], text: string, meta: { actorId?: string; actorName?: string; audience?: MessageAudience } = {}): ConciergeMessage {
   return {
     id: `conversation_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     role,
     text,
     status: "done",
     createdAt: new Date().toISOString(),
+    ...meta,
   };
 }
 
-export function appendPlanConversation(plan: DajeongPlan, userText: string, assistantText: string): DajeongPlan {
+export function appendPlanConversation(plan: DajeongPlan, userText: string, assistantText: string, meta: { actorId?: string; actorName?: string; audience?: MessageAudience } = {}): DajeongPlan {
   return {
     ...plan,
     conversation: [
       ...(plan.conversation ?? []),
-      planConversationMessage("user", userText),
-      planConversationMessage("assistant", assistantText),
+      planConversationMessage("user", userText, meta),
+      planConversationMessage("assistant", assistantText, meta),
     ].slice(-30),
   };
 }
@@ -96,6 +97,7 @@ function planVersion(plan: DajeongPlan, instruction: string, summary: string): P
       warnings: [...plan.schedule.warnings],
       weather: { ...plan.schedule.weather, days: plan.schedule.weather.days.map((day) => ({ ...day, hours: day.hours.map((hour) => ({ ...hour })) })) },
     } : undefined,
+    liveDay: plan.liveDay ? { ...plan.liveDay, itemProgress: plan.liveDay.itemProgress.map((entry) => ({ ...entry })) } : undefined,
   };
 }
 
@@ -116,7 +118,10 @@ export function restorePlanVersion(plan: DajeongPlan, version: PlanVersion, inst
     situation: { ...version.situation },
     title: version.title,
     summary: version.summaryText,
-    items: copyItems(version.items),
+    items: copyItems(version.items).map((item) => {
+      const current = plan.items.find((entry) => entry.id === item.id);
+      return current?.visibility ? { ...item, visibility: current.visibility } : item;
+    }),
     logistics: version.logistics.map((item) => ({ ...item })),
     subtotal: version.subtotal,
     reserve: version.reserve,
@@ -131,6 +136,7 @@ export function restorePlanVersion(plan: DajeongPlan, version: PlanVersion, inst
       warnings: [...version.schedule.warnings],
       weather: { ...version.schedule.weather, days: version.schedule.weather.days.map((day) => ({ ...day, hours: day.hours.map((hour) => ({ ...hour })) })) },
     } : undefined,
+    liveDay: version.liveDay ? { ...version.liveDay, itemProgress: version.liveDay.itemProgress.map((entry) => ({ ...entry })) } : undefined,
     execution: undefined,
     status: "draft",
   };
@@ -446,6 +452,7 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     revisions: [],
     logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),
+    updatedAt: new Date().toISOString(),
   };
   const scheduled = scheduleDajeongPlan(createdPlan);
   return initializePlanVersion(appendPlanConversation(scheduled, input.request.trim(), "말씀하신 조건을 기억하고 체류시간·이동·완충시간까지 함께 살펴 계획을 준비했어요."));

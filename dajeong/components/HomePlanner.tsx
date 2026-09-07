@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { DAJEONG_BRAND } from "../lib/brand";
-import { getPersonProfile, listPlans, rememberPersonProfile, savePlan } from "../lib/storage";
+import { getLocalActor, getPacePreference, getPersonProfile, listPlans, rememberPacePreference, rememberPersonProfile, savePlan } from "../lib/storage";
+import { ensurePlanCollaboration, setPlanVisibility } from "../lib/collaboration";
 import type { DajeongPlan, PlanRequest, PlanningConversationResult, PlanningQuestionKey, PlanRevisionResult } from "../lib/types";
 import { ArrowIcon, CheckIcon, MapPinIcon, SparkleIcon } from "./DajeongIcons";
 
@@ -49,6 +50,7 @@ export function HomePlanner() {
   const [conversation, setConversation] = useState<HomeConversationEntry[]>([]);
   const [plans, setPlans] = useState<DajeongPlan[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [secretDraft, setSecretDraft] = useState(false);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export function HomePlanner() {
     setSearchStage("");
     setError("");
     setSidebarOpen(false);
+    setSecretDraft(false);
   }
 
   async function createPlan(result: PlanningConversationResult) {
@@ -88,10 +91,14 @@ export function HomePlanner() {
     }, 1500);
     try {
       const remembered = getPersonProfile(result.understanding.situation.recipient);
+      const localActor = getLocalActor();
+      const rememberedPace = getPacePreference(localActor.id, result.understanding.situation.recipient);
       const payload: PlanRequest = {
         ...result.draft,
         request: result.draft.request || result.understanding.situation.occasionLabel,
         personProfile: result.draft.personProfile ?? remembered ?? undefined,
+        scheduleDensity: result.draft.densitySpecified ? result.draft.scheduleDensity : rememberedPace?.density ?? result.draft.scheduleDensity,
+        densitySpecified: result.draft.densitySpecified || Boolean(rememberedPace?.density),
       };
       const response = await fetch("/api/dajeong/plans", {
         method: "POST",
@@ -100,16 +107,17 @@ export function HomePlanner() {
       });
       const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; error?: string };
       if (!response.ok || !data.plan) throw new Error(data.error || "계획을 만들지 못했어요. 방금 답변을 그대로 한 번 더 보내 주세요.");
-      rememberPersonProfile(data.plan.situation, {
-        ageBand: data.plan.situation.ageBand,
-        preferences: data.plan.situation.preferences,
-        moodPreferences: data.plan.situation.desiredMoods,
-        memoryUpdate: data.plan.situation.personMemoryUpdate,
+      const createdPlan = secretDraft ? setPlanVisibility(ensurePlanCollaboration(data.plan, localActor), "secret", localActor) : data.plan;
+      rememberPersonProfile(createdPlan.situation, {
+        ageBand: createdPlan.situation.ageBand,
+        preferences: createdPlan.situation.preferences,
+        moodPreferences: createdPlan.situation.desiredMoods,
+        memoryUpdate: createdPlan.situation.personMemoryUpdate,
       });
-      savePlan(data.plan);
+      savePlan(createdPlan);
       setPlans(listPlans());
-      setCompletedPlan(data.plan);
-      setConversation((current) => [...current, homeEntry("assistant", "후보와 동선을 다 정했어요. 마음에 들지 않는 부분은 여기서 바로 말로 바꿀 수도 있어요.", data.plan)]);
+      setCompletedPlan(createdPlan);
+      setConversation((current) => [...current, homeEntry("assistant", secretDraft ? "시크릿 계획으로 안전하게 저장했어요. 동반자에게 공개하기 전까지 나만 볼 수 있어요." : "후보와 동선을 다 정했어요. 마음에 들지 않는 부분은 여기서 바로 말로 바꿀 수도 있어요.", createdPlan)]);
       setSearchStage("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
@@ -127,18 +135,28 @@ export function HomePlanner() {
     setSearchStage("지금 계획을 기억하면서 말씀하신 부분을 이해하고 있어요");
     setError("");
     try {
+      const actor = getLocalActor();
       const response = await fetch("/api/dajeong/plans/revise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: currentPlan, instruction: nextRequest }),
+        body: JSON.stringify({ plan: currentPlan, instruction: nextRequest, actor }),
       });
       const result = await response.json().catch(() => ({})) as PlanRevisionResult & { error?: string };
       if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
-      savePlan(result.plan);
+      let savedPlan = result.plan;
+      const share = currentPlan.collaboration?.share;
+      if (share?.ownerToken) {
+        const syncResponse = await fetch(`/api/dajeong/shares/${encodeURIComponent(share.token)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ actor, baseRevision: currentPlan.collaboration?.revision ?? 0, ownerToken: share.ownerToken, plan: result.plan }) });
+        const synced = await syncResponse.json().catch(() => ({})) as { ownerPlan?: DajeongPlan };
+        if (syncResponse.ok && synced.ownerPlan) savedPlan = synced.ownerPlan;
+      }
+      savePlan(savedPlan);
+      const pace = savedPlan.collaboration?.participants.find((entry) => entry.id === actor.id)?.pacePreference;
+      if (pace) rememberPacePreference(actor.id, savedPlan.situation.recipient, pace);
       if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
       setPlans(listPlans());
-      setCompletedPlan(result.plan);
-      setConversation((current) => [...current, homeEntry("assistant", result.message, result.plan)]);
+      setCompletedPlan(savedPlan);
+      setConversation((current) => [...current, homeEntry("assistant", result.message, savedPlan)]);
     } catch (err) {
       setCompletedPlan(currentPlan);
       setError(err instanceof Error ? err.message : "잠시 후 다시 말해 주세요.");
@@ -232,7 +250,7 @@ export function HomePlanner() {
 
         <section className="dj-home-conversation" aria-live="polite">
           <div className="dj-home-message dj-home-assistant"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><strong>어떤 하루가 필요하세요?</strong><p>정해진 게 없어도 괜찮아요. 누구와 무엇을 하고 싶은지만 말하면 제가 필요한 것을 하나씩 여쭤볼게요.</p></div></div>
-          {!conversation.length ? <div className="dj-prompt-suggestions"><p>이렇게 물어보세요!</p>{examples.map((example, index) => <button key={example} type="button" onClick={() => setRequest(example)}><span>{["꽃", "주말", "식당", "생일", "선물"][index]}</span>{example}</button>)}</div> : null}
+          {!conversation.length ? <div className="dj-prompt-suggestions"><p>이렇게 물어보세요!</p><button className="dj-secret-start" type="button" onClick={() => { setSecretDraft(true); setRequest("여자친구를 위한 깜짝 이벤트를 비밀로 준비하고 싶어"); }}><span>비밀</span><b>시크릿 계획 시작</b> — 생일·기념일·꽃·선물을 나만 보이게 준비해요</button>{examples.map((example, index) => <button key={example} type="button" onClick={() => { setSecretDraft(false); setRequest(example); }}><span>{["꽃", "주말", "식당", "생일", "선물"][index]}</span>{example}</button>)}</div> : null}
 
           {conversation.map((entry) => entry.role === "user" ? (
             <div key={entry.id} className="dj-home-message dj-home-user"><div><p>{entry.text}</p></div></div>
@@ -249,6 +267,7 @@ export function HomePlanner() {
         </section>
 
         <div className="dj-home-composer-wrap">
+          {secretDraft && !completedPlan ? <div className="dj-secret-compose-state"><span>시크릿 계획</span><p>완성된 계획은 나만 볼 수 있게 저장돼요.</p><button type="button" onClick={() => setSecretDraft(false)}>해제</button></div> : null}
           <form className="dj-home-composer" onSubmit={(event) => analyze(event)}>
             <textarea value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={handleComposerKey} placeholder={pendingQuestion ? "대답을 편하게 말해 주세요" : "어떤 하루가 필요한지 말해 주세요"} aria-label={`${DAJEONG_BRAND.assistantName}에게 상황 말하기`} rows={1} />
             <button type="submit" disabled={Boolean(loading) || request.trim().length < 1} aria-label="보내기"><ArrowIcon size={19} /></button>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { listPlans, removePlan } from "../lib/storage";
 import type { DajeongPlan } from "../lib/types";
-import { ArrowIcon, CheckIcon, ClockIcon, HeartIcon, MapPinIcon, SparkleIcon, TrashIcon } from "./DajeongIcons";
+import { ArrowIcon, CheckIcon, ClockIcon, HeartIcon, MapPinIcon, ShieldIcon, SparkleIcon, TrashIcon } from "./DajeongIcons";
 
 function displayDate(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
@@ -35,12 +35,12 @@ export function PlansWorkspace() {
         <div className="dj-plans-list">
           {plans.map((plan) => {
             const done = plan.items.filter((item) => item.status === "done").length;
-            const href = plan.status === "draft" ? `/dajeong/plan/${plan.id}` : `/dajeong/plan/${plan.id}/execute`;
+            const href = `/dajeong/plan/${plan.id}`;
             return (
               <article key={plan.id} className="dj-saved-plan dj-card">
                 <Link href={href} className="dj-saved-plan-main">
                   <span className={`dj-status-mark dj-status-${plan.status}`}>{plan.status === "completed" ? <CheckIcon size={18} /> : <HeartIcon size={18} />}</span>
-                  <div><div className="dj-saved-meta"><span><ClockIcon size={13} />{displayDate(plan.situation.targetDate)}</span><span><MapPinIcon size={13} />{plan.situation.region}</span></div><h2>{plan.title}</h2><p>{plan.summary}</p></div>
+                  <div><div className="dj-saved-meta"><span><ClockIcon size={13} />{displayDate(plan.situation.targetDate)}</span><span><MapPinIcon size={13} />{plan.situation.region}</span><span><ShieldIcon size={13} />{plan.collaboration?.visibility === "shared" ? "공유 중" : plan.collaboration?.visibility === "secret" ? "시크릿" : "나만 보기"}{plan.items.some((item) => (item.visibility ?? "shared") !== "shared") ? " · 일부 비공개" : ""}</span></div><h2>{plan.title}</h2><p>{plan.summary}</p></div>
                   <div className="dj-saved-progress"><strong>{plan.status === "draft" ? "검토 중" : plan.status === "completed" ? "준비 완료" : `${done}/${plan.items.length} 완료`}</strong><span>예상 {new Intl.NumberFormat("ko-KR").format(plan.total)}원</span><ArrowIcon size={18} /></div>
                 </Link>
                 <button type="button" className="dj-plan-delete" aria-label={`${plan.title} 삭제`} onClick={() => remove(plan.id)}><TrashIcon size={16} /></button>
@@ -52,4 +52,3 @@ export function PlansWorkspace() {
     </div>
   );
 }
-

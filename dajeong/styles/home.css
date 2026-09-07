@@ -45,6 +45,9 @@
 .dj-prompt-suggestions button { min-height: 96px; padding: 14px; border: 1px solid #e4dcd5; border-radius: 15px; background: #fff; color: #5b534d; font: inherit; font-size: 11px; line-height: 1.55; text-align: left; cursor: pointer; }
 .dj-prompt-suggestions button:hover { border-color: #e2a89d; transform: translateY(-1px); }
 .dj-prompt-suggestions span { display: block; margin-bottom: 7px; color: var(--dj-coral-dark); font-size: 10px; font-weight: 850; }
+.dj-prompt-suggestions .dj-secret-start { grid-column: 1 / -1; min-height: 68px; border-color: #d9c3e7; background: #fbf6ff; color: #5f466f; }
+.dj-prompt-suggestions .dj-secret-start span { display: inline-block; margin: 0 8px 0 0; padding: 3px 6px; border-radius: 999px; background: #efe1f8; color: #76528d; }
+.dj-prompt-suggestions .dj-secret-start b { color: #513a60; }
 .dj-home-searching > div { display: flex; align-items: center; gap: 9px; padding-top: 3px; }
 .dj-home-searching p { margin: 0; }
 .dj-home-searching i { display: inline-flex; gap: 3px; }
@@ -81,6 +84,10 @@
 .dj-chat-quick-replies button { min-height: 38px; padding: 0 13px; border: 1px solid #e4d9d1; border-radius: 999px; background: #fff; color: #5c534d; font: inherit; font-size: 12px; font-weight: 720; cursor: pointer; box-shadow: 0 4px 12px rgba(72,49,38,.045); }
 .dj-chat-quick-replies button:hover { border-color: #e4a396; color: var(--dj-coral-dark); }
 .dj-home-composer-wrap { width: min(780px, calc(100% - 40px)); position: fixed; left: calc(50% + 136px); bottom: 0; transform: translateX(-50%); padding: 16px 0 calc(19px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, #fbfaf8 28%); z-index: 22; }
+.dj-secret-compose-state { display: flex; align-items: center; gap: 8px; margin: 0 auto 7px; padding: 7px 10px; border: 1px solid #dcc8e8; border-radius: 11px; background: #fbf7fe; color: #684d78; }
+.dj-secret-compose-state span { padding: 3px 6px; border-radius: 999px; background: #eadbf3; font-size: 9px; font-weight: 850; }
+.dj-secret-compose-state p { flex: 1; margin: 0; font-size: 9px; }
+.dj-secret-compose-state button { border: 0; background: transparent; color: #76528d; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .dj-home-composer { display: grid; grid-template-columns: 1fr 42px; align-items: end; gap: 8px; padding: 9px 9px 9px 16px; border: 1px solid #ddd5ce; border-radius: 20px; background: #fff; box-shadow: 0 12px 35px rgba(55,43,36,.09); }
 .dj-home-composer textarea { min-height: 42px; max-height: 160px; resize: none; padding: 10px 0 7px; border: 0; outline: 0; background: transparent; color: var(--dj-ink); font: inherit; font-size: 14px; line-height: 1.55; }
 .dj-home-composer button { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 14px; background: var(--dj-coral); color: #fff; cursor: pointer; }

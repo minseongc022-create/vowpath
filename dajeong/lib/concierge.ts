@@ -11,6 +11,8 @@ import { handleExecutionInstruction } from "./execution-conversation";
 import { reconcileReservationOrder } from "./reservation-engine";
 import { scheduleDajeongPlan, setItemDuration, weatherContextFromUser } from "./schedule-engine";
 import { enrichPlanWithWeather } from "./weather";
+import { applyPrivacyInstruction, ensurePlanCollaboration, learnPacePreference, type PlanActor } from "./collaboration";
+import { applyLiveDayInstruction } from "./live-day-engine";
 import type { DajeongPlan, PersonMemoryUpdate, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "./types";
 
 type ConciergeAction = "replace" | "add" | "remove" | "cheaper" | "indoor" | "reorder" | "refine" | "reschedule" | "explain" | "execute" | "payment_review";
@@ -389,7 +391,7 @@ function explainSelection(plan: DajeongPlan, category: PlanCategory | null, inst
   return `‘${item.title}’ 선택 근거는 ${facts.join(" · ")}`;
 }
 
-function addRevision(plan: DajeongPlan, instruction: string, message: string, categories: PlanCategory[]): DajeongPlan {
+function addRevision(plan: DajeongPlan, instruction: string, message: string, categories: PlanCategory[], actor?: PlanActor, audience: "shared" | "owner_only" = "shared"): DajeongPlan {
   const synchronized = reconcileReservationOrder(plan);
   const revised: DajeongPlan = {
     ...synchronized,
@@ -399,9 +401,12 @@ function addRevision(plan: DajeongPlan, instruction: string, message: string, ca
       summary: message,
       createdAt: new Date().toISOString(),
       changedCategories: categories,
+      actorId: actor?.id,
+      actorName: actor?.name,
+      audience,
     }, ...(plan.revisions ?? [])].slice(0, 12),
   };
-  return appendPlanVersion(appendPlanConversation(revised, instruction, message), instruction, message);
+  return appendPlanVersion(appendPlanConversation(revised, instruction, message, { actorId: actor?.id, actorName: actor?.name, audience }), instruction, message);
 }
 
 function createAddedItem(plan: DajeongPlan, category: PlanCategory, option: PlanOption): PlanItem {
@@ -593,8 +598,23 @@ export async function reviseDajeongPlanWithDiscovery(
   instruction: string,
   requestedCategory?: PlanCategory,
   requestedItemId?: string,
+  actorContext?: PlanActor,
 ): Promise<PlanRevisionResult> {
   const normalizedInstruction = instruction.trim();
+  const actor = actorContext ?? { id: plan.collaboration?.ownerId ?? "owner_local", name: "나" };
+  const contextualBase = learnPacePreference(ensurePlanCollaboration(plan, actor), normalizedInstruction, actor);
+  const privacy = applyPrivacyInstruction(contextualBase, normalizedInstruction, actor, requestedItemId);
+  if (privacy.handled) {
+    const next = appendPlanVersion(appendPlanConversation(privacy.plan, normalizedInstruction, privacy.message, { actorId: actor.id, actorName: actor.name, audience: privacy.audience }), normalizedInstruction, privacy.message);
+    return { plan: next, message: privacy.message, changedCategories: [] };
+  }
+  const live = applyLiveDayInstruction(contextualBase, normalizedInstruction, requestedItemId);
+  if (live.handled) {
+    const categories = [...new Set(live.changedItemIds.map((id) => live.plan.items.find((item) => item.id === id)?.category).filter((value): value is PlanCategory => Boolean(value)))];
+    const next = addRevision(live.plan, normalizedInstruction, live.message, categories, actor);
+    return { plan: next, message: live.message, changedCategories: categories };
+  }
+  plan = contextualBase;
   const executionResult = handleExecutionInstruction(plan, normalizedInstruction, requestedItemId);
   if (executionResult.handled) {
     const next = appendPlanConversation(executionResult.plan, normalizedInstruction, executionResult.message);
