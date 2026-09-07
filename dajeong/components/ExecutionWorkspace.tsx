@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { approvePayment, recordUserCompleted, requestPaymentReview } from "../lib/reservation-engine";
-import { getPlan, savePlan } from "../lib/storage";
+import { getLocalActor, getPlan, savePlan } from "../lib/storage";
+import type { ReservationBatch, ReservationJob } from "../lib/reservation-ops-types";
 import type { BookingMethod, DajeongPlan, ReservationOrder, ReservationTask, ReservationTaskStatus } from "../lib/types";
 import { ArrowIcon, CheckIcon, ClockIcon, RefreshIcon, ShieldIcon, SparkleIcon, WalletIcon } from "./DajeongIcons";
+import { SponsoredPlacement } from "./SponsoredPlacement";
 
 function money(value: number): string {
   return `${new Intl.NumberFormat("ko-KR").format(value)}원`;
@@ -48,7 +50,7 @@ const METHOD_LABEL: Record<BookingMethod, string> = {
   haruon_direct: "하루온 직접 실행",
   external_online: "업체 공식 온라인",
   external_platform: "외부 예약 플랫폼",
-  phone_only: "전화 예약만 가능",
+  phone_only: "Haruwith AI 전화",
   walk_in: "현장 방문",
   no_reservation: "예약 불필요",
   unsupported: "현재 연동 미지원",
@@ -67,7 +69,7 @@ const STATUS_LABEL: Record<ReservationTaskStatus, string> = {
   booked: "예약 완료",
   purchased: "구매 완료",
   failed: "실패",
-  phone_required: "사용자가 직접 전화 필요",
+  phone_required: "AI 전화 대기 가능",
   alternative_required: "대안 선택 필요",
   cancel_requested: "취소 요청",
   refund_pending: "환불 진행 중",
@@ -139,11 +141,46 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
   const [reservationLoading, setReservationLoading] = useState(false);
   const [reservationError, setReservationError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [queueBatch, setQueueBatch] = useState<Omit<ReservationBatch, "accessTokenHash"> | null>(null);
+  const [queueJobs, setQueueJobs] = useState<ReservationJob[]>([]);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [queueMessage, setQueueMessage] = useState("");
 
   useEffect(() => {
     const stored = getPlan(planId);
     setPlan(stored);
     setReservationOrder(stored?.execution ?? null);
+    const actor = getLocalActor();
+    if (actor.name !== "나") setContactName(actor.name);
+  }, [planId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let saved: { batchId: string; accessToken: string } | null;
+    try { saved = JSON.parse(localStorage.getItem(`haruwith:reservation-batch:${planId}`) ?? "null") as { batchId: string; accessToken: string } | null; } catch { saved = null; }
+    if (!saved?.batchId || !saved.accessToken) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/dajeong/reservations/jobs/${encodeURIComponent(saved!.batchId)}`, { cache: "no-store", headers: { authorization: `Bearer ${saved!.accessToken}` } });
+        const data = await response.json() as { batch?: Omit<ReservationBatch, "accessTokenHash">; jobs?: ReservationJob[] };
+        if (!active || !response.ok || !data.batch) return;
+        setQueueBatch(data.batch);
+        setQueueJobs(data.jobs ?? []);
+        setQueueMessage(data.batch.message);
+        if (data.batch.plan) {
+          setPlan(data.batch.plan);
+          setReservationOrder(data.batch.order);
+          savePlan(data.batch.plan);
+        }
+      } catch { /* polling resumes on the next interval */ }
+    };
+    void poll();
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void poll(); }, 5_000);
+    return () => { active = false; window.clearInterval(timer); };
   }, [planId]);
 
   useEffect(() => {
@@ -214,6 +251,72 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
     await copyText(summary);
   }
 
+  async function reserveAllByPhone() {
+    if (!plan || !reservationOrder || queueLoading) return;
+    const phone = contactPhone.replace(/[^0-9]/g, "");
+    if (contactName.trim().length < 2 || !/^0\d{8,10}$/.test(phone) || !privacyConsent) {
+      setQueueMessage("예약자 이름·휴대전화와 가게 전달 동의를 확인해 주세요.");
+      return;
+    }
+    setQueueLoading(true);
+    setQueueMessage("");
+    try {
+      const storageKey = `haruwith:reservation-request:${plan.id}:${reservationOrder.id}`;
+      let credentials: { requestKey: string; accessToken: string };
+      try {
+        credentials = JSON.parse(localStorage.getItem(storageKey) ?? "null") as typeof credentials;
+        if (!credentials?.requestKey || !credentials.accessToken) throw new Error("new");
+      } catch {
+        credentials = { requestKey: `request_${crypto.randomUUID()}`, accessToken: `${crypto.randomUUID()}${crypto.randomUUID()}` };
+        localStorage.setItem(storageKey, JSON.stringify(credentials));
+      }
+      const response = await fetch("/api/dajeong/reservations/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ plan, order: reservationOrder, ownerId: getLocalActor().id, ...credentials, attributionTokens: (() => { try { return JSON.parse(localStorage.getItem(`haruwith:ad-attribution:${plan.id}`) ?? "[]"); } catch { return []; } })(), contact: { name: contactName.trim(), phone, approvedFields: ["name", "phone"], approvedAt: new Date().toISOString(), purpose: "선택한 일정의 가게 전화 예약" } }),
+      });
+      const data = await response.json() as { batch?: Omit<ReservationBatch, "accessTokenHash">; jobs?: ReservationJob[]; error?: string; providerConfigured?: boolean; persistence?: string };
+      if (!response.ok || !data.batch) throw new Error(data.error || "예약을 시작하지 못했어요.");
+      localStorage.setItem(`haruwith:reservation-batch:${plan.id}`, JSON.stringify({ batchId: data.batch.id, accessToken: credentials.accessToken }));
+      setQueueBatch(data.batch);
+      setQueueJobs(data.jobs ?? []);
+      setPlan(data.batch.plan);
+      setReservationOrder(data.batch.order);
+      savePlan(data.batch.plan);
+      setQueueMessage(data.providerConfigured ? data.batch.message : "대기열은 저장했지만 ClawOps 자격증명이 아직 없어 실제 전화는 시작되지 않았어요. 운영 설정 후 같은 작업이 이어집니다.");
+    } catch (error) {
+      setQueueMessage(error instanceof Error ? error.message : "예약을 시작하지 못했어요.");
+    } finally {
+      setQueueLoading(false);
+    }
+  }
+
+  async function approveQueueCondition(job: ReservationJob) {
+    if (!queueBatch) return;
+    let saved: { batchId: string; accessToken: string } | null = null;
+    try { saved = JSON.parse(localStorage.getItem(`haruwith:reservation-batch:${planId}`) ?? "null") as { batchId: string; accessToken: string } | null; } catch { return; }
+    if (!saved?.accessToken) return;
+    const moneyCommitment = job.result?.deposit ?? job.result?.minimumSpend ?? job.result?.additionalFees?.[0];
+    const approvalText = moneyCommitment
+      ? `${job.goal.venueName} 예약금 ${moneyCommitment.amount}원 결제 승인에 동의합니다`
+      : `${job.goal.venueName} ${job.result?.confirmedTime ?? "제안 조건"} 변경 승인에 동의합니다`;
+    const response = await fetch(`/api/dajeong/reservations/jobs/${encodeURIComponent(queueBatch.id)}/actions`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${saved.accessToken}` }, body: JSON.stringify({ action: "approve", jobId: job.id, approvalText }) });
+    const data = await response.json() as { batch?: Omit<ReservationBatch, "accessTokenHash">; error?: string; message?: string };
+    if (!response.ok || !data.batch) { setQueueMessage(data.error || "조건 승인을 기록하지 못했어요."); return; }
+    setQueueBatch(data.batch); setPlan(data.batch.plan); setReservationOrder(data.batch.order); savePlan(data.batch.plan); setQueueMessage(data.message || data.batch.message);
+  }
+
+  async function retryQueueJob(job: ReservationJob) {
+    if (!queueBatch) return;
+    let saved: { batchId: string; accessToken: string } | null = null;
+    try { saved = JSON.parse(localStorage.getItem(`haruwith:reservation-batch:${planId}`) ?? "null") as { batchId: string; accessToken: string } | null; } catch { return; }
+    if (!saved?.accessToken) return;
+    const response = await fetch(`/api/dajeong/reservations/jobs/${encodeURIComponent(queueBatch.id)}/actions`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${saved.accessToken}` }, body: JSON.stringify({ action: "retry", jobId: job.id }) });
+    const data = await response.json() as { batch?: Omit<ReservationBatch, "accessTokenHash">; error?: string; message?: string };
+    if (!response.ok || !data.batch) { setQueueMessage(data.error || "이 항목을 다시 시도하지 못했어요."); return; }
+    setQueueBatch(data.batch); setPlan(data.batch.plan); setReservationOrder(data.batch.order); savePlan(data.batch.plan); setQueueMessage("실패한 항목만 다시 대기열에 넣었어요.");
+  }
+
   const completedTasks = reservationOrder?.tasks.filter(isCompleted).length ?? 0;
   const progress = reservationOrder?.tasks.length ? Math.round(completedTasks / reservationOrder.tasks.length * 100) : 0;
   const complete = Boolean(reservationOrder?.tasks.length && completedTasks === reservationOrder.tasks.length);
@@ -251,6 +354,17 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
 
       <section className="dj-reservation-desk dj-card" aria-live="polite">
         <div className="dj-reservation-assistant"><span><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}의 실행 계획</strong><p>{reservationLoading ? "예약 방식과 실제 실행 경로를 구분하고 있어요…" : reservationError || reservationOrder?.message || "실행 계획을 불러오는 중이에요."}</p></div></div>
+        {reservationOrder?.tasks.some((task) => task.kind === "reservation" && task.phoneNumber && !isCompleted(task)) ? (
+          <div className="dj-queue-launch">
+            <div><strong>Haruwith가 가게에 순서대로 전화할게요</strong><p>앱을 닫아도 영속 대기열에서 계속 진행됩니다. 새 예약금·추가요금·필수 조건 변경은 자동 승인하지 않아요.</p></div>
+            {!queueBatch ? <>
+              <div className="dj-queue-contact"><input aria-label="예약자 이름" value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="예약자 이름" maxLength={40} /><input aria-label="예약자 휴대전화" inputMode="tel" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} placeholder="휴대전화 01012345678" maxLength={13} /></div>
+              <label className="dj-queue-consent"><input type="checkbox" checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} /><span>선택한 가게의 예약 목적에 한해 예약자 이름과 전화번호를 전달하는 데 동의합니다.</span></label>
+              <button type="button" className="dj-btn dj-btn-primary" onClick={reserveAllByPhone} disabled={queueLoading}>{queueLoading ? "예약 대기열에 넣는 중…" : "전부 예약하기"}</button>
+            </> : <div className="dj-queue-status">{queueJobs.map((job) => { const commitment = job.result?.deposit ?? job.result?.minimumSpend ?? job.result?.additionalFees?.[0]; return <div key={job.id}><span>{job.goal.venueName}{job.result?.confirmedTime && job.result.confirmedTime !== job.goal.time ? ` · 대안 ${job.result.confirmedTime}` : ""}{commitment ? ` · 금전 조건 ${money(commitment.amount)}` : ""}</span><strong>{{ queued: "대기 중", calling: "통화 중", awaiting_result: "결과 정리 중", retry_scheduled: "재시도 예정", needs_user_action: "확인 필요", succeeded: "예약 완료", failed: "실패" }[job.status]}</strong>{job.failureReason || job.result?.failureReason ? <small>{job.failureReason || job.result?.failureReason}</small> : null}{job.status === "needs_user_action" ? <button type="button" onClick={() => approveQueueCondition(job)}>{commitment ? `${money(commitment.amount)} 금전 조건 승인 기록` : `${job.result?.confirmedTime ?? "제안"} 대안 승인 후 재시도`}</button> : null}{job.status === "failed" ? <button type="button" onClick={() => retryQueueJob(job)}>이 항목만 안전하게 재시도</button> : null}</div>; })}</div>}
+            {queueMessage ? <p>{queueMessage}</p> : null}
+          </div>
+        ) : null}
         {approval && ["requested", "reapproval_required"].includes(approval.state) ? (
           <div className="dj-payment-approval">
             <div><ShieldIcon size={18} /><p><strong>{approval.state === "reapproval_required" ? "가격이 바뀌어 재승인이 필요해요" : "명시적 결제 승인이 필요해요"}</strong>{reservationOrder?.tasks.filter((task) => approval.taskIds.includes(task.id)).map((task) => task.title).join(", ")} · 지금 결제 {money(approval.amount)}</p></div>
@@ -272,11 +386,13 @@ export function ExecutionWorkspace({ planId }: { planId: string }) {
           <span className="dj-help-icon"><ShieldIcon size={22} /></span>
           <h2>확인된 사실만<br />실행 상태로</h2>
           <p>링크를 연 것, 검색 결과가 보인 것, 사용자가 애매하게 긍정한 것은 예약·구매·결제 성공이 아닙니다.</p>
-          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>연결된 예약·결제 제공자가 아직 없어 외부 공식 경로와 전화 문구를 준비합니다. 제공자 확인번호가 들어온 경우에만 자동 완료 상태가 됩니다.</span></div>
-          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약에 꼭 필요하고 사용자가 전달에 동의한 경우에만 해당 업체에 최소한으로 보낼 구조입니다. 현재 자동 전달은 없습니다.</span></div>
+          <div className="dj-help-rule"><strong>현재 자동 실행 범위</strong><span>전화번호가 확인된 한국 식당은 ClawOps AI 전화로 순차 실행합니다. 티켓·상품 결제와 전화번호 미확인 항목은 아직 자동 완료하지 않습니다.</span></div>
+          <div className="dj-help-rule"><strong>개인정보</strong><span>이름·전화번호는 예약 목적과 전달 동의를 확인한 뒤 해당 가게에만 최소한으로 전달합니다. 카드번호와 CVV는 전화 에이전트에 전달하지 않습니다.</span></div>
           <Link href={`/dajeong/plan/${plan.id}`} className="dj-help-link"><RefreshIcon size={15} /> 같은 채팅에서 계획 수정</Link>
         </aside>
       </section>
+
+      <SponsoredPlacement plan={plan} surface="execution_footer" />
 
       {complete ? <div className="dj-complete-card"><span>실행 결과가 계획과 연결됐어요</span><blockquote>확인된 준비만 완료로 기록했습니다.</blockquote><Link href="/dajeong/plans" className="dj-btn dj-btn-secondary">내 계획 모아보기</Link></div> : null}
     </div>

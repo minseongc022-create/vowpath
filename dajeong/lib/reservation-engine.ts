@@ -70,6 +70,8 @@ function methodLabel(method: BookingMethod): string {
 
 export function bookingMethodForItem(item: PlanItem): BookingMethod {
   if (!item.reservationRequired) return item.reality?.reservationState === "walk_in" ? "walk_in" : "no_reservation";
+  if (item.reality?.bookingMethod === "haruon_direct") return "haruon_direct";
+  if (item.reality?.phoneNumber) return "phone_only";
   if (item.reality?.bookingMethod) return item.reality.bookingMethod;
   if (item.reality?.reservationState === "supported" && item.reality.bookingProviderId) return "haruon_direct";
   const reservationUrl = item.reality?.reservationUrl;
@@ -104,7 +106,7 @@ function explanation(method: BookingMethod): string {
     haruon_direct: "연결된 제공자에서 실제 가능 여부와 정확한 금액을 받은 뒤 승인 단계로 넘어가요.",
     external_online: "업체 공식 페이지에서 가능 여부와 최종 금액을 직접 확인해야 해요. 페이지를 여는 것만으로 예약되지는 않아요.",
     external_platform: "외부 예약 플랫폼에서 가능 여부와 최종 금액을 확인해야 해요. 하루온에는 아직 완료 결과가 자동으로 돌아오지 않아요.",
-    phone_only: "전화로 가능 여부를 확인해야 해요. 현재 하루온은 직접 통화하지 않으므로 통화 문구를 준비해 드려요.",
+    phone_only: "전화번호가 확인된 한국 식당은 Haruwith AI 전화 대기열에서 순서대로 예약을 시도해요. 실제 통화 결과가 확인되기 전에는 예약 완료로 표시하지 않아요.",
     walk_in: "별도 예약 없이 방문하는 방식이에요. 방문 직전 영업 상태와 대기를 다시 확인하세요.",
     no_reservation: "예약이 필요 없는 일정이에요. 방문 시간의 운영 여부만 확인하면 돼요.",
     unsupported: "예약 방식이나 공식 실행 경로를 아직 확인하지 못했어요. 검색 링크를 열었다고 완료로 처리하지 않아요.",
@@ -130,9 +132,9 @@ function itemTask(plan: DajeongPlan, item: PlanItem, previous?: ReservationTask)
     dayNumber: item.dayNumber,
     kind: taskKind(item),
     bookingMethod: method,
-    capability: method === "haruon_direct" ? "automatic" : "assisted",
+    capability: method === "haruon_direct" || method === "phone_only" ? "automatic" : "assisted",
     status: initialStatus(method),
-    providerLabel: method === "haruon_direct" ? "연결된 실행 파트너" : methodLabel(method),
+    providerLabel: method === "haruon_direct" ? "연결된 실행 파트너" : method === "phone_only" ? "Haruwith · ClawOps AI 전화" : methodLabel(method),
     bookingUrl: item.reality?.reservationUrl || item.reality?.websiteUrl || item.reality?.detailsUrl || item.href,
     explanation: explanation(method),
     availability: method === "haruon_direct" ? "checking" : "unknown",
@@ -271,7 +273,7 @@ function messageFor(tasks: ReservationTask[]): string {
   const phone = tasks.filter((task) => task.bookingMethod === "phone_only").length;
   const external = tasks.filter((task) => ["external_online", "external_platform"].includes(task.bookingMethod)).length;
   const unsupported = tasks.filter((task) => task.bookingMethod === "unsupported").length;
-  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어요.${external ? ` 외부 확인 ${external}개` : ""}${phone ? `, 직접 전화 필요 ${phone}개` : ""}${unsupported ? `, 연동 전 ${unsupported}개` : ""}. 실제 확인 전에는 예약·결제 완료로 표시하지 않아요.`;
+  return `실행 항목 ${tasks.length}개를 같은 계획에 연결했어요.${external ? ` 외부 확인 ${external}개` : ""}${phone ? `, AI 전화 예약 가능 ${phone}개` : ""}${unsupported ? `, 전화번호 확인 필요 ${unsupported}개` : ""}. 실제 확인 전에는 예약·결제 완료로 표시하지 않아요.`;
 }
 
 export function prepareReservationOrder(plan: DajeongPlan, options: PrepareOptions = {}): ReservationOrder {

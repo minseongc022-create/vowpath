@@ -10,6 +10,7 @@
 | **Appointment reminder SMS** | **Every 60 seconds** (same call) | Same external cron as above |
 | **Pick-time link nudge** (customer forgot / missed SMS) | **Every 60 seconds** (same call) | Same — remind customer ~90m, escalate owner ~4h |
 | **Effiroad (에피로드) data sync** | **Every 60 seconds** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/toss-shop-sync` |
+| **Haruwith reservation queue** | **Every 5 seconds** | **Always-on external worker** (`npm run haruwith:reservation-worker`) → `POST /api/cron/haruwith-reservations` |
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
 | Effiroad seller dashboard UI | Every 60 seconds (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
@@ -82,6 +83,7 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/tech-offer-escalation` | Optional external 60s target (timeouts only) |
 | `/api/cron/giu-reservation-expiry` | **Every 60s** via cron-job.org — Giu unpaid reservation expiry (`docs/GIU_DEPLOY.md`) |
 | `/api/cron/toss-shop-sync` | **Every 60s** via cron-job.org — Effiroad (에피로드) merchant sync |
+| `/api/cron/haruwith-reservations` | **Every 5s** via the dedicated always-on worker — Haruwith call lifecycle/queue; do not add to Vercel Hobby cron |
 
 All require `CRON_SECRET` in production (`Authorization: Bearer …` or `x-cron-secret` header).
 
