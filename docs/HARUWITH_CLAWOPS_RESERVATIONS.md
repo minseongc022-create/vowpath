@@ -50,6 +50,10 @@ HARUWITH_WORKER_POLL_MS=5000
 HARUWITH_RESERVATION_RESULT_MODEL=gpt-4o-mini
 HARUWITH_OPS_TOKEN=<long-random-secret>
 
+# 운영자 실전화 테스트를 할 때만 Vercel Production에 설정
+HARUWITH_LIVE_TEST_ENABLED=true
+HARUWITH_TEST_PHONE=<본인 또는 협조자의 한국 전화번호>
+
 KV_REST_API_URL=...
 KV_REST_API_TOKEN=...
 OPENAI_API_KEY=...
@@ -79,6 +83,12 @@ curl -H "Authorization: Bearer $HARUWITH_OPS_TOKEN" \
 ```
 
 `ready: true`, `clawops.configured: true`, `persistence: "vercel_kv"`를 확인한다. 이 API는 Queue를 tick하지 않고 전화를 시작하지 않는다.
+
+### 운영자 실전화 테스트
+
+`/dajeong/ops/reservation-test`는 일반 사용자 화면에 링크하지 않는 운영자 전용 테스트 화면이다. `HARUWITH_OPS_TOKEN` 인증, `HARUWITH_LIVE_TEST_ENABLED=true`, 서버에 등록한 `HARUWITH_TEST_PHONE`, 명시적 과금 확인을 모두 통과해야만 영속 Queue에 한 건을 넣는다. 브라우저에서 임의 전화번호를 보낼 수 없고 서버에 허용한 번호로만 발신한다.
+
+테스트 화면은 기존 Reservation Batch/Job과 Render Worker를 그대로 사용하므로 별도 mock 경로가 아니다. 결과 조회 또한 일반 예약과 같은 batch access token을 사용한다. 진행 중인 동일 번호 테스트가 있으면 새 통화를 거부하고, IP별 한 시간 최대 3건으로 제한한다. 테스트가 끝나면 `HARUWITH_LIVE_TEST_ENABLED=false`로 되돌려 두는 것을 권장한다.
 
 worker는 기본 5초마다 `POST /api/cron/haruwith-reservations`를 호출하며 이전 tick과 겹치지 않는다. `Authorization: Bearer <HARUWITH_WORKER_TOKEN>`이 필요하다. 서버리스 callback만으로 운영하면 callback이 오지 않은 통화의 240초 강제 종료를 보장할 수 없으므로 출시 구성으로 인정하지 않는다.
 
