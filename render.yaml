@@ -2,9 +2,9 @@ services:
   - type: worker
     name: haruwith-reservation-worker
     runtime: node
-    region: singapore
+    plan: 0.5c-512mb
     buildCommand: node --version
-    startCommand: npm run haruwith:reservation-worker
+    startCommand: node scripts/haruwith-reservation-worker.mjs
     envVars:
       - key: HARUWITH_PUBLIC_BASE_URL
         value: https://haruwith.com

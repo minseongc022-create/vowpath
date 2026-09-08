@@ -42,7 +42,8 @@ const extractor = async (job) => confirmed(job);
 test("예약 worker 배포 설정은 5초 상시 프로세스와 secret 주입 경계를 유지한다", async () => {
   const blueprint = await readFile(new URL("../../render.yaml", import.meta.url), "utf8");
   assert.match(blueprint, /type: worker/);
-  assert.match(blueprint, /startCommand: npm run haruwith:reservation-worker/);
+  assert.match(blueprint, /plan: 0\.5c-512mb/);
+  assert.match(blueprint, /startCommand: node scripts\/haruwith-reservation-worker\.mjs/);
   assert.match(blueprint, /HARUWITH_PUBLIC_BASE_URL[\s\S]*https:\/\/haruwith\.com/);
   assert.match(blueprint, /HARUWITH_WORKER_POLL_MS[\s\S]*"5000"/);
   assert.match(blueprint, /HARUWITH_WORKER_TOKEN[\s\S]*sync: false/);
