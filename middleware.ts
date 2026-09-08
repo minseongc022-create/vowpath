@@ -20,6 +20,7 @@ import { isJarvisHost } from "@/jarvis/host";
 import { isPublicJarvisPath } from "@/jarvis/core/gate";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { JARVIS_SESSION_COOKIE, verifyJarvisSessionToken } from "@/jarvis/core/session";
+import { isHaruwithHost } from "@/dajeong/lib/host";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -245,12 +246,12 @@ export async function middleware(request: NextRequest) {
     return topikShellResponse(request);
   }
 
-  // Dajeong — occasion planning product, isolated from every legacy shell.
-  // Its API must follow the same host exception as the UI. Otherwise the UI
-  // renders on effiroad.com while every /api/dajeong request is swallowed by
-  // the retired Effiroad apex gate below. Machine endpoints still enforce
-  // their own access token, rate-limit, or ClawOps webhook signature.
+  // Dajeong/HaruWith — isolated product available only on HaruWith hosts.
+  // Vercel preview and local hosts remain available for safe verification.
+  // Machine endpoints still enforce their own access token, rate-limit, or
+  // ClawOps webhook signature after this host boundary.
   if (pathname.startsWith("/dajeong") || pathname.startsWith("/api/dajeong")) {
+    if (!isHaruwithHost(hostname)) return silentNotFound();
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "dajeong");
     requestHeaders.set("x-pathname", pathname);
