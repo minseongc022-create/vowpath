@@ -1,0 +1,29 @@
+name: Haruwith one-time production promote
+
+on:
+  push:
+    branches: [codex/dajeong-event-planner]
+    paths:
+      - ".github/workflows/haruwith-one-time-promote.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_SCOPE: minseongc022-2196s-projects
+      TARGET_SHA: 5275919f8c969fd3615ad691851a6435112653e4
+    steps:
+      - name: Verify Vercel credential
+        run: test -n "$VERCEL_TOKEN"
+
+      - name: Locate ready preview and promote it
+        shell: bash
+        run: |
+          output="$(npx --yes vercel@58.9.2 ls vowpath --meta "githubCommitSha=$TARGET_SHA" --status READY --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE" --yes)"
+          deployment="$(printf '%s\n' "$output" | grep -Eo 'https://[^[:space:]]+' | head -n 1)"
+          test -n "$deployment"
+          npx --yes vercel@58.9.2 promote "$deployment" --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE"
