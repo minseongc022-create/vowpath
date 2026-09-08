@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   promote:
@@ -17,13 +18,35 @@ jobs:
       VERCEL_SCOPE: minseongc022-2196s-projects
       TARGET_SHA: 5275919f8c969fd3615ad691851a6435112653e4
     steps:
-      - name: Verify Vercel credential
-        run: test -n "$VERCEL_TOKEN"
-
-      - name: Locate ready preview and promote it
+      - name: Promote ready preview
+        id: promote
+        continue-on-error: true
         shell: bash
         run: |
+          test -n "$VERCEL_TOKEN"
           output="$(npx --yes vercel@58.9.2 ls vowpath --meta "githubCommitSha=$TARGET_SHA" --status READY --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE" --yes)"
           deployment="$(printf '%s\n' "$output" | grep -Eo 'https://[^[:space:]]+' | head -n 1)"
           test -n "$deployment"
           npx --yes vercel@58.9.2 promote "$deployment" --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE"
+
+      - name: Publish promotion result
+        if: always()
+        env:
+          RESULT: ${{ steps.promote.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          state=failure
+          description="Haruwith production promotion failed"
+          if [ "$RESULT" = "success" ]; then
+            state=success
+            description="Haruwith production promotion succeeded"
+          fi
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "{\"state\":\"$state\",\"context\":\"haruwith-production-promotion\",\"description\":\"$description\"}"
+          test "$RESULT" = "success"
