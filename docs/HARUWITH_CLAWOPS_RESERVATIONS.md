@@ -82,6 +82,14 @@ curl -H "Authorization: Bearer $HARUWITH_OPS_TOKEN" \
 
 worker는 기본 5초마다 `POST /api/cron/haruwith-reservations`를 호출하며 이전 tick과 겹치지 않는다. `Authorization: Bearer <HARUWITH_WORKER_TOKEN>`이 필요하다. 서버리스 callback만으로 운영하면 callback이 오지 않은 통화의 240초 강제 종료를 보장할 수 없으므로 출시 구성으로 인정하지 않는다.
 
+### 상시 worker 배포
+
+루트의 `render.yaml`은 Haruwith 예약 worker 한 개만 선언한다. Render의 **New > Blueprint**에서 이 저장소와 `codex/dajeong-event-planner` 브랜치를 선택하면 `haruwith-reservation-worker` background worker가 만들어진다. 배포 확인 화면에서 비용이 발생할 수 있는 인스턴스 종류를 확인한 뒤 승인한다.
+
+Blueprint가 요구하는 `HARUWITH_WORKER_TOKEN`에는 Vercel Production의 같은 이름 변수와 **완전히 동일한 값**을 넣는다. `HARUWITH_PUBLIC_BASE_URL=https://haruwith.com`, `HARUWITH_WORKER_POLL_MS=5000`은 파일에 공개 설정으로 들어 있다. ClawOps API key나 signing key는 worker에 복사하지 않는다. 실제 provider 호출과 webhook 검증은 Vercel 서버만 담당한다.
+
+배포 로그에서 401/403이 반복되면 worker token 불일치, 404이면 public base URL/production 배포, 503이면 Vercel KV 또는 ClawOps 준비 상태를 먼저 확인한다. worker 프로세스가 종료되면 호스팅 서비스의 restart policy로 다시 실행되며, queue와 lock은 Vercel KV에 남으므로 프로세스 재시작만으로 작업이 사라지지 않는다.
+
 ## queue와 중복 방지
 
 - Batch idempotency key: owner + plan + order + client request key의 SHA-256

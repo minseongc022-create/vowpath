@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { adFunnel, createMemoryAdStore, recordAdEvent, serveSponsoredPlacement } from "../../dajeong/lib/ads.ts";
 import { clawOpsReadiness, monthlyMinuteAllowance, normalizeClawOpsFromNumber, reservationWorkerCapacity } from "../../dajeong/lib/clawops-config.ts";
@@ -37,6 +38,16 @@ class FakeProvider {
 
 const confirmed = (job, overrides = {}) => ({ status: "confirmed", confirmedDate: job.goal.date, confirmedTime: job.goal.time, partySize: job.goal.partySize, reservationName: job.goal.reservationName, venue: job.goal.venueName, requiresUserAction: false, retryRecommended: false, confidence: 0.98, finalReadbackConfirmed: true, ...overrides });
 const extractor = async (job) => confirmed(job);
+
+test("예약 worker 배포 설정은 5초 상시 프로세스와 secret 주입 경계를 유지한다", async () => {
+  const blueprint = await readFile(new URL("../../render.yaml", import.meta.url), "utf8");
+  assert.match(blueprint, /type: worker/);
+  assert.match(blueprint, /startCommand: npm run haruwith:reservation-worker/);
+  assert.match(blueprint, /HARUWITH_PUBLIC_BASE_URL[\s\S]*https:\/\/haruwith\.com/);
+  assert.match(blueprint, /HARUWITH_WORKER_POLL_MS[\s\S]*"5000"/);
+  assert.match(blueprint, /HARUWITH_WORKER_TOKEN[\s\S]*sync: false/);
+  assert.doesNotMatch(blueprint, /CLAWOPS_API_KEY|CLAWOPS_SIGNING_KEY/);
+});
 
 test("예약 Queue: concurrency=1은 A calling, B/C queued를 보장한다", async () => {
   const store = createMemoryReservationStore();
