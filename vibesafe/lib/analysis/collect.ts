@@ -112,7 +112,8 @@ function routeFromPagesPath(path: string): string | null {
   return `/${segments.join("/")}`;
 }
 
-function extractRoutes(entries: GithubTreeEntry[]): { path: string; kind: "page" | "api" }[] {
+/** 경로 규약만으로 앱의 화면·API 목록을 뽑는다. 파일 내용을 읽지 않고도 구조가 드러난다. */
+export function extractRoutes(entries: GithubTreeEntry[]): { path: string; kind: "page" | "api" }[] {
   const out = new Map<string, "page" | "api">();
   for (const entry of entries) {
     if (entry.type !== "blob") continue;
