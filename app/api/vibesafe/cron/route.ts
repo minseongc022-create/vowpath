@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { enqueueRun, recoverStaleRuns } from "@/vibesafe/lib/runs/queue";
+import { reconcileStalledRepairs } from "@/vibesafe/lib/repair/reconcile";
 import { scanProjectSecurity } from "@/vibesafe/lib/security/scan-runner";
 import { pruneOldSignatures } from "@/vibesafe/lib/signals";
 
@@ -11,7 +12,9 @@ import { pruneOldSignatures } from "@/vibesafe/lib/signals";
  *
  * 사용자가 거의 없는 단계에서 상시 인프라는 순수한 고정비다. 대신 cron이
  * 주기적으로 들러 (1) 워커가 죽어서 붙잡힌 검사를 되살리고 (2) 오랫동안
- * 검사하지 않은 프로젝트를 큐에 넣는다.
+ * 검사하지 않은 프로젝트를 큐에 넣고 (3) REPAIR 파이프라인이 외부 신호를
+ * 못 받아 멈춘 곳을 재조정한다(repair/reconcile.ts) — Vercel 웹훅이 안 오거나
+ * 워커가 죽어도 검증·적용 후 확인이 영원히 "진행 중"에 갇히지 않게 한다.
  *
  * 주기를 정할 때 기준은 "얼마나 자주 확인하고 싶은가"가 아니라 "한 달 비용이
  * 얼마인가"다. 기본 6시간은 무료 베타에서 감당 가능한 선이다.
@@ -36,7 +39,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "database not configured" }, { status: 503 });
   }
 
-  const recovered = await recoverStaleRuns();
+  const { recovered, abandoned } = await recoverStaleRuns();
+
+  // REPAIR 파이프라인이 웹훅 없이도 앞으로 나가게 한다. recoverStaleRuns가
+  // 이미 찾아낸 "죽은 워커" 목록을 그대로 넘긴다 — 같은 실행을 두 번 읽지
+  // 않기 위해서다.
+  const reconciled = await reconcileStalledRepairs(abandoned).catch((error) => {
+    console.error("[vibesafe] repair reconcile failed:", (error as Error).message);
+    return null;
+  });
 
   // 비식별 실패 지문은 오래 들고 있을 이유가 없다 — 표만 커진다.
   const pruned = await pruneOldSignatures(14);
@@ -110,6 +121,7 @@ export async function GET(request: Request) {
     queued,
     skipped,
     recovered,
+    reconciled,
     pruned,
     securityScanned,
     checked: projects.length,

@@ -212,6 +212,77 @@ function toProposalView(
   };
 }
 
+export type RepairHistoryItem = {
+  id: string;
+  title: string;
+  status: string;
+  stage: string;
+  riskLevel: string;
+  riskLabel: { title: string; tone: "ok" | "warn" | "down" };
+  incidentId: string | null;
+  flowTitle: string | null;
+  createdAt: string;
+  appliedAt: string | null;
+  verifiedAt: string | null;
+  outcome: string | null;
+  prUrl: string | null;
+};
+
+/**
+ * 프로젝트의 수정 이력 전체.
+ *
+ * ★ 실패한 시도도 똑같이 보여준다
+ *
+ * 성공한 것만 골라 보여주면 "VibeSafe가 고친 건 전부 성공했다"는 착각을
+ * 준다. 실패·거절·대체까지 그대로 나열해야 사용자가 이 도구의 실제 타율을
+ * 스스로 판단할 수 있다. 판단에 쓸 근거를 감추지 않는다.
+ */
+export async function getRepairHistory(
+  projectId: string,
+  take = 50,
+): Promise<RepairHistoryItem[]> {
+  const project = await prisma.vibesafeProject.findUnique({
+    where: { id: projectId },
+    select: { userId: true },
+  });
+  const mode = project ? await getUiMode(project.userId) : "simple";
+  const proposals = await prisma.vibesafeFixProposal.findMany({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+    take,
+    include: { outcome: { select: { result: true } } },
+  });
+  if (proposals.length === 0) return [];
+
+  const incidentIds = [...new Set(proposals.map((p) => p.incidentId).filter((v): v is string => Boolean(v)))];
+  const incidents = incidentIds.length
+    ? await prisma.vibesafeIncident.findMany({
+        where: { id: { in: incidentIds } },
+        select: { id: true, flowTitle: true },
+      })
+    : [];
+  const titleByIncident = new Map(incidents.map((i) => [i.id, i.flowTitle]));
+
+  return proposals.map((proposal) => {
+    const risk = riskLabel(proposal.riskLevel, mode);
+    return {
+      id: proposal.id,
+      title: proposal.title,
+      status: proposal.status,
+      stage: stageLabel(proposal.status, mode),
+      riskLevel: proposal.riskLevel,
+      riskLabel: { title: risk.title, tone: risk.tone },
+      incidentId: proposal.incidentId,
+      flowTitle: proposal.incidentId ? (titleByIncident.get(proposal.incidentId) ?? null) : null,
+      createdAt: proposal.createdAt.toISOString(),
+      appliedAt: proposal.appliedAt?.toISOString() ?? null,
+      verifiedAt: proposal.verifiedAt?.toISOString() ?? null,
+      outcome: proposal.outcome?.result ?? null,
+      prUrl: proposal.prUrl,
+    };
+  });
+}
+
 /**
  * 이 프로젝트에서 수정이 실제로 얼마나 통했는가.
  *
@@ -221,7 +292,7 @@ function toProposalView(
  * 사용자는 그 숫자를 보고 자동 적용을 켤 수도 있다. 근거가 쌓이기 전에는
  * 건수만 보여주고, 비율은 비워둔다.
  */
-const MIN_SAMPLES_FOR_RATE = 5;
+export const MIN_SAMPLES_FOR_RATE = 5;
 
 export async function getRepairStats(projectId: string): Promise<{
   total: number;

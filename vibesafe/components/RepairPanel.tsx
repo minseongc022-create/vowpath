@@ -78,6 +78,7 @@ export function RepairPanel({
   const [showTechnical, setShowTechnical] = useState(initialView.mode === "expert");
   const [confirmHighRisk, setConfirmHighRisk] = useState(false);
   const [verdict, setVerdict] = useState<string | null>(null);
+  const [previewInput, setPreviewInput] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mode: UiMode = view.mode;
@@ -191,6 +192,23 @@ export function RepairPanel({
     });
     if (done) {
       setNotice("적용했습니다. 배포가 끝나면 실제 서비스에서 다시 확인하겠습니다.");
+      await refresh();
+    }
+  }
+
+  /**
+   * 미리보기 배포 신호(webhook)가 안 왔을 때 직접 주소를 넣어 검증을 건다.
+   * Vercel이 아닌 곳에 배포하거나, 연동이 안 걸려 있으면 이 경로가 필요하다.
+   */
+  async function submitPreviewUrl() {
+    if (!proposal || !previewInput.trim()) return;
+    const done = await call("preview-verify", `/api/vibesafe/projects/${projectId}/repair-verify`, {
+      proposalId: proposal.id,
+      previewUrl: previewInput.trim(),
+    });
+    if (done) {
+      setPreviewInput("");
+      setNotice("입력하신 주소에서 확인을 시작했습니다.");
       await refresh();
     }
   }
@@ -350,6 +368,39 @@ export function RepairPanel({
               <p className="vs-hint">{proposal.apply.reason}</p>
             )
           )}
+
+          {/* 미리보기 신호가 안 왔을 때 직접 주소를 넣는다 */}
+          {!proposal.technical.previewUrl &&
+            proposal.technical.prNumber != null &&
+            ["opened", "needs_human"].includes(proposal.status) && (
+              <div className="vs-surface-sunken vs-stack-sm" style={{ padding: 12, borderRadius: 8 }}>
+                <strong style={{ fontSize: 14 }}>
+                  {mode === "simple" ? "미리 확인할 주소를 아시나요?" : "미리보기 URL 직접 입력"}
+                </strong>
+                <p className="vs-hint" style={{ margin: 0 }}>
+                  {mode === "simple"
+                    ? "보통은 자동으로 찾아서 확인합니다. 시간이 좀 지났는데 안 됐다면, 미리보기 화면 주소를 직접 넣어 지금 확인할 수 있습니다."
+                    : "deployment_status 웹훅을 받지 못했습니다(Vercel이 아니거나 연동이 안 걸려 있을 수 있습니다). 프리뷰 배포 주소를 직접 넣으면 바로 검증을 시작합니다."}
+                </p>
+                <div className="vs-row" style={{ gap: 8 }}>
+                  <input
+                    type="url"
+                    className="vs-input vs-input-sm"
+                    placeholder="https://your-app-git-fix-xxxx.vercel.app"
+                    value={previewInput}
+                    onChange={(e) => setPreviewInput(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    className="vs-btn vs-btn-sm"
+                    onClick={() => void submitPreviewUrl()}
+                    disabled={busy !== null || !previewInput.trim()}
+                  >
+                    {busy === "preview-verify" ? "시작하는 중…" : "이 주소로 확인하기"}
+                  </button>
+                </div>
+              </div>
+            )}
 
           {/* 다시 시도 — 실패한 수정에서 빠져나갈 길을 준다 */}
           {["needs_human", "failed"].includes(proposal.status) && view.permissions.proposePr && (

@@ -189,17 +189,34 @@ export type RunnerJob = {
   flows: RunnerFlow[];
 };
 
-/** 오래 붙잡힌 검사를 되살린다. 워커가 죽었을 때의 유일한 회복 경로다. */
-export async function recoverStaleRuns(): Promise<number> {
+/** 워커가 죽어 최대 시도 횟수를 다 쓰고 failed로 떨어진 실행. */
+export type AbandonedRun = {
+  runId: string;
+  trigger: string;
+  projectId: string;
+  fixProposalId: string | null;
+};
+
+/**
+ * 오래 붙잡힌 검사를 되살린다. 워커가 죽었을 때의 유일한 회복 경로다.
+ *
+ * 최대 시도 횟수를 다 쓴 실행은 completeRun을 거치지 않고 바로 failed로
+ * 떨어진다 — 워커가 애초에 결과를 보낼 수 없는 상태이기 때문이다. 그래서
+ * 그런 실행이 REPAIR 파이프라인의 일부였다면(repair_verify/repair_confirm),
+ * 그 사실을 반환해 호출자가 이어서 정리하게 한다(repair/reconcile.ts).
+ * queue.ts는 repair 모듈을 모른다 — 의존 방향을 한쪽으로만 유지하기 위해서다.
+ */
+export async function recoverStaleRuns(): Promise<{ recovered: number; abandoned: AbandonedRun[] }> {
   const cutoff = new Date(Date.now() - STALE_RUN_MS);
   const stale = await prisma.vibesafeTestRun.findMany({
     where: { status: "running", claimedAt: { lt: cutoff } },
-    select: { id: true, attempts: true },
+    select: { id: true, attempts: true, trigger: true, projectId: true, fixProposalId: true },
   });
   let recovered = 0;
+  const abandoned: AbandonedRun[] = [];
   for (const run of stale) {
     if (run.attempts >= MAX_ATTEMPTS) {
-      await prisma.vibesafeTestRun.updateMany({
+      const updated = await prisma.vibesafeTestRun.updateMany({
         where: { id: run.id, status: "running" },
         data: {
           status: "failed",
@@ -208,6 +225,14 @@ export async function recoverStaleRuns(): Promise<number> {
           claimToken: null,
         },
       });
+      if (updated.count > 0) {
+        abandoned.push({
+          runId: run.id,
+          trigger: run.trigger,
+          projectId: run.projectId,
+          fixProposalId: run.fixProposalId,
+        });
+      }
     } else {
       await prisma.vibesafeTestRun.updateMany({
         where: { id: run.id, status: "running" },
@@ -216,7 +241,7 @@ export async function recoverStaleRuns(): Promise<number> {
       recovered += 1;
     }
   }
-  return recovered;
+  return { recovered, abandoned };
 }
 
 /**

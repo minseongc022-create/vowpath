@@ -9,6 +9,7 @@ import {
   type PermissionKey,
 } from "@/vibesafe/lib/permissions";
 import { assertProjectOwner } from "@/vibesafe/lib/projects";
+import { getTrustProfile } from "@/vibesafe/lib/trust";
 import { getWriteConnection, isFixAppConfigured } from "@/vibesafe/lib/github/write-connection";
 import { getVercelConnection } from "@/vibesafe/lib/repair/rollback";
 
@@ -20,9 +21,10 @@ export async function GET(_request: Request, context: { params: Promise<{ projec
     return fail("프로젝트를 찾을 수 없습니다.", 404);
   }
 
-  const [permissions, trust, actionLog, writeConnection, vercel] = await Promise.all([
+  const [permissions, trust, trustProfile, actionLog, writeConnection, vercel] = await Promise.all([
     getPermissions(projectId),
     getTrustScore(projectId),
+    getTrustProfile(projectId),
     listActionLog(projectId, 30),
     getWriteConnection(auth.session.userId),
     getVercelConnection(auth.session.userId),
@@ -31,6 +33,7 @@ export async function GET(_request: Request, context: { params: Promise<{ projec
   return ok({
     permissions,
     trust,
+    trustProfile,
     actionLog,
     // 켤 수 있는지 여부 — 연결이 없으면 화면에서 미리 안내한다.
     canEnable: {

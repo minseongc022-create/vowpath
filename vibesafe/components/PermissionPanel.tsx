@@ -12,6 +12,18 @@ type PermissionState = {
     autoApplyDailyLimit: number;
   };
   trust: { totalIncidents: number; confirmedReal: number; falseAlarms: number; unreviewed: number; accuracy: number | null };
+  trustProfile: {
+    signals: {
+      key: string;
+      label: string;
+      ready: boolean;
+      value: number | null;
+      samples: number;
+      minSamples: number;
+      detail: string;
+    }[];
+    suggestion: { key: string; title: string; reason: string } | null;
+  };
   actionLog: { id: string; action: string; actor: string; summary: string; createdAt: string }[];
   canEnable: Record<PermissionKey, boolean>;
   connections: {
@@ -164,9 +176,23 @@ export function PermissionPanel({ projectId }: { projectId: string }) {
         </div>
       </div>
 
+      {/* 다음 단계 제안 — 근거가 쌓였을 때만, 실제로 켤 수 있을 때만 나타난다.
+          절대 스스로 켜지 않는다. */}
+      {state.trustProfile.suggestion &&
+        (state.trustProfile.suggestion.key === "autoApplyLowRisk" ||
+          state.canEnable[state.trustProfile.suggestion.key as PermissionKey]) && (
+        <div className="vs-alert" data-tone="info">
+          <strong>고려해볼 만한 다음 단계: {state.trustProfile.suggestion.title}</strong>
+          <p style={{ margin: "6px 0 0" }}>{state.trustProfile.suggestion.reason}</p>
+          <p className="vs-hint" style={{ marginTop: 6 }}>
+            어디까지나 제안입니다. 켜고 끄는 것은 항상 회원님의 결정이고, VibeSafe가 스스로 켜는 일은 없습니다.
+          </p>
+        </div>
+      )}
+
       {/* 신뢰 점수 — 권한을 올릴 근거가 되는 숫자 */}
-      <div className="vs-card">
-        <div className="vs-row-between" style={{ marginBottom: 10 }}>
+      <div className="vs-card vs-stack">
+        <div className="vs-row-between" style={{ marginBottom: 2 }}>
           <h2 className="vs-section-title">알림 정확도</h2>
           {accuracy !== null && (
             <span className="vs-badge" data-tone={accuracy >= 0.8 ? "ok" : accuracy >= 0.5 ? "warn" : "down"}>
@@ -189,6 +215,29 @@ export function PermissionPanel({ projectId }: { projectId: string }) {
             </p>
           </>
         )}
+
+        <div className="vs-line" style={{ margin: "4px 0" }} />
+
+        {state.trustProfile.signals
+          .filter((s) => s.key !== "incident_accuracy")
+          .map((signal) => (
+            <div key={signal.key} className="vs-row-between">
+              <span className="vs-hint">{signal.label}</span>
+              {signal.ready ? (
+                <span
+                  className="vs-badge"
+                  data-tone={(signal.value ?? 0) >= 0.8 ? "ok" : (signal.value ?? 0) >= 0.5 ? "warn" : "down"}
+                >
+                  {Math.round((signal.value ?? 0) * 100)}%
+                </span>
+              ) : (
+                <span className="vs-hint">{signal.samples}/{signal.minSamples}건</span>
+              )}
+            </div>
+          ))}
+        <p className="vs-hint">
+          {state.trustProfile.signals.find((s) => s.key === "repair_success")?.detail}
+        </p>
       </div>
 
       {/* 감사 로그 — 이게 없으면 아무도 권한을 안 준다 */}

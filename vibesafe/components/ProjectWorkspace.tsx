@@ -299,6 +299,9 @@ export function ProjectWorkspace({ data }: { data: ProjectDashboard }) {
           <Link href={`/vibesafe/projects/${data.project.id}/runs`} className="vs-btn vs-btn-sm">
             검사 기록
           </Link>
+          <Link href={`/vibesafe/projects/${data.project.id}/repairs`} className="vs-btn vs-btn-sm">
+            수정 이력
+          </Link>
           <Link href={`/vibesafe/projects/${data.project.id}/security`} className="vs-btn vs-btn-sm">
             보안 점검
           </Link>
