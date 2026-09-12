@@ -28,15 +28,15 @@ export default async function VibesafeLandingPage() {
         <div
           style={{
             background: "var(--vs-warn-wash)",
-            borderBottom: "1px solid #efd9b2",
+            borderBottom: "1px solid var(--vs-warn-border)",
             padding: "12px 20px",
             textAlign: "center",
             fontSize: 14,
-            color: "#8c5a08",
+            color: "var(--vs-warn-text)",
           }}
         >
           이 배포는 아직 설정이 끝나지 않았습니다 — {setup.headline}.{" "}
-          <Link href="/vibesafe/setup" style={{ color: "#8c5a08", fontWeight: 600 }}>
+          <Link href="/vibesafe/setup" style={{ color: "var(--vs-warn-text)", fontWeight: 600 }}>
             무엇이 남았는지 보기
           </Link>
         </div>

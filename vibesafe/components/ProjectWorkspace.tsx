@@ -238,7 +238,7 @@ export function ProjectWorkspace({ data }: { data: ProjectDashboard }) {
 
             {needsReview && (
               <div style={{ padding: "12px 20px", background: "var(--vs-primary-wash)" }}>
-                <p className="vs-hint" style={{ color: "var(--vs-primary-deep)" }}>
+                <p className="vs-hint" style={{ color: "var(--vs-primary-text)" }}>
                   AI가 찾은 흐름 {data.pendingFlowCount}개가 확인을 기다리고 있습니다. 맞는
                   것만 켜주세요 — 켠 흐름만 실제로 실행됩니다.
                 </p>

@@ -2,35 +2,84 @@
  * VibeSafe 디자인 시스템
  *
  * 보는 사람은 개발자가 아니다. "내 앱 괜찮은가?"를 5초 안에 알아야 한다.
- * 그래서 색은 상태를 말하는 데만 쓰고(초록=정상, 빨강=문제), 나머지는 전부
- * 무채색이다. 로그·스택트레이스 같은 것은 기본 화면에 두지 않는다.
+ * 그래서 색은 상태를 말하는 데만 쓰고, 나머지는 전부 밝은 무채색이다.
+ *
+ * ★ 색을 정하는 규칙 세 가지
+ *
+ * 1. 화면의 대부분은 흰색·연회색이다. 파랑은 눌러야 할 곳에만 쓴다.
+ * 2. 상태색(초록·빨강·노랑)으로 카드 전체를 칠하지 않는다. 점·아이콘·배지·
+ *    얇은 테두리·아주 연한 배경 틴트까지만이다. 카드를 통째로 빨갛게 칠하면
+ *    "뭔가 큰일 났다"는 감정만 남고 무엇이 문제인지는 안 읽힌다.
+ * 3. 그라데이션·짙은 그림자·어두운 터미널 배경은 쓰지 않는다. 이 제품을 쓰는
+ *    사람은 서버 관리자가 아니라 자기 앱이 멀쩡한지 궁금한 사람이다.
+ *
+ * ★ 왜 "칠하는 색"과 "글자색"을 따로 두는가
+ *
+ * 브랜드 팔레트의 상태색은 **면과 점을 칠하기 위한 값**이다. 그대로 글자에
+ * 쓰면 읽히지 않는다 — Warning(#F2B84B)을 흰 배경 글자로 쓰면 대비가
+ * 1.79:1로, 사실상 안 보인다(WCAG AA 기준 4.5:1).
+ *
+ * 그래서 같은 계열에서 대비를 통과하는 글자 전용 토큰을 따로 둔다. 값은
+ * 전부 실제로 계산해서 골랐고, 화면마다 새 hex를 만들지 않기 위해 여기
+ * 한 곳에만 정의한다. 새 화면을 만들 때도 --vs-* 토큰만 쓴다.
  */
 
 :root {
-  --vs-bg: #f5f6fa;
+  /* ── 기본 면과 글자 ─────────────────────────────────── */
+  --vs-bg: #f7f9fc;
   --vs-surface: #ffffff;
-  --vs-surface-sunken: #f9fafc;
-  --vs-ink: #14171f;
-  --vs-ink-soft: #414958;
-  --vs-muted: #6c7585;
-  --vs-line: #e5e8ef;
-  --vs-line-strong: #d3d8e3;
+  --vs-surface-sunken: #f3f6fa;
+  --vs-line: #e2e8f0;
+  --vs-line-strong: #cbd5e1;
 
-  --vs-primary: #2b54f0;
-  --vs-primary-deep: #1d3cbb;
-  --vs-primary-wash: #eef1fe;
+  /* 제목·본문 */
+  --vs-ink: #0f172a;
+  /* 틴트된 면 위에 올라가는 보조 글자. #64748b는 #f3f6fa 위에서 4.39:1로
+     기준에 아슬하게 못 미쳐서, 그 자리에만 한 단계 진한 값을 쓴다. */
+  --vs-ink-soft: #475569;
+  /* 보조 설명. 흰 배경 4.76:1 — 읽으라고 두는 글자이므로 여기까지만 흐리다. */
+  --vs-muted: #64748b;
+  /* 진짜로 흐려도 되는 것: 비활성, placeholder, 값 없는 칸, "미확인" 상태.
+     글자로 쓰면 2.56:1이라 읽히지 않으므로 본문에는 절대 쓰지 않는다. */
+  --vs-neutral: #94a3b8;
 
-  --vs-ok: #0d9f56;
-  --vs-ok-wash: #e7f7ee;
-  --vs-warn: #b8760a;
-  --vs-warn-wash: #fdf3e3;
-  --vs-danger: #d7342b;
-  --vs-danger-wash: #fdedec;
+  /* ── 브랜드 ─────────────────────────────────────────── */
+  --vs-primary: #3478f6;
+  --vs-primary-hover: #2563eb;
+  --vs-primary-pressed: #1d4ed8;
+  --vs-primary-wash: #eff6ff;
+  --vs-primary-border: #c3dafe;
+  /* 링크·배지 글자용. 마침 Primary Hover와 같은 값이라 새로 만들 필요가 없었다. */
+  --vs-primary-text: #2563eb;
 
+  /* ── 상태: 칠하는 색 / 글자색 / 테두리 ───────────────── */
+  --vs-ok: #22a06b;
+  --vs-ok-wash: #ecfdf5;
+  --vs-ok-text: #15803d;
+  --vs-ok-border: #a7e3c4;
+
+  --vs-danger: #e5484d;
+  --vs-danger-wash: #fef2f2;
+  --vs-danger-text: #c0322f;
+  --vs-danger-border: #f5c2c2;
+
+  --vs-warn: #f2b84b;
+  --vs-warn-wash: #fffbeb;
+  --vs-warn-text: #a16207;
+  --vs-warn-border: #ead08a;
+
+  /* 검사 중 = 정보. 브랜드 파랑과 같은 값을 쓴다. */
+  --vs-info: #3478f6;
+  --vs-info-wash: #eff6ff;
+  --vs-info-text: #2563eb;
+  --vs-info-border: #c3dafe;
+
+  /* ── 형태 ───────────────────────────────────────────── */
   --vs-radius: 14px;
   --vs-radius-sm: 9px;
-  --vs-shadow: 0 1px 2px rgba(20, 23, 31, 0.04), 0 8px 24px rgba(20, 23, 31, 0.06);
-  --vs-shadow-sm: 0 1px 2px rgba(20, 23, 31, 0.06);
+  /* 그림자는 "떠 있다"는 느낌만 주는 정도까지. 테두리가 구조를 잡는다. */
+  --vs-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --vs-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
   --vs-font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --vs-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -101,7 +150,7 @@
   font-weight: 500;
 }
 .vs-nav-link:hover { background: var(--vs-surface-sunken); color: var(--vs-ink); }
-.vs-nav-link[aria-current="page"] { background: var(--vs-primary-wash); color: var(--vs-primary-deep); }
+.vs-nav-link[aria-current="page"] { background: var(--vs-primary-wash); color: var(--vs-primary-text); }
 
 /* ── 레이아웃 ─────────────────────────────────────────── */
 .vs-main { flex: 1; }
@@ -158,15 +207,47 @@
   background: var(--vs-surface);
   box-shadow: var(--vs-shadow);
 }
-.vs-status-hero[data-state="ok"] { border-color: #b7e6cd; background: linear-gradient(180deg, var(--vs-ok-wash), #fff 70%); }
-.vs-status-hero[data-state="down"] { border-color: #f3bcb8; background: linear-gradient(180deg, var(--vs-danger-wash), #fff 70%); }
+.vs-status-hero[data-state="ok"] { border-color: var(--vs-ok-border); background: var(--vs-ok-wash); }
+.vs-status-hero[data-state="down"] { border-color: var(--vs-danger-border); background: var(--vs-danger-wash); }
 .vs-status-hero[data-state="unknown"] { border-color: var(--vs-line-strong); }
 .vs-status-line { display: flex; align-items: center; gap: 12px; }
-.vs-status-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
-.vs-status-dot[data-state="ok"] { background: var(--vs-ok); }
-.vs-status-dot[data-state="down"] { background: var(--vs-danger); }
-.vs-status-dot[data-state="running"] { background: var(--vs-primary); animation: vs-pulse 1.4s ease-in-out infinite; }
-.vs-status-dot[data-state="unknown"] { background: var(--vs-line-strong); }
+/*
+ * 상태 점.
+ *
+ * ★ 옅은 색 점은 채우기만으로는 안 보인다
+ *
+ * Warning(#f2b84b)을 흰 카드 위에 그냥 칠하면 대비가 1.79:1이라 형태가
+ * 거의 안 잡힌다. 그래서 모든 점에 같은 계열의 진한 테두리를 두른다 —
+ * 색을 못 보는 사람에게도 "점이 거기 있다"는 사실은 전해져야 한다.
+ *
+ * 여기 없는 data-state 값을 쓰면 점이 **투명하게** 렌더링된다(실제로
+ * App Map의 "idle"이 그랬다). 그래서 쓰이는 값을 전부 적어둔다:
+ * ok · down · warn · running · idle · unknown · neutral
+ */
+.vs-status-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--vs-neutral);
+  border: 1px solid var(--vs-ink-soft);
+  box-sizing: border-box;
+}
+.vs-status-dot[data-state="ok"] { background: var(--vs-ok); border-color: var(--vs-ok-text); }
+.vs-status-dot[data-state="down"] { background: var(--vs-danger); border-color: var(--vs-danger-text); }
+.vs-status-dot[data-state="warn"] { background: var(--vs-warn); border-color: var(--vs-warn-text); }
+.vs-status-dot[data-state="running"] {
+  background: var(--vs-info);
+  border-color: var(--vs-info-text);
+  animation: vs-pulse 1.4s ease-in-out infinite;
+}
+/* 아직 한 번도 확인 안 한 흐름. 비어 있다는 뜻이라 속을 비운다. */
+.vs-status-dot[data-state="idle"],
+.vs-status-dot[data-state="unknown"],
+.vs-status-dot[data-state="neutral"] {
+  background: var(--vs-surface);
+  border-color: var(--vs-neutral);
+}
 @keyframes vs-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .vs-status-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 .vs-status-note { margin: 10px 0 0; color: var(--vs-ink-soft); font-size: 14.5px; }
@@ -182,11 +263,11 @@
   border: 1px solid transparent;
   white-space: nowrap;
 }
-.vs-badge[data-tone="ok"] { background: var(--vs-ok-wash); color: #0a7a43; border-color: #bce7d3; }
-.vs-badge[data-tone="down"] { background: var(--vs-danger-wash); color: #b52a22; border-color: #f4c4c0; }
-.vs-badge[data-tone="warn"] { background: var(--vs-warn-wash); color: #96610a; border-color: #efd9b2; }
+.vs-badge[data-tone="ok"] { background: var(--vs-ok-wash); color: var(--vs-ok-text); border-color: var(--vs-ok-border); }
+.vs-badge[data-tone="down"] { background: var(--vs-danger-wash); color: var(--vs-danger-text); border-color: var(--vs-danger-border); }
+.vs-badge[data-tone="warn"] { background: var(--vs-warn-wash); color: var(--vs-warn-text); border-color: var(--vs-warn-border); }
 .vs-badge[data-tone="neutral"] { background: var(--vs-surface-sunken); color: var(--vs-muted); border-color: var(--vs-line); }
-.vs-badge[data-tone="info"] { background: var(--vs-primary-wash); color: var(--vs-primary-deep); border-color: #ccd6fb; }
+.vs-badge[data-tone="info"] { background: var(--vs-info-wash); color: var(--vs-info-text); border-color: var(--vs-info-border); }
 
 /* ── 흐름 목록 ─────────────────────────────────────────── */
 .vs-flow-list { list-style: none; margin: 0; padding: 0; }
@@ -221,9 +302,10 @@
 }
 .vs-btn:hover:not(:disabled) { background: var(--vs-surface-sunken); }
 .vs-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.vs-btn-primary { background: var(--vs-primary); border-color: var(--vs-primary); color: #fff; }
-.vs-btn-primary:hover:not(:disabled) { background: var(--vs-primary-deep); border-color: var(--vs-primary-deep); }
-.vs-btn-danger { color: var(--vs-danger); border-color: #f0c5c2; background: #fff; }
+.vs-btn-primary { background: var(--vs-primary); border-color: var(--vs-primary); color: var(--vs-surface); }
+.vs-btn-primary:hover:not(:disabled) { background: var(--vs-primary-hover); border-color: var(--vs-primary-hover); }
+.vs-btn-primary:active:not(:disabled) { background: var(--vs-primary-pressed); border-color: var(--vs-primary-pressed); }
+.vs-btn-danger { color: var(--vs-danger-text); border-color: var(--vs-danger-border); background: var(--vs-surface); }
 .vs-btn-danger:hover:not(:disabled) { background: var(--vs-danger-wash); }
 .vs-btn-ghost { border-color: transparent; background: transparent; color: var(--vs-ink-soft); }
 .vs-btn-ghost:hover:not(:disabled) { background: var(--vs-surface-sunken); }
@@ -254,6 +336,23 @@
   box-shadow: 0 0 0 3px var(--vs-primary-wash);
 }
 .vs-textarea { min-height: 80px; resize: vertical; }
+
+/*
+ * 이 제품은 플랫폼 공용 globals.css 위에 얹혀 있다. 거기 ::selection이
+ * 베이지색이라 VibeSafe 화면에서 글자를 끌면 갈색으로 칠해졌다. 브랜드
+ * 안에서 끝나도록 덮어쓴다.
+ */
+.vs-body ::selection {
+  background: var(--vs-primary-wash);
+  color: var(--vs-primary-text);
+}
+
+/* 키보드로 다니는 사람에게도 지금 어디인지 보여야 한다. */
+.vs-body :focus-visible {
+  outline: 2px solid var(--vs-primary);
+  outline-offset: 2px;
+  border-radius: var(--vs-radius-sm);
+}
 .vs-input-sm { padding: 7px 10px; font-size: 13.5px; }
 
 .vs-alert {
@@ -262,10 +361,10 @@
   font-size: 14px;
   border: 1px solid transparent;
 }
-.vs-alert[data-tone="error"] { background: var(--vs-danger-wash); color: #a8241d; border-color: #f4c4c0; }
-.vs-alert[data-tone="ok"] { background: var(--vs-ok-wash); color: #0a7a43; border-color: #bce7d3; }
-.vs-alert[data-tone="warn"] { background: var(--vs-warn-wash); color: #8c5a08; border-color: #efd9b2; }
-.vs-alert[data-tone="info"] { background: var(--vs-primary-wash); color: var(--vs-primary-deep); border-color: #ccd6fb; }
+.vs-alert[data-tone="error"] { background: var(--vs-danger-wash); color: var(--vs-danger-text); border-color: var(--vs-danger-border); }
+.vs-alert[data-tone="ok"] { background: var(--vs-ok-wash); color: var(--vs-ok-text); border-color: var(--vs-ok-border); }
+.vs-alert[data-tone="warn"] { background: var(--vs-warn-wash); color: var(--vs-warn-text); border-color: var(--vs-warn-border); }
+.vs-alert[data-tone="info"] { background: var(--vs-info-wash); color: var(--vs-info-text); border-color: var(--vs-info-border); }
 
 /* ── 통계 ─────────────────────────────────────────────── */
 .vs-stat { background: var(--vs-surface); border: 1px solid var(--vs-line); border-radius: var(--vs-radius); padding: 16px 18px; }
@@ -286,11 +385,23 @@
 .vs-details > summary::before { content: "▸ "; }
 .vs-details[open] > summary::before { content: "▾ "; }
 .vs-details > summary:hover { color: var(--vs-ink); }
+/*
+ * 코드·오류 원문 블록.
+ *
+ * ★ 어두운 터미널 배경을 쓰지 않는다
+ *
+ * 검은 바탕에 흰 고정폭 글자는 "여기서부터는 당신 영역이 아닙니다"라는
+ * 신호를 준다. 이 제품은 비개발자도 [기술 상세 보기]를 눌러볼 수 있어야
+ * 하므로, 코드 블록도 나머지 화면과 같은 밝기를 유지하고 테두리로만
+ * 구분한다.
+ */
 .vs-code {
   margin: 0;
   padding: 14px 20px;
-  background: #14171f;
-  color: #e4e7ee;
+  background: var(--vs-surface-sunken);
+  color: var(--vs-ink);
+  border: 1px solid var(--vs-line);
+  border-radius: var(--vs-radius-sm);
   font-family: var(--vs-mono);
   font-size: 12.5px;
   line-height: 1.65;
@@ -329,7 +440,7 @@
   padding: 5px 12px;
   border-radius: 999px;
   background: var(--vs-primary-wash);
-  color: var(--vs-primary-deep);
+  color: var(--vs-primary-text);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 18px;
@@ -342,7 +453,7 @@
 .vs-section-head p { color: var(--vs-muted); margin: 0; font-size: 15px; }
 .vs-step-num {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--vs-primary); color: #fff;
+  background: var(--vs-primary); color: var(--vs-surface);
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; flex: none;
 }
@@ -405,7 +516,7 @@
 }
 .vs-heatmap-cell[data-state="pass"] { background: var(--vs-ok); }
 .vs-heatmap-cell[data-state="fail"] { background: var(--vs-danger); }
-.vs-heatmap-cell[data-state="none"] { background: #eceff5; }
+.vs-heatmap-cell[data-state="none"] { background: var(--vs-surface-sunken); border: 1px solid var(--vs-line); }
 
 .vs-clean-days {
   font-size: 34px; font-weight: 800; letter-spacing: -0.03em;
@@ -430,7 +541,7 @@
 }
 .vs-switch::after {
   content: ""; position: absolute; top: 3px; left: 3px;
-  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--vs-surface);
   transition: transform 0.15s ease;
 }
 .vs-switch:checked { background: var(--vs-primary); }
@@ -442,8 +553,8 @@
   border: 1px solid var(--vs-line); border-radius: var(--vs-radius-sm);
   padding: 12px 14px; margin-bottom: 8px;
 }
-.vs-suspect[data-confidence="high"] { border-color: #f0c5c2; background: var(--vs-danger-wash); }
-.vs-suspect[data-confidence="medium"] { border-color: #efd9b2; background: var(--vs-warn-wash); }
+.vs-suspect[data-confidence="high"] { border-color: var(--vs-danger-border); background: var(--vs-danger-wash); }
+.vs-suspect[data-confidence="medium"] { border-color: var(--vs-warn-border); background: var(--vs-warn-wash); }
 .vs-sha {
   font-family: var(--vs-mono); font-size: 12px; background: var(--vs-surface-sunken);
   padding: 1px 6px; border-radius: 4px; border: 1px solid var(--vs-line);

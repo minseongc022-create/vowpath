@@ -15,7 +15,7 @@ export async function VibesafePlatformShell({ children }: { children: React.Reac
   return (
     <html lang="ko" data-scroll-behavior="smooth">
       <head>
-        <meta name="theme-color" content="#f5f6fa" />
+        <meta name="theme-color" content="#f7f9fc" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link
           rel="stylesheet"

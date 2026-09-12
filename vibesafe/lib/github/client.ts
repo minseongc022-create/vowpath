@@ -11,6 +11,14 @@ export type GithubRepo = {
   defaultBranch: string;
   pushedAt: string | null;
   description: string | null;
+  /**
+   * 저장소에 적힌 홈페이지 주소.
+   *
+   * Vercel·Netlify를 GitHub에 연결하면 배포할 때 이 칸을 **자동으로 채운다**.
+   * 즉 대부분의 바이브코딩 앱은 이미 자기 배포 주소를 여기 들고 있다.
+   * 사용자에게 주소를 타이핑하게 하기 전에 여기부터 본다.
+   */
+  homepage: string | null;
 };
 
 export type GithubTreeEntry = { path: string; type: "blob" | "tree"; size: number; sha: string };
@@ -67,6 +75,7 @@ type RawRepo = {
   default_branch: string;
   pushed_at: string | null;
   description: string | null;
+  homepage?: string | null;
 };
 
 function toRepo(raw: RawRepo): GithubRepo {
@@ -79,6 +88,7 @@ function toRepo(raw: RawRepo): GithubRepo {
     defaultBranch: raw.default_branch || "main",
     pushedAt: raw.pushed_at,
     description: raw.description,
+    homepage: raw.homepage?.trim() || null,
   };
 }
 

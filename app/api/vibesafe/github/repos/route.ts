@@ -17,6 +17,8 @@ export async function GET() {
         defaultBranch: r.defaultBranch,
         description: r.description,
         pushedAt: r.pushedAt,
+        // Vercel·Netlify가 배포할 때 채워 넣는 칸. 대부분의 앱이 이미 들고 있다.
+        homepage: r.homepage,
       })),
     });
   } catch (error) {
