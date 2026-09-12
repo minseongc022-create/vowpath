@@ -12,7 +12,7 @@
  * 거짓말이 된다 — tests/unit/vibesafe/permissions.test.mjs가 이를 고정한다.
  */
 
-export type PermissionKey = "diagnose" | "proposePr" | "rollback";
+export type PermissionKey = "diagnose" | "proposePr" | "applyFix" | "rollback";
 
 export const PERMISSION_LABELS: Record<
   PermissionKey,
@@ -27,6 +27,13 @@ export const PERMISSION_LABELS: Record<
     title: "수정안 PR로 올리기",
     detail: "원인을 찾으면 고친 코드를 새 브랜치에 올리고 Pull Request를 엽니다.",
     risk: "머지는 직접 하셔야 합니다. VibeSafe는 main에 직접 push하지 않습니다.",
+  },
+  applyFix: {
+    title: "확인한 수정 적용하기",
+    detail:
+      "검증까지 통과한 수정에 대해 [수정 적용하기]를 누르면, VibeSafe가 그 Pull Request 하나를 머지합니다.",
+    risk:
+      "회원님이 누른 그 한 건만 머지합니다. VibeSafe가 스스로 골라 머지하지 않고, main에 직접 push하는 일은 어떤 권한으로도 없습니다.",
   },
   rollback: {
     title: "배포 되돌리기",

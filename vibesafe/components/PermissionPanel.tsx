@@ -6,10 +6,14 @@ import { PERMISSION_LABELS, type PermissionKey } from "../lib/permission-labels"
 import { relativeTime } from "../lib/format";
 
 type PermissionState = {
-  permissions: { diagnose: boolean; proposePr: boolean; rollback: boolean; rollbackDailyLimit: number };
+  permissions: Record<PermissionKey, boolean> & {
+    rollbackDailyLimit: number;
+    autoApplyLowRisk: boolean;
+    autoApplyDailyLimit: number;
+  };
   trust: { totalIncidents: number; confirmedReal: number; falseAlarms: number; unreviewed: number; accuracy: number | null };
   actionLog: { id: string; action: string; actor: string; summary: string; createdAt: string }[];
-  canEnable: { diagnose: boolean; proposePr: boolean; rollback: boolean };
+  canEnable: Record<PermissionKey, boolean>;
   connections: {
     githubWrite: { login: string } | null;
     vercel: { login: string } | null;
@@ -17,7 +21,7 @@ type PermissionState = {
   };
 };
 
-const ORDER: PermissionKey[] = ["diagnose", "proposePr", "rollback"];
+const ORDER: PermissionKey[] = ["diagnose", "proposePr", "applyFix", "rollback"];
 
 /**
  * 권한 화면.
@@ -135,6 +139,29 @@ export function PermissionPanel({ projectId }: { projectId: string }) {
             </div>
           );
         })}
+
+        {/* 자동 적용 — 권한이 아니라 설정이다. 켜져 있어도 LOW 위험만 움직인다. */}
+        <div className="vs-perm" data-locked={!state.permissions.applyFix}>
+          <input
+            type="checkbox"
+            className="vs-switch"
+            checked={state.permissions.autoApplyLowRisk}
+            disabled={busy !== null || !state.permissions.applyFix}
+            onChange={(e) => toggle("autoApplyLowRisk" as PermissionKey, e.target.checked)}
+            aria-label="LOW 위험 수정은 묻지 않고 적용"
+          />
+          <div className="vs-perm-body">
+            <strong>LOW 위험 수정은 묻지 않고 적용</strong>
+            <p className="vs-hint" style={{ marginTop: 2 }}>
+              파일 한 개, 작은 변경, 민감하지 않은 경로, 원인이 분명한 경우에만 해당합니다.
+              미리보기 검증까지 통과해야 하고, 하루 {state.permissions.autoApplyDailyLimit}건까지입니다.
+            </p>
+            <p className="vs-hint" style={{ marginTop: 4 }}>
+              <strong>MEDIUM·HIGH 위험은 이 설정과 무관하게 절대 자동으로 적용되지 않습니다.</strong>{" "}
+              로그인·결제·권한·미들웨어를 건드리는 수정은 항상 HIGH입니다.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* 신뢰 점수 — 권한을 올릴 근거가 되는 숫자 */}

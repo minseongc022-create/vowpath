@@ -3,11 +3,19 @@ import { Prisma } from "@prisma/client";
 import { decryptSecret } from "@/vibesafe/lib/crypto";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { getGithubAppConfig } from "@/vibesafe/lib/github/app";
-import { parsePushEvent, parseDeploymentStatusEvent, verifyGithubSignature } from "@/vibesafe/lib/github/webhook";
+import {
+  parsePushEvent,
+  parseDeploymentStatusEvent,
+  parseProductionDeploymentEvent,
+  verifyGithubSignature,
+} from "@/vibesafe/lib/github/webhook";
 import { findOpenPullRequestForBranch } from "@/vibesafe/lib/github/client";
 import { resolveAccessToken } from "@/vibesafe/lib/github/connection";
 import { validateServiceUrl } from "@/vibesafe/lib/url-safety";
 import { enqueueRun } from "@/vibesafe/lib/runs/queue";
+import { startRepairVerification } from "@/vibesafe/lib/repair/verify";
+import { startProductionVerification } from "@/vibesafe/lib/repair/apply";
+import { prisma as db } from "@/vibesafe/lib/db";
 
 /**
  * GitHub 이벤트 수신구.
@@ -101,6 +109,25 @@ export async function POST(request: Request) {
   if (eventType === "ping") return NextResponse.json({ ok: true, pong: true });
 
   if (eventType === "deployment_status") {
+    // 운영 배포 완료 — 적용해둔 수정이 실제로 나갔다는 뜻이다. 이제서야
+    // 실제 주소에 대고 확인할 수 있다(머지 직후에 확인하면 예전 배포를 본다).
+    const production = parseProductionDeploymentEvent(payload);
+    if (production) {
+      let confirmed = 0;
+      for (const connection of verified) {
+        const applied = await db.vibesafeFixProposal.findMany({
+          where: { projectId: connection.projectId, status: "applied", productionRunId: null },
+          select: { id: true },
+          take: 5,
+        });
+        for (const proposal of applied) {
+          const runId = await startProductionVerification(proposal.id).catch(() => null);
+          if (runId) confirmed += 1;
+        }
+      }
+      return NextResponse.json({ ok: true, confirmed });
+    }
+
     const deployment = parseDeploymentStatusEvent(payload);
     if (!deployment) return NextResponse.json({ ok: true, ignored: "not-a-preview" });
 
@@ -120,6 +147,28 @@ export async function POST(request: Request) {
           deployment.branch,
         );
         if (!pr) continue;
+
+        // 우리가 올린 수정 브랜치라면 일반 PR 검사가 아니라 **수정 검증**이다.
+        // 같은 브라우저 검사지만, 끝난 뒤에 "이 수정이 문제를 고쳤는가"를
+        // 판정하고 적용 가능 상태로 넘어간다.
+        const proposal = await db.vibesafeFixProposal.findFirst({
+          where: {
+            projectId: connection.projectId,
+            prNumber: pr.number,
+            status: { in: ["opened", "needs_human"] },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        });
+        if (proposal) {
+          const started = await startRepairVerification({
+            proposalId: proposal.id,
+            previewUrl: urlCheck.url,
+            commitSha: pr.headSha,
+          });
+          if (started.ok) queuedPreviews += 1;
+          continue;
+        }
 
         const result = await enqueueRun({
           userId: connection.project.userId,

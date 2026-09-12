@@ -38,7 +38,20 @@ const STALE_RUN_MS = 10 * 60 * 1000;
  * 볼 일 자체가 없어진다**. 알려주는 도구에서 막아주는 도구가 되는 지점이고,
  * PR 워크플로에 한번 들어가면 빼기 어려운 기능이기도 하다.
  */
-export type EnqueueTrigger = "manual" | "github" | "schedule" | "pr";
+export type EnqueueTrigger =
+  | "manual"
+  | "github"
+  | "schedule"
+  | "pr"
+  /** 수정안이 올라간 preview 배포를 검사한다. 운영 상태를 건드리지 않는다. */
+  | "repair_verify"
+  /** 수정을 적용한 뒤 실제 주소를 다시 검사한다. 이건 진짜 운영 검사다. */
+  | "repair_confirm";
+
+/** baseline·장애를 만들지 않는 트리거 — 보고 있는 주소가 운영이 아니기 때문이다. */
+export function isPreviewTrigger(trigger: string): boolean {
+  return trigger === "pr" || trigger === "repair_verify";
+}
 
 export type EnqueueResult =
   | { ok: true; runId: string; created: boolean }
@@ -52,6 +65,8 @@ function dedupeKeyFor(
 ): string {
   // 같은 PR의 같은 커밋은 한 번만. PR에 push가 연달아 오면 커밋별로 한 번씩.
   if (trigger === "pr" && prNumber) return `pr:${projectId}:${prNumber}:${commitSha ?? "head"}`;
+  if (trigger === "repair_verify") return `repairv:${projectId}:${prNumber ?? "x"}:${commitSha ?? "head"}`;
+  if (trigger === "repair_confirm") return `repairc:${projectId}:${commitSha ?? Date.now()}`;
   if (trigger === "github" && commitSha) return `github:${projectId}:${commitSha}`;
   if (trigger === "schedule") {
     const now = new Date();
@@ -69,6 +84,8 @@ export async function enqueueRun(params: {
   /** PR 프리뷰 검사일 때 — 운영 주소 대신 이 주소를 본다. */
   targetUrl?: string | null;
   prNumber?: number | null;
+  /** 수정 검증 실행일 때 어느 제안의 것인지 */
+  fixProposalId?: string | null;
 }): Promise<EnqueueResult> {
   const { userId, projectId, trigger } = params;
   const commitSha = params.commitSha ?? null;
@@ -97,9 +114,15 @@ export async function enqueueRun(params: {
 
   // 이미 대기/실행 중인 검사가 있으면 그것을 돌려준다.
   // 단 PR 검사는 예외 — PR 두 개가 동시에 열려 있으면 각각 따로 돌아야 한다.
-  if (trigger !== "pr") {
+  // 수정 검증도 PR 검사와 같은 이유로 예외다 — 운영 검사가 한 건 돌고 있다고
+  // 해서 "이 수정이 문제를 고쳤는가"를 확인하지 못하면 파이프라인이 멈춘다.
+  if (!isPreviewTrigger(trigger)) {
     const active = await prisma.vibesafeTestRun.findFirst({
-      where: { projectId, status: { in: ["queued", "running"] }, trigger: { not: "pr" } },
+      where: {
+        projectId,
+        status: { in: ["queued", "running"] },
+        trigger: { notIn: ["pr", "repair_verify"] },
+      },
       orderBy: { queuedAt: "desc" },
       select: { id: true },
     });
@@ -123,6 +146,7 @@ export async function enqueueRun(params: {
         commitSha,
         prNumber: params.prNumber ?? null,
         targetUrl: params.targetUrl ?? null,
+        fixProposalId: params.fixProposalId ?? null,
       },
       select: { id: true },
     });

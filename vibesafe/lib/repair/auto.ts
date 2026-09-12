@@ -96,7 +96,50 @@ export async function maybeAutoRepair(params: {
 
   if (permissions.proposePr && diagnosisId) {
     try {
-      await proposeFix({ userId, projectId, diagnosisId });
+      const fix = await proposeFix({ userId, projectId, diagnosisId });
+      const user = await prisma.vibesafeUser.findUnique({
+        where: { id: userId },
+        select: { email: true, uiMode: true },
+      });
+
+      // ★ 여기서 "고쳤습니다"라고 하지 않는다
+      //
+      // 지금 한 일은 수정안을 만들어 브랜치에 올린 것뿐이다. 문제를 실제로
+      // 고쳤는지는 프리뷰 배포에서 확인해봐야 안다. 그 전에 "고쳤습니다"라고
+      // 알리면 사용자는 확인하지 않고 잠들고, 아침에 여전히 깨져 있는 앱을
+      // 본다. 그 한 번으로 이 제품은 끝난다.
+      const simple = (user?.uiMode ?? "simple") === "simple";
+      const body = fix.suggestsFlowUpdate
+        ? `앱 코드가 아니라 검사 흐름을 고쳐야 하는 경우로 보입니다.\n\n${fix.explanation}\n\n` +
+          `VibeSafe에서 흐름을 확인해주세요: /vibesafe/projects/${projectId}`
+        : fix.prUrl
+          ? (simple
+              ? `"${incident.flowTitle}" 문제를 고칠 방법을 찾았습니다.\n\n` +
+                `${fix.explanation}\n\n` +
+                `지금 실제로 고쳐지는지 미리 확인하고 있습니다. 확인이 끝나면 알려드리겠습니다.\n` +
+                `아직 회원님의 서비스는 아무것도 바뀌지 않았습니다.\n\n` +
+                `VibeSafe에서 보기: /vibesafe/projects/${projectId}/incidents/${incident.id}`
+              : `수정안을 만들어 PR로 올렸습니다 (위험도 ${fix.riskLevel.toUpperCase()}).\n\n` +
+                `${fix.explanation}\n\n` +
+                `바뀌는 파일: ${fix.changedFiles.join(", ")}\n` +
+                `판정 근거: ${fix.riskReason}\n\n` +
+                `프리뷰 배포에서 핵심 흐름을 다시 돌려본 뒤 적용 가능 여부를 알려드립니다.\n` +
+                `${fix.prUrl}`)
+          : `수정안을 만들지 못했습니다.\n\n${fix.explanation}`;
+
+      await notify({
+        userId,
+        projectId,
+        incidentId: incident.id,
+        kind: "regression",
+        title: fix.prUrl
+          ? `[VibeSafe] ${incident.flowTitle} — 수정안을 준비했습니다`
+          : `[VibeSafe] ${incident.flowTitle} — 자동 수정은 하지 못했습니다`,
+        body,
+        dedupeKey: `fix:${fix.proposalId}`,
+        email: true,
+        emailTo: user?.email ?? null,
+      });
     } catch (error) {
       console.error("[vibesafe] propose fix failed:", (error as Error).message);
     }

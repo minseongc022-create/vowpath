@@ -10,8 +10,11 @@ export type { PermissionKey };
 export type ProjectPermissions = {
   diagnose: boolean;
   proposePr: boolean;
+  applyFix: boolean;
   rollback: boolean;
   rollbackDailyLimit: number;
+  autoApplyLowRisk: boolean;
+  autoApplyDailyLimit: number;
 };
 
 /**
@@ -29,20 +32,34 @@ export type ProjectPermissions = {
  *
  *   watch     감시           항상 켜짐. 읽기 + 브라우저 검사.
  *   diagnose  원인 분석      실패 시 커밋을 뒤져 원인 후보를 찾는다.
- *   proposePr 수정안 PR      브랜치를 만들고 PR을 연다. 머지는 사람이.
+ *   proposePr 수정안 PR      브랜치를 만들고 PR을 연다.
+ *   applyFix  적용하기       사람이 누른 그 PR 하나를 머지한다.
  *   rollback  배포 되돌리기  이전 배포로 되돌린다. 되돌릴 수 있는 행동.
  *
  * ★ 없는 단계: "코드를 main에 직접 push"
  *
- * 이건 일부러 안 만든다. 되돌릴 수 없는 행동을 자동화하지 않는다는 원칙이
- * 이 제품 전체를 관통한다(flows/safety.ts의 blocked와 같은 이유다).
+ * 이건 일부러 안 만든다. applyFix가 생긴 뒤에도 그대로다 — 머지는
+ *   (1) 검증을 통과한 제안에 대해서만,
+ *   (2) 사람이 그 제안을 보고 버튼을 눌렀을 때만,
+ *   (3) 한 번에 한 건만
+ * 일어난다. AI가 "이게 맞는 것 같으니 올려야지" 하고 main을 건드리는 경로는
+ * 코드에 존재하지 않는다. 되돌릴 수 없는 행동을 AI 판단만으로 실행하지
+ * 않는다는 원칙이 이 제품 전체를 관통한다(flows/safety.ts의 blocked와 같다).
+ *
+ * 예외처럼 보이는 것 하나: autoApplyLowRisk.
+ * 이것도 사람이 "LOW 위험은 물어보지 말고 적용해줘"라고 미리 누른 것이고,
+ * LOW 판정은 AI가 아니라 repair/risk.ts의 규칙이 내린다. MEDIUM/HIGH는
+ * 이 설정과 무관하게 자동 적용 경로가 없다.
  */
 
 const DEFAULTS: ProjectPermissions = {
   diagnose: false,
   proposePr: false,
+  applyFix: false,
   rollback: false,
   rollbackDailyLimit: 2,
+  autoApplyLowRisk: false,
+  autoApplyDailyLimit: 1,
 };
 
 export async function getPermissions(projectId: string): Promise<ProjectPermissions> {
@@ -51,8 +68,11 @@ export async function getPermissions(projectId: string): Promise<ProjectPermissi
   return {
     diagnose: row.diagnose,
     proposePr: row.proposePr,
+    applyFix: row.applyFix,
     rollback: row.rollback,
     rollbackDailyLimit: row.rollbackDailyLimit,
+    autoApplyLowRisk: row.autoApplyLowRisk,
+    autoApplyDailyLimit: row.autoApplyDailyLimit,
   };
 }
 
@@ -66,6 +86,23 @@ export class PermissionDeniedError extends Error {
     super(`"${PERMISSION_LABELS[key].title}" 권한이 켜져 있지 않습니다.`);
     this.name = "PermissionDeniedError";
   }
+}
+
+/**
+ * 권한 거절인지 확인한다.
+ *
+ * `error instanceof PermissionDeniedError`를 그대로 쓰지 않는 이유: 이 모듈이
+ * 서로 다른 지정자(`@/vibesafe/lib/permissions`와 `../permissions`)로 두 번
+ * 읽히면 클래스 객체가 둘이 되어 instanceof가 false가 된다. Next 번들러는
+ * 둘을 같은 모듈로 합치지만, 그 가정이 깨지는 순간 라우트가 깔끔한 403 대신
+ * 500을 뱉는다 — 사용자에게는 "권한을 켜세요" 대신 "알 수 없는 오류"가 된다.
+ * 실제로 이 제품의 검증 스크립트에서 그 상황이 재현됐다.
+ */
+export function isPermissionDenied(error: unknown): error is PermissionDeniedError {
+  return (
+    error instanceof PermissionDeniedError ||
+    (error instanceof Error && error.name === "PermissionDeniedError")
+  );
 }
 
 /** 권한 없이 행동하려는 모든 경로를 여기서 막는다. */
@@ -101,18 +138,41 @@ export async function setPermission(params: {
     detail: { key },
   });
 
-  // 상위 권한은 하위 권한 없이 의미가 없다 — 원인 분석을 끄면 PR도 같이 꺼진다.
-  if (!enabled && key === "diagnose" && (updated.proposePr || updated.rollback)) {
+  // 상위 권한은 하위 권한 없이 의미가 없다 — 원인 분석을 끄면 그 위가 전부 꺼진다.
+  if (!enabled && key === "diagnose" && (updated.proposePr || updated.applyFix || updated.rollback)) {
     await prisma.vibesafeProjectPermission.update({
       where: { projectId },
-      data: { proposePr: false, rollback: false },
+      data: { proposePr: false, applyFix: false, rollback: false, autoApplyLowRisk: false },
     });
     await logAction({
       projectId,
       action: "permission_revoked",
       actor: "system",
-      summary: "원인 분석을 껐으므로 PR·롤백 권한도 함께 껐습니다",
+      summary: "원인 분석을 껐으므로 PR·적용·롤백 권한도 함께 껐습니다",
       detail: { cascade: true },
+    });
+  }
+
+  // 적용은 PR 없이 존재할 수 없다 — 머지할 PR 자체가 없기 때문이다.
+  if (!enabled && key === "proposePr" && updated.applyFix) {
+    await prisma.vibesafeProjectPermission.update({
+      where: { projectId },
+      data: { applyFix: false, autoApplyLowRisk: false },
+    });
+    await logAction({
+      projectId,
+      action: "permission_revoked",
+      actor: "system",
+      summary: "수정안 PR을 껐으므로 적용 권한도 함께 껐습니다",
+      detail: { cascade: true },
+    });
+  }
+
+  // 적용 권한을 끄면 자동 적용도 의미가 없다.
+  if (!enabled && key === "applyFix" && updated.autoApplyLowRisk) {
+    await prisma.vibesafeProjectPermission.update({
+      where: { projectId },
+      data: { autoApplyLowRisk: false },
     });
   }
 
@@ -186,4 +246,43 @@ export async function getTrustScore(projectId: string): Promise<{
     unreviewed: Math.max(0, totalIncidents - reviewed),
     accuracy: reviewed === 0 ? null : confirmedReal / reviewed,
   };
+}
+
+/**
+ * 자동 적용 설정.
+ *
+ * 권한 사다리가 아니라 그 위에 얹는 **설정**이다. 그래도 기록은 똑같이
+ * 남긴다 — "VibeSafe가 언제부터 내 확인 없이 코드를 적용할 수 있었지?"에
+ * 답할 수 있어야 하는 건 다른 권한과 똑같기 때문이다.
+ */
+export async function setAutoApply(params: {
+  projectId: string;
+  enabled: boolean;
+  actor: string;
+}): Promise<ProjectPermissions> {
+  const { projectId, enabled, actor } = params;
+  const current = await getPermissions(projectId);
+
+  // 적용 권한 없이 자동 적용만 켜는 경로를 만들지 않는다.
+  if (enabled && !current.applyFix) {
+    throw new PermissionDeniedError("applyFix");
+  }
+
+  await prisma.vibesafeProjectPermission.upsert({
+    where: { projectId },
+    create: { projectId, ...DEFAULTS, autoApplyLowRisk: enabled },
+    update: { autoApplyLowRisk: enabled },
+  });
+
+  await logAction({
+    projectId,
+    action: enabled ? "permission_granted" : "permission_revoked",
+    actor,
+    summary: enabled
+      ? "LOW 위험으로 분류된 수정은 확인 없이 적용하도록 켰습니다"
+      : "LOW 위험 자동 적용을 껐습니다",
+    detail: { key: "autoApplyLowRisk" },
+  });
+
+  return getPermissions(projectId);
 }

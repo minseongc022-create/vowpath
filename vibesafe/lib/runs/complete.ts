@@ -7,7 +7,10 @@ import { recordUsage } from "../usage";
 import { rollUpRun } from "../history";
 import { checkPlatformSignal, recordFailureSignature } from "../signals";
 import { maybeAutoRepair } from "../repair/auto";
+import { finalizeAfterProduction, maybeAutoApply } from "../repair/apply";
+import { finishRepairVerification } from "../repair/verify";
 import { reportPrCheckResult } from "./pr-check";
+import { isPreviewTrigger } from "./queue";
 
 /**
  * 워커가 보낸 결과를 확정하고, 회귀 여부를 판정한다.
@@ -151,17 +154,35 @@ export async function completeRun(params: {
 
   await recordUsage(run.project.userId, "browser_ms", browserMs);
 
-  // PR 프리뷰 검사는 여기서 끝난다 — baseline도 장애도 만들지 않는다.
-  // 프리뷰에서 실패한 건 "운영이 깨졌다"가 아니라 "머지하면 깨진다"이므로,
-  // 운영 상태를 나타내는 baseline을 건드리면 대시보드가 거짓말을 하게 된다.
-  if (run.trigger === "pr") {
+  // 프리뷰 검사(PR 검사·수정 검증)는 여기서 끝난다 — baseline도 장애도
+  // 만들지 않는다. 프리뷰에서 실패한 건 "운영이 깨졌다"가 아니라 "머지하면
+  // 깨진다"이므로, 운영 상태를 나타내는 baseline을 건드리면 대시보드가
+  // 거짓말을 하게 된다.
+  if (isPreviewTrigger(run.trigger)) {
     await prisma.vibesafeProject.update({
       where: { id: run.projectId },
       data: { status: "active" },
     });
-    await reportPrCheckResult(run.id).catch((error) =>
-      console.error("[vibesafe] pr report failed:", (error as Error).message),
-    );
+
+    if (run.trigger === "repair_verify") {
+      // VERIFY AGAIN — 이 수정이 문제를 고쳤는지, 다른 걸 깨지 않았는지.
+      try {
+        const outcome = await finishRepairVerification(run.id);
+        // 검증을 통과했고 사용자가 미리 "LOW 위험은 알아서 해줘"라고 켜둔
+        // 경우에만 버튼 없이 적용된다. 기본값은 꺼짐이라 여기서 멈춘다.
+        if (outcome?.ready) {
+          await maybeAutoApply(run.fixProposalId!).catch((error) =>
+            console.error("[vibesafe] auto apply failed:", (error as Error).message),
+          );
+        }
+      } catch (error) {
+        console.error("[vibesafe] repair verify failed:", (error as Error).message);
+      }
+    } else {
+      await reportPrCheckResult(run.id).catch((error) =>
+        console.error("[vibesafe] pr report failed:", (error as Error).message),
+      );
+    }
     return { ok: true, status: runStatus, regressions: 0, recovered: 0 };
   }
 
@@ -199,6 +220,16 @@ export async function completeRun(params: {
     userId: run.project.userId,
     projectId: run.projectId,
   });
+
+  // 적용해둔 수정이 실제로 문제를 고쳤는지 여기서 최종 판정한다.
+  // ★ 이 호출이 "머지했다"와 "고쳤다" 사이의 유일한 다리다. 없으면 제품이
+  //   머지만 하고 고쳤다고 말하게 된다.
+  await finalizeAfterProduction({
+    projectId: run.projectId,
+    runId: run.id,
+    passedFlowKeys: params.results.filter((r) => r.status === "passed").map((r) => r.flowKey),
+    failedFlowKeys: params.results.filter((r) => r.status === "failed").map((r) => r.flowKey),
+  }).catch((error) => console.error("[vibesafe] repair finalize failed:", (error as Error).message));
 
   // 권한이 켜져 있을 때만 진단·수정·롤백으로 넘어간다. 꺼져 있으면 아무 일도
   // 일어나지 않는다 — 그게 기본값이다.

@@ -344,3 +344,164 @@ export async function commentOnPullRequest(
   });
   if (!res.ok) throw new GithubError(res.status, humanError(res.status));
 }
+
+/**
+ * 커밋 하나에 달린 체크 결과.
+ *
+ * ★ 빌드는 우리가 돌리지 않는다
+ *
+ * "빌드가 통과했는가"를 우리가 직접 확인하려면 사용자의 빌드 환경(비밀,
+ * 의존성, 런타임)을 우리 쪽에 재현해야 한다. 그건 불가능에 가깝고, 가능해도
+ * 사용자의 비밀을 우리 서버로 끌어오는 일이라 하고 싶지 않다.
+ *
+ * 대신 **사용자 저장소가 이미 돌리고 있는 CI 결과를 읽는다**. 이미 신뢰하는
+ * 신호를 그대로 쓰는 쪽이 정확하고, 우리가 보관할 것도 없다.
+ */
+export type CheckSummary = {
+  total: number;
+  passed: number;
+  failed: number;
+  pending: number;
+  /** 실패했거나 진행 중인 체크 이름 — 화면에 그대로 보여준다 */
+  failedNames: string[];
+  pendingNames: string[];
+};
+
+export async function getCheckSummary(
+  token: string,
+  owner: string,
+  repo: string,
+  ref: string,
+): Promise<CheckSummary | null> {
+  const res = await githubFetch(
+    token,
+    `/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}/check-runs?per_page=100`,
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    check_runs?: { name: string; status: string; conclusion: string | null }[];
+  };
+  const runs = data.check_runs ?? [];
+  const summary: CheckSummary = {
+    total: runs.length,
+    passed: 0,
+    failed: 0,
+    pending: 0,
+    failedNames: [],
+    pendingNames: [],
+  };
+  for (const run of runs) {
+    if (run.status !== "completed") {
+      summary.pending += 1;
+      summary.pendingNames.push(run.name);
+      continue;
+    }
+    // neutral·skipped를 실패로 세지 않는다 — 조건부로 건너뛴 잡은 흔하고,
+    // 그걸 실패로 읽으면 멀쩡한 수정이 영원히 적용되지 않는다.
+    if (run.conclusion === "success" || run.conclusion === "neutral" || run.conclusion === "skipped") {
+      summary.passed += 1;
+    } else {
+      summary.failed += 1;
+      summary.failedNames.push(run.name);
+    }
+  }
+  return summary;
+}
+
+export type PullRequestState = {
+  number: number;
+  state: "open" | "closed";
+  merged: boolean;
+  /** null이면 GitHub이 아직 계산 중이다 — 모르는 것을 "가능"으로 읽지 않는다. */
+  mergeable: boolean | null;
+  mergeableState: string;
+  headSha: string;
+  baseBranch: string;
+  url: string;
+};
+
+export async function getPullRequest(
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<PullRequestState | null> {
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/pulls/${prNumber}`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    number: number;
+    state: string;
+    merged: boolean;
+    mergeable: boolean | null;
+    mergeable_state: string;
+    head: { sha: string };
+    base: { ref: string };
+    html_url: string;
+  };
+  return {
+    number: data.number,
+    state: data.state === "closed" ? "closed" : "open",
+    merged: Boolean(data.merged),
+    mergeable: typeof data.mergeable === "boolean" ? data.mergeable : null,
+    mergeableState: data.mergeable_state ?? "unknown",
+    headSha: data.head.sha,
+    baseBranch: data.base.ref,
+    url: data.html_url,
+  };
+}
+
+/**
+ * PR을 머지한다.
+ *
+ * ★ 이 함수는 사람이 [수정 적용하기]를 눌렀을 때만 호출된다
+ *
+ * `expectedHeadSha`를 반드시 넘긴다. 사용자가 화면에서 본 diff와 실제로
+ * 머지되는 내용이 같다는 보장이 이것뿐이기 때문이다 — 확인하는 사이에 그
+ * 브랜치에 다른 커밋이 올라왔다면 GitHub이 409로 거절한다. 우리가 만든
+ * 브랜치라 그럴 일이 드물지만, 드문 일이 일어났을 때 사용자가 승인하지 않은
+ * 코드가 운영에 나가는 것보다는 실패하는 편이 낫다.
+ *
+ * squash로 합치는 이유: 되돌릴 때 커밋 하나만 revert하면 되기 때문이다.
+ */
+export async function mergePullRequest(
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  params: { expectedHeadSha: string; commitTitle: string; commitMessage?: string },
+): Promise<{ merged: boolean; sha: string | null; message: string }> {
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/pulls/${prNumber}/merge`, {
+    method: "PUT",
+    body: JSON.stringify({
+      sha: params.expectedHeadSha,
+      merge_method: "squash",
+      commit_title: params.commitTitle.slice(0, 200),
+      commit_message: params.commitMessage?.slice(0, 2000) ?? "",
+    }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { merged?: boolean; sha?: string; message?: string };
+  if (!res.ok) {
+    // GitHub이 거절한 이유는 사용자에게 그대로 옮긴다 — "실패했습니다"만으로는
+    // 보호 규칙 때문인지 충돌 때문인지 알 수 없다.
+    const detail =
+      res.status === 405
+        ? "GitHub이 머지를 거절했습니다(브랜치 보호 규칙이나 필수 체크 미통과일 수 있습니다)."
+        : res.status === 409
+          ? "확인하신 뒤에 브랜치가 바뀌었습니다. 다시 확인해주세요."
+          : humanError(res.status);
+    return { merged: false, sha: null, message: detail };
+  }
+  return { merged: Boolean(data.merged), sha: data.sha ?? null, message: data.message ?? "머지했습니다." };
+}
+
+/** 머지가 끝난 수정 브랜치를 치운다. 실패해도 무시한다 — 정리일 뿐이다. */
+export async function deleteBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<void> {
+  await githubFetch(token, `/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+    method: "DELETE",
+  }).catch(() => undefined);
+}

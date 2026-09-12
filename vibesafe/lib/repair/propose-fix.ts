@@ -15,6 +15,8 @@ import { resolveWriteToken } from "../github/write-connection";
 import { logAction, requirePermission } from "../permissions";
 import { consumeUsage } from "../usage";
 import type { Suspect } from "./diagnose";
+import { buildFileDiff } from "./diff";
+import { assessRepairRisk } from "./risk";
 
 /**
  * 수정안을 만들어 PR로 올린다.
@@ -138,6 +140,8 @@ export type FixProposalResult = {
   changedFiles: string[];
   /** 앱이 아니라 검사 흐름을 고쳐야 한다고 판단한 경우 */
   suggestsFlowUpdate: boolean;
+  riskLevel: "low" | "medium" | "high";
+  riskReason: string;
 };
 
 export async function proposeFix(params: {
@@ -245,6 +249,53 @@ export async function proposeFix(params: {
     });
   }
 
+  // 같은 장애에 대한 몇 번째 시도인가 — 두 번째부터는 위험도가 올라간다.
+  // 한 번 틀린 진단으로 두 번째 수정을 만들고 있다면, 원인을 잘못 짚었을
+  // 가능성이 첫 번째보다 크기 때문이다.
+  const previous = diagnosis.incidentId
+    ? await prisma.vibesafeFixProposal.findFirst({
+        where: { projectId, incidentId: diagnosis.incidentId },
+        orderBy: { attempt: "desc" },
+        select: { id: true, attempt: true, status: true },
+      })
+    : null;
+  const attempt = (previous?.attempt ?? 0) + 1;
+
+  // 진단이 원인을 얼마나 확신했는지.
+  //
+  // 진단은 high/medium/low로 말하고 위험도 계산은 숫자를 쓴다. 그 사이를
+  // 옮기는 표다 — **없는 정보를 만들지 않고**, 진단이 말한 단계를 그대로
+  // 옮길 뿐이다. 후보가 아예 없으면 null로 둔다. 모르는 것을 0.5로 채우면
+  // "반반 확신"이라는, 아무도 말한 적 없는 정보가 생긴다.
+  const CONFIDENCE_VALUE: Record<string, number> = { high: 0.85, medium: 0.6, low: 0.3 };
+  const confidences = suspects
+    .map((suspect) => CONFIDENCE_VALUE[suspect.confidence])
+    .filter((value): value is number => typeof value === "number");
+  const confidence = confidences.length ? Math.max(...confidences) : null;
+
+  const flow = incident
+    ? await prisma.vibesafeCriticalFlow.findUnique({
+        where: { projectId_key: { projectId, key: incident.flowKey } },
+        select: { riskLevel: true },
+      })
+    : null;
+
+  const risk = assessRepairRisk({
+    files: accepted.map((c) => ({ path: c.path, before: c.before, after: c.after })),
+    confidence,
+    flowRiskLevel: flow?.riskLevel ?? null,
+    attempt,
+  });
+
+  // diff를 저장해둔다 — 사용자가 [적용하기]를 누르기 전에 **무엇이 바뀌는지**
+  // 직접 볼 수 있어야 한다. 파일 전체를 두 벌 보관하지 않으려고 변경 주변만
+  // 잘라서 넣는다.
+  const changeRecords = accepted.map((c) => ({
+    path: c.path,
+    whatChanged: c.whatChanged,
+    diff: buildFileDiff(c.path, c.before, c.after),
+  }));
+
   const proposal = await prisma.vibesafeFixProposal.create({
     data: {
       projectId,
@@ -257,10 +308,24 @@ export async function proposeFix(params: {
         response.explanation,
         rejected.length ? `\n거른 변경: ${rejected.join(", ")}` : "",
       ].join("").slice(0, 4000),
-      changes: accepted.map((c) => ({ path: c.path, whatChanged: c.whatChanged })) as unknown as object,
+      changes: changeRecords as unknown as object,
+      riskLevel: risk.level,
+      riskReason: [risk.reason, ...risk.signals].join(" · ").slice(0, 1000),
+      confidence,
+      attempt,
+      parentProposalId: previous?.id ?? null,
     },
     select: { id: true },
   });
+
+  // 앞선 제안은 더 이상 유효하지 않다 — 적용 버튼이 두 개 살아 있으면
+  // 사용자가 옛 수정을 적용할 수 있다.
+  if (previous && ["draft", "proposed", "opened", "verifying", "ready_to_apply", "needs_human"].includes(previous.status)) {
+    await prisma.vibesafeFixProposal.update({
+      where: { id: previous.id },
+      data: { status: "superseded" },
+    });
+  }
 
   // 앱이 아니라 검사 흐름을 고쳐야 하는 경우 — PR을 열지 않고 알려만 준다.
   if (!response.fixesAppCode || accepted.length === 0) {
@@ -285,6 +350,8 @@ export async function proposeFix(params: {
       prUrl: null,
       changedFiles: [],
       suggestsFlowUpdate: !response.fixesAppCode,
+      riskLevel: risk.level,
+      riskReason: risk.reason,
     };
   }
 
@@ -312,9 +379,15 @@ export async function proposeFix(params: {
       `\n## 이 PR이 바꾸는 것\n${response.explanation}`,
       `\n${accepted.map((c) => `- \`${c.path}\` — ${c.whatChanged}`).join("\n")}`,
       rejected.length ? `\n### 자동으로 적용하지 않은 변경\n${rejected.map((r) => `- ${r}`).join("\n")}` : "",
+      `\n## 위험도: ${risk.level.toUpperCase()}`,
+      `${risk.reason}`,
+      risk.signals.length ? risk.signals.map((sig) => `- ${sig}`).join("\n") : "",
+      `\n## 다음 단계`,
+      `이 브랜치의 프리뷰 배포가 올라오면 VibeSafe가 **깨졌던 기능과 나머지 핵심 기능을 실제 브라우저로 다시 확인**합니다.`,
+      `확인을 통과하면 VibeSafe 화면에 [수정 적용하기] 버튼이 생깁니다. 통과하지 못하면 버튼은 생기지 않습니다.`,
       `\n---`,
-      `이 PR은 VibeSafe가 자동으로 만들었습니다. **내용을 확인하고 직접 머지해주세요.**`,
-      `VibeSafe는 기본 브랜치에 직접 커밋하지 않습니다.`,
+      `이 PR은 VibeSafe가 자동으로 만들었습니다. 여기서 직접 머지하셔도 되고, VibeSafe 화면에서 적용하셔도 됩니다.`,
+      `어느 쪽이든 VibeSafe는 기본 브랜치에 직접 커밋하지 않습니다.`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -352,6 +425,8 @@ export async function proposeFix(params: {
       prUrl: pr.url,
       changedFiles: accepted.map((c) => c.path),
       suggestsFlowUpdate: false,
+      riskLevel: risk.level,
+      riskReason: risk.reason,
     };
   } catch (error) {
     const message = (error as Error).message;

@@ -38,6 +38,8 @@ type PreparedFlow = {
   category: string;
   riskLevel: string;
   riskReason: string | null;
+  /** AI가 지목한 앱 사용자 역할. 아직 검증 전이라 여기서는 원문 그대로 둔다. */
+  userRoleKey: string | null;
   steps: NormalizedStep[];
 };
 
@@ -88,6 +90,7 @@ export function prepareFlows(response: AnalysisResponse): PreparedFlow[] {
       category: flow.category ?? "other",
       riskLevel: risk.level,
       riskReason: risk.reason,
+      userRoleKey: flow.userRoleKey ?? null,
       steps,
     });
   }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fail, ok, readJson, requireSession } from "@/vibesafe/lib/http";
-import { PermissionDeniedError } from "@/vibesafe/lib/permissions";
+import { isPermissionDenied } from "@/vibesafe/lib/permissions";
 import { assertProjectOwner } from "@/vibesafe/lib/projects";
 import { listRollbacks, RollbackError, rollbackToPreviousDeployment } from "@/vibesafe/lib/repair/rollback";
 
@@ -37,7 +37,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     });
     return ok({ rollback: result });
   } catch (error) {
-    if (error instanceof PermissionDeniedError) return fail(error.message, 403);
+    if (isPermissionDenied(error)) return fail(error.message, 403);
     if (error instanceof RollbackError) {
       return fail(error.message, error.code === "DAILY_LIMIT" || error.code === "COOLDOWN" ? 429 : 400);
     }

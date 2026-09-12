@@ -3,7 +3,7 @@ import { AiNotConfiguredError, AiRequestError } from "@/vibesafe/lib/ai";
 import { FixError, proposeFix } from "@/vibesafe/lib/repair/propose-fix";
 import { GithubError } from "@/vibesafe/lib/github/client";
 import { enforceRateLimit, fail, ok, readJson, requireSession } from "@/vibesafe/lib/http";
-import { PermissionDeniedError } from "@/vibesafe/lib/permissions";
+import { isPermissionDenied } from "@/vibesafe/lib/permissions";
 import { assertProjectOwner } from "@/vibesafe/lib/projects";
 import { UsageLimitError } from "@/vibesafe/lib/usage";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     });
     return ok({ proposal: result });
   } catch (error) {
-    if (error instanceof PermissionDeniedError) return fail(error.message, 403);
+    if (isPermissionDenied(error)) return fail(error.message, 403);
     if (error instanceof FixError) return fail(error.message, 400);
     if (error instanceof UsageLimitError) return fail(error.message, 429);
     if (error instanceof AiNotConfiguredError) return fail(error.message, 503);

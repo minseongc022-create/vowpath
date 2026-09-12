@@ -613,6 +613,15 @@ model VibesafeUser {
   updatedAt    DateTime  @updatedAt
   lastLoginAt  DateTime?
 
+  /// 결과를 어떻게 보여줄지에 대한 **이 사람의 취향**. simple | expert
+  /// ★ 이 값은 앱을 쓰는 사람(VibesafeAppUserRole)과 아무 관계가 없다.
+  /// 저장소를 읽고 "이 사람은 초보다"라고 추론하지 않는다 — 물어보고 받은
+  /// 답만 저장한다. 기본값이 simple인 이유는, 모르는 사람에게 stack trace를
+  /// 먼저 보여주는 것보다 아는 사람이 한 번 켜는 쪽이 덜 해롭기 때문이다.
+  uiMode      String    @default("simple")
+  /// null이면 아직 물어본 적 없다 = 온보딩 질문을 띄울 때다.
+  uiModeSetAt DateTime?
+
   projects      VibesafeProject[]
   integrations  VibesafeIntegration[]
   notifications VibesafeNotification[]
@@ -679,6 +688,8 @@ model VibesafeProject {
   diagnoses         VibesafeDiagnosis[]
   fixProposals      VibesafeFixProposal[]
   securityProbes    VibesafeSecurityProbe[]
+  appUserRoles      VibesafeAppUserRole[]
+  repairOutcomes    VibesafeRepairOutcome[]
 
   @@index([userId, createdAt])
   @@map("vibesafe_projects")
@@ -745,13 +756,48 @@ model VibesafeAppModel {
   routes      Json
   createdAt   DateTime @default(now())
 
-  project  VibesafeProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  flows    VibesafeCriticalFlow[]
-  findings VibesafeSecurityFinding[]
+  project   VibesafeProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  flows     VibesafeCriticalFlow[]
+  findings  VibesafeSecurityFinding[]
+  userRoles VibesafeAppUserRole[]
 
   @@unique([projectId, fingerprint])
   @@index([projectId, createdAt])
   @@map("vibesafe_app_models")
+}
+
+/**
+ * 분석한 앱을 **쓰는 사람**의 역할. (예: 손님 / 사장님 / 배달기사)
+ * 파이프라인의 USER 단계다. 흐름을 나열하기 전에 "누가 쓰는 앱인가"를
+ * 먼저 정해야 "이 사람이 못 하게 된 일"이라고 말할 수 있다.
+ * ★ VibesafeUser.uiMode와 절대 섞지 않는다.
+ * 이건 *분석 대상 앱의 사용자*이고, uiMode는 *VibeSafe를 보는 사람*의 화면
+ * 취향이다. 섞이는 순간 "이 앱은 일반인이 쓰니 당신도 초보겠군요" 같은
+ * 무례하고 틀린 추론이 시작된다.
+ */
+model VibesafeAppUserRole {
+  id          String   @id @default(cuid())
+  projectId   String
+  appModelId  String?
+  /// 재분석해도 안정적으로 유지되는 식별자(예: "customer")
+  key         String
+  title       String
+  description String?
+  /// 이 앱의 주 사용자. 정렬/요약에서 먼저 나온다.
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  /// ai | user
+  source      String   @default("ai")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project  VibesafeProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  appModel VibesafeAppModel?      @relation(fields: [appModelId], references: [id], onDelete: SetNull)
+  flows    VibesafeCriticalFlow[]
+
+  @@unique([projectId, key])
+  @@index([projectId, sortOrder])
+  @@map("vibesafe_app_user_roles")
 }
 
 /**
@@ -765,29 +811,33 @@ model VibesafeAppModel {
  * blocked — 결제·발송·삭제처럼 금전/외부효과가 발생. MVP에서는 실행하지 않는다.
  */
 model VibesafeCriticalFlow {
-  id          String   @id @default(cuid())
-  projectId   String
-  appModelId  String?
-  key         String
-  title       String
-  description String?
-  category    String   @default("other")
+  id            String   @id @default(cuid())
+  projectId     String
+  appModelId    String?
+  /// 이 흐름을 수행하는 사람(USER 단계 결과). null이면 아직 매핑 전이다.
+  appUserRoleId String?
+  key           String
+  title         String
+  description   String?
+  category      String   @default("other")
   /// pending(사용자 확인 대기) | active | disabled
-  status      String   @default("pending")
-  riskLevel   String   @default("safe")
-  riskReason  String?
-  sortOrder   Int      @default(0)
+  status        String   @default("pending")
+  riskLevel     String   @default("safe")
+  riskReason    String?
+  sortOrder     Int      @default(0)
   /// ai | user — 사용자가 손댄 흐름을 재분석이 덮어쓰지 않게 하는 표시
-  source      String   @default("ai")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  source        String   @default("ai")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  project  VibesafeProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  appModel VibesafeAppModel?  @relation(fields: [appModelId], references: [id], onDelete: SetNull)
-  steps    VibesafeFlowStep[]
+  project     VibesafeProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  appModel    VibesafeAppModel?    @relation(fields: [appModelId], references: [id], onDelete: SetNull)
+  appUserRole VibesafeAppUserRole? @relation(fields: [appUserRoleId], references: [id], onDelete: SetNull)
+  steps       VibesafeFlowStep[]
 
   @@unique([projectId, key])
   @@index([projectId, status])
+  @@index([appUserRoleId])
   @@map("vibesafe_critical_flows")
 }
 
@@ -823,7 +873,10 @@ model VibesafeFlowStep {
 model VibesafeTestRun {
   id         String    @id @default(cuid())
   projectId  String
-  /// manual | github | schedule
+  /// manual | github | schedule | pr | repair_verify | repair_confirm
+  /// repair_verify — 수정안 preview 배포 검사. baseline·장애를 건드리지 않는다.
+  /// repair_confirm — 수정 적용 후 **실서비스** 재확인. 이건 진짜 운영이므로
+  ///                  baseline도 장애 해제도 평소와 똑같이 동작한다.
   trigger    String    @default("manual")
   /// queued | running | passed | failed | cancelled
   status     String    @default("queued")
@@ -842,12 +895,16 @@ model VibesafeTestRun {
   /// PR 프리뷰 검사일 때 — 어느 PR의 어느 주소를 봤는지
   prNumber   Int?
   targetUrl  String?
+  /// 수정 검증 실행일 때 어느 제안의 것인지. 결과가 돌아왔을 때 역방향으로
+  /// 찾아야 하므로 제안 쪽이 아니라 실행 쪽에도 둔다.
+  fixProposalId String?
 
   project VibesafeProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   results VibesafeTestResult[]
 
   @@index([projectId, queuedAt])
   @@index([status, queuedAt])
+  @@index([fixProposalId])
   @@map("vibesafe_test_runs")
 }
 
@@ -1077,15 +1134,25 @@ model VibesafeWebhookDelivery {
  * 행동을 자동화하지 않는다는 이 제품의 원칙이 여기서도 같다.
  */
 model VibesafeProjectPermission {
-  id                 String   @id @default(cuid())
-  projectId          String   @unique
-  diagnose           Boolean  @default(false)
-  proposePr          Boolean  @default(false)
-  rollback           Boolean  @default(false)
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  diagnose            Boolean  @default(false)
+  proposePr           Boolean  @default(false)
+  /// 사용자가 [수정 적용하기]를 누른 **그 한 건**을 머지한다.
+  /// ★ "main에 push하는 권한"이 아니다. 이 권한이 켜져 있어도 VibeSafe가
+  /// 스스로 골라 머지하는 일은 없다 — 검증을 통과한 제안에 대해 사람이
+  /// 버튼을 누른 경우에만 동작한다. 그래서 proposePr가 꺼지면 같이 꺼진다.
+  applyFix            Boolean  @default(false)
+  rollback            Boolean  @default(false)
   /// 롤백은 사고가 나면 크므로 하루 한도를 둔다.
-  rollbackDailyLimit Int      @default(2)
-  updatedAt          DateTime @updatedAt
-  createdAt          DateTime @default(now())
+  rollbackDailyLimit  Int      @default(2)
+  /// LOW 위험으로 분류된 수정만, 검증까지 통과하면 버튼 없이 적용한다.
+  /// 기본 false. MEDIUM/HIGH는 이 값과 무관하게 절대 자동 적용되지 않는다.
+  autoApplyLowRisk    Boolean  @default(false)
+  /// 자동 적용 하루 한도.
+  autoApplyDailyLimit Int      @default(1)
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
 
   project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -1198,7 +1265,14 @@ model VibesafeFixProposal {
   incidentId  String?
   /// code_pr | rollback
   kind        String
-  /// draft | proposed | opened | rejected | failed | superseded
+  /// REPAIR 파이프라인의 현재 위치.
+  /// draft(=만드는 중) → proposed(코드 생성됨) → opened(브랜치·PR 올라감)
+  /// → verifying(preview에서 검증 중) → ready_to_apply(검증 통과, 사람 대기)
+  /// → applying(머지 중) → applied(머지됨) → verified(실서비스 재확인 완료)
+  /// 실패 축: needs_human | rejected | failed | superseded
+  ///
+  /// ★ applied는 "고쳤다"가 아니다. verified만이 "실제 주소에서 다시 되는 걸
+  /// 확인했다"를 뜻한다. 이 구분이 흐려지는 순간 제품이 거짓말을 시작한다.
   status      String    @default("draft")
   title       String
   rationale   String
@@ -1211,11 +1285,83 @@ model VibesafeFixProposal {
   createdAt   DateTime  @default(now())
   openedAt    DateTime?
 
-  project   VibesafeProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  diagnosis VibesafeDiagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
+  /// low | medium | high. 자동 적용 가능 여부를 가르는 축.
+  /// high는 사람이 눌러도 한 번 더 확인을 요구한다.
+  riskLevel  String  @default("medium")
+  riskReason String?
+  /// 진단이 원인을 얼마나 확신했는지(0~1). 모르면 null 그대로 둔다 —
+  /// 모르는 것을 0.5로 채워 넣으면 "반반 확신"이라는 없는 정보가 생긴다.
+  confidence Float?
+
+  /// --- VERIFY AGAIN 단계 ---
+  /// 이 수정이 올라간 preview 배포 주소. 실서비스가 아니다.
+  previewUrl         String?
+  /// 사용자 저장소 자신의 CI 결과를 읽은 것. 우리가 빌드하지 않는다.
+  buildPassed        Boolean?
+  staticCheckPassed  Boolean?
+  /// 깨졌던 그 흐름이 preview에서 다시 되는가
+  affectedFlowPassed Boolean?
+  /// 멀쩡하던 나머지 흐름이 이 수정 때문에 깨지지 않았는가
+  regressionPassed   Boolean?
+  /// 머지 후 **실제 주소**에서 다시 확인했는가. 여기까지 와야 verified다.
+  productionVerified Boolean?
+  verifyRunId        String?
+  productionRunId    String?
+  /// [{flowKey, title, ok, note}] — 화면에 그대로 보여준다
+  verifySummary      Json?
+
+  /// --- APPLY 단계 ---
+  mergedSha        String?
+  /// user | auto — auto는 autoApplyLowRisk가 켜진 low 위험에서만 가능하다
+  appliedBy        String?
+  appliedAt        DateTime?
+  verifiedAt       DateTime?
+  /// 같은 장애에 대한 몇 번째 시도인가. 무한 재시도를 막는 축.
+  attempt          Int       @default(1)
+  parentProposalId String?
+
+  project   VibesafeProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  diagnosis VibesafeDiagnosis?     @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
+  outcome   VibesafeRepairOutcome?
 
   @@index([projectId, createdAt])
+  @@index([incidentId])
+  @@index([status])
   @@map("vibesafe_fix_proposals")
+}
+
+/**
+ * 수정 한 건이 끝난 뒤 남는 한 줄. "이 프로젝트에서 VibeSafe가 고친 게 몇 건이고
+ * 그중 실제로 해결된 게 몇 건인가"를 말하려면 시도 자체가 기록으로 남아야 한다.
+ * ★ 실패도 반드시 남긴다
+ * 성공만 남기면 성공률은 항상 100%가 된다. 그건 숫자가 아니라 광고다.
+ * 그리고 건수가 적을 때는 화면에서 비율을 아예 보여주지 않는다 — 2건 중 2건을
+ * "성공률 100%"라고 부르는 것은 사실이지만 정직하지 않다.
+ */
+model VibesafeRepairOutcome {
+  id          String   @id @default(cuid())
+  projectId   String
+  proposalId  String   @unique
+  incidentId  String?
+  flowKey     String?
+  riskLevel   String   @default("medium")
+  /// verified   — 머지 후 실서비스에서 다시 됨
+  /// failed_verify — preview 검증에서 떨어짐(적용 안 함)
+  /// regressed  — 적용했는데 실서비스에서 여전히/새로 깨짐
+  /// rejected   — 사람이 거절
+  /// abandoned  — 만들다 실패하거나 다음 제안에 밀림
+  result      String
+  autoApplied Boolean  @default(false)
+  /// 장애 감지 → 결말까지 걸린 시간(ms). 비어 있을 수 있다.
+  durationMs  Int?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  project  VibesafeProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  proposal VibesafeFixProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("vibesafe_repair_outcomes")
 }
 
 /**

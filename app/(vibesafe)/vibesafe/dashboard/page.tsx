@@ -6,6 +6,8 @@ import { relativeTime } from "@/vibesafe/lib/format";
 import { isDatabaseConfigured } from "@/vibesafe/lib/db";
 import { getSession } from "@/vibesafe/lib/session";
 import { recordReturnVisit } from "@/vibesafe/lib/analytics";
+import { UiModeQuestion } from "@/vibesafe/components/UiModePicker";
+import { getUiModePreference } from "@/vibesafe/lib/user-prefs";
 
 export const metadata = { title: "내 앱" };
 export const dynamic = "force-dynamic";
@@ -24,8 +26,9 @@ export default async function VibesafeDashboardPage() {
     );
   }
 
-  const [projects] = await Promise.all([
+  const [projects, preference] = await Promise.all([
     listProjectCards(session.userId),
+    getUiModePreference(session.userId),
     recordReturnVisit(session.userId),
   ]);
 
@@ -35,6 +38,7 @@ export default async function VibesafeDashboardPage() {
   return (
     <div className="vs-container">
       <div className="vs-stack">
+        {!preference.asked && <UiModeQuestion initialMode={preference.mode} />}
         <div className="vs-row-between">
           <div>
             <h1 className="vs-page-title">내 앱</h1>

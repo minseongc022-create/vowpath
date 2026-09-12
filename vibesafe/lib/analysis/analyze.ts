@@ -8,6 +8,7 @@ import { resolveAccessToken } from "../github/connection";
 import { consumeUsage, UsageLimitError } from "../usage";
 import { collectRepoDigest, renderDigestForPrompt, type RepoDigest } from "./collect";
 import { prepareFlows } from "./prepare-flows";
+import { prepareUserRoles, resolveRoleKey } from "./prepare-roles";
 import { ANALYSIS_SCHEMA, ANALYSIS_SYSTEM, type AnalysisResponse } from "./prompt";
 import { scanForSecurityIssues } from "./security-scan";
 
@@ -108,6 +109,7 @@ export async function analyzeProject(params: {
   });
 
   const flows = prepareFlows(response);
+  const roles = prepareUserRoles(response);
   if (flows.length === 0) {
     throw new AnalysisError(
       "이 저장소에서 확인할 만한 핵심 흐름을 찾지 못했습니다. 흐름을 직접 추가할 수 있습니다.",
@@ -138,6 +140,43 @@ export async function analyzeProject(params: {
       },
     });
 
+    // USER 단계 — 흐름을 저장하기 전에 "누가 쓰는 앱인가"를 먼저 정한다.
+    // 순서가 중요하다: 역할이 먼저 있어야 흐름을 역할에 붙일 수 있다.
+    const roleIdByKey = new Map<string, string>();
+    for (const role of roles) {
+      const existing = await tx.vibesafeAppUserRole.findUnique({
+        where: { projectId_key: { projectId: project.id, key: role.key } },
+        select: { id: true, source: true },
+      });
+      // 사용자가 이름을 고쳐놨으면 재분석이 덮어쓰지 않는다 — 흐름과 같은 원칙.
+      if (existing?.source === "user") {
+        roleIdByKey.set(role.key, existing.id);
+        continue;
+      }
+      const saved = await tx.vibesafeAppUserRole.upsert({
+        where: { projectId_key: { projectId: project.id, key: role.key } },
+        create: {
+          projectId: project.id,
+          appModelId: model.id,
+          key: role.key,
+          title: role.title,
+          description: role.description,
+          isPrimary: role.isPrimary,
+          sortOrder: role.sortOrder,
+          source: "ai",
+        },
+        update: {
+          appModelId: model.id,
+          title: role.title,
+          description: role.description,
+          isPrimary: role.isPrimary,
+          sortOrder: role.sortOrder,
+        },
+        select: { id: true },
+      });
+      roleIdByKey.set(role.key, saved.id);
+    }
+
     for (const [index, flow] of flows.entries()) {
       // ★ 사용자가 손댄 흐름(source=user)은 재분석이 덮어쓰지 않는다.
       //   확인해서 고쳐놓은 걸 AI가 되돌리면 다시 볼 이유가 없어진다.
@@ -147,11 +186,16 @@ export async function analyzeProject(params: {
       });
       if (current?.source === "user") continue;
 
+      // MAP 단계 — 이 흐름을 누가 하는가. 모르면 null로 둔다.
+      const roleKey = resolveRoleKey(flow.userRoleKey, roles);
+      const appUserRoleId = roleKey ? (roleIdByKey.get(roleKey) ?? null) : null;
+
       const saved = await tx.vibesafeCriticalFlow.upsert({
         where: { projectId_key: { projectId: project.id, key: flow.key } },
         create: {
           projectId: project.id,
           appModelId: model.id,
+          appUserRoleId,
           key: flow.key,
           title: flow.title,
           description: flow.description,
@@ -165,6 +209,7 @@ export async function analyzeProject(params: {
         },
         update: {
           appModelId: model.id,
+          appUserRoleId,
           title: flow.title,
           description: flow.description,
           category: flow.category,

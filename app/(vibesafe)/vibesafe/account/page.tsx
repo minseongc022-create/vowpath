@@ -12,6 +12,8 @@ import { absoluteTime } from "@/vibesafe/lib/format";
 import { getSession } from "@/vibesafe/lib/session";
 import { getUsage, planLimits } from "@/vibesafe/lib/usage";
 import { isDatabaseConfigured } from "@/vibesafe/lib/db";
+import { UiModeToggle } from "@/vibesafe/components/UiModePicker";
+import { getUiModePreference } from "@/vibesafe/lib/user-prefs";
 
 export const metadata = { title: "계정" };
 export const dynamic = "force-dynamic";
@@ -21,6 +23,9 @@ export default async function AccountPage() {
   if (!session) redirect("/vibesafe/login");
 
   const dbReady = isDatabaseConfigured();
+  const preference = dbReady
+    ? await getUiModePreference(session.userId)
+    : { mode: "simple" as const, asked: false };
   const [connection, usage, writeConnection, vercelConnection] = dbReady
     ? await Promise.all([
         getConnection(session.userId),
@@ -37,6 +42,11 @@ export default async function AccountPage() {
         <div>
           <h1 className="vs-page-title">계정</h1>
           <p className="vs-page-sub">{session.email}</p>
+        </div>
+
+        <div className="vs-card vs-stack">
+          <h2 className="vs-section-title">결과를 보여드리는 방식</h2>
+          <UiModeToggle mode={preference.mode} />
         </div>
 
         <div className="vs-card vs-stack">

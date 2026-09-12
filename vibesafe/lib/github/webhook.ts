@@ -55,6 +55,36 @@ export type DeploymentStatusEvent = { url: string; branch: string; environment: 
  * Vercel의 GitHub 연동이 배포를 마치면 `deployment_status`를 보낸다. 여기서
  * 프리뷰 주소를 얻어 머지 전 검사를 돌린다 — 운영에 나가기 전에 잡는 유일한 기회다.
  */
+/**
+ * 운영 배포가 끝났다는 신호.
+ *
+ * ★ push가 아니라 배포 완료를 기다리는 이유
+ *
+ * 머지하면 push 이벤트가 곧바로 온다. 그때 검사를 돌리면 아직 **예전 배포**를
+ * 보고 있다 — 고친 코드가 아직 나가지 않았는데 "여전히 안 됨"이라고 적히고,
+ * 멀쩡한 수정이 실패로 기록된다. 그래서 수정 적용 뒤의 확인만은 배포 완료
+ * 신호를 기다린다.
+ */
+export type ProductionDeploymentEvent = { url: string | null; ref: string; sha: string | null };
+
+export function parseProductionDeploymentEvent(payload: unknown): ProductionDeploymentEvent | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const p = payload as {
+    deployment_status?: { state?: string; environment_url?: string; target_url?: string; environment?: string };
+    deployment?: { ref?: string; sha?: string; environment?: string };
+  };
+  const status = p.deployment_status;
+  if (!status || status.state !== "success") return null;
+
+  const environment = (status.environment ?? p.deployment?.environment ?? "").toLowerCase();
+  if (!environment.includes("production")) return null;
+
+  const ref = p.deployment?.ref;
+  if (!ref) return null;
+  const url = status.environment_url ?? status.target_url ?? null;
+  return { url: url && /^https:\/\//.test(url) ? url : null, ref, sha: p.deployment?.sha ?? null };
+}
+
 export function parseDeploymentStatusEvent(payload: unknown): DeploymentStatusEvent | null {
   if (typeof payload !== "object" || payload === null) return null;
   const p = payload as {

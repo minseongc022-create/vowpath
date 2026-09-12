@@ -10,10 +10,24 @@ export const ANALYSIS_SYSTEM = `당신은 웹 애플리케이션의 핵심 사�
 주어진 것은 어떤 Next.js 웹 앱의 저장소에서 **선별한** 라우트 목록·의존성·파일 일부입니다.
 전체 코드가 아니라 일부라는 점을 감안해 판단하세요.
 
-당신의 일은 두 가지입니다.
+당신의 일은 세 가지입니다.
 1. 이 앱이 무엇을 하는 앱인지 한 문장으로 요약한다.
-2. "이게 안 되면 사업이 멈춘다"고 할 만한 핵심 사용자 흐름을 3~6개 찾아내고,
-   각 흐름을 브라우저가 그대로 따라 할 수 있는 단계로 쓴다.
+2. **이 앱을 쓰는 사람이 누구인지** 역할로 정리한다 (1~4개).
+3. "이게 안 되면 사업이 멈춘다"고 할 만한 핵심 사용자 흐름을 3~6개 찾아내고,
+   각 흐름을 브라우저가 그대로 따라 할 수 있는 단계로 쓰고, **그 흐름을 누가
+   하는지**를 2번의 역할 중 하나로 지목한다.
+
+## 앱 사용자 역할 (userRoles)
+"이 앱을 쓰는 사람"을 실제 서비스의 말로 적으세요. 개발자 용어가 아니라
+그 서비스 안에서 부르는 이름입니다.
+- 예약 서비스라면: 손님 / 사장님
+- 배달 서비스라면: 주문하는 사람 / 가게 / 라이더
+- 블로그라면: 방문자 / 글쓴이
+역할이 하나뿐인 앱도 많습니다. 억지로 늘리지 마세요.
+isPrimary는 **이 앱의 주 사용자** 한 명에게만 true입니다.
+
+★ 여기서 말하는 사용자는 이 앱을 **사용하는 사람**이지, 이 앱을 **만든
+개발자**가 아닙니다. 개발자의 실력이나 성향을 추측하지 마세요.
 
 ## 흐름을 고르는 기준
 - 실제 사용자가 자주 하는 행동부터. 관리자 전용 기능은 뒤로.
@@ -78,6 +92,21 @@ export const ANALYSIS_SCHEMA = {
       description: "앱 종류 한 단어 (예: 예약 서비스, 쇼핑몰, 커뮤니티, 대시보드)",
     },
     summary: { type: "string", description: "이 앱이 무엇을 하는지 한 문장 (한국어)" },
+    userRoles: {
+      type: "array",
+      description: "이 앱을 쓰는 사람의 역할 (1~4개)",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string", description: "영문 소문자·밑줄 식별자 (예: customer, owner)" },
+          title: { type: "string", description: "서비스 안에서 부르는 이름 (예: 손님, 사장님)" },
+          description: { type: "string", description: "이 사람이 이 앱으로 무엇을 하는지 한 줄" },
+          isPrimary: { type: "boolean" },
+        },
+        required: ["key", "title", "description", "isPrimary"],
+        additionalProperties: false,
+      },
+    },
     stack: {
       type: "object",
       properties: {
@@ -103,6 +132,10 @@ export const ANALYSIS_SCHEMA = {
           },
           riskLevel: { type: "string", enum: ["safe", "caution", "blocked"] },
           requiresLogin: { type: "boolean" },
+          userRoleKey: {
+            type: ["string", "null"],
+            description: "이 흐름을 수행하는 사람. 위 userRoles의 key 중 하나. 모르면 null",
+          },
           steps: {
             type: "array",
             items: {
@@ -123,18 +156,28 @@ export const ANALYSIS_SCHEMA = {
             },
           },
         },
-        required: ["key", "title", "description", "category", "riskLevel", "requiresLogin", "steps"],
+        required: [
+          "key",
+          "title",
+          "description",
+          "category",
+          "riskLevel",
+          "requiresLogin",
+          "userRoleKey",
+          "steps",
+        ],
         additionalProperties: false,
       },
     },
   },
-  required: ["appType", "summary", "stack", "flows"],
+  required: ["appType", "summary", "userRoles", "stack", "flows"],
   additionalProperties: false,
 } as const;
 
 export type AnalysisResponse = {
   appType: string;
   summary: string;
+  userRoles?: { key: string; title: string; description: string; isPrimary: boolean }[];
   stack: { framework: string; auth: string; database: string; hosting: string };
   flows: {
     key: string;
@@ -143,6 +186,7 @@ export type AnalysisResponse = {
     category: string;
     riskLevel: string;
     requiresLogin: boolean;
+    userRoleKey?: string | null;
     steps: {
       action: string;
       selector: string | null;
