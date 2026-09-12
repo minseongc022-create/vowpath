@@ -3,7 +3,10 @@ import { Prisma } from "@prisma/client";
 import { decryptSecret } from "@/vibesafe/lib/crypto";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { getGithubAppConfig } from "@/vibesafe/lib/github/app";
-import { parsePushEvent, verifyGithubSignature } from "@/vibesafe/lib/github/webhook";
+import { parsePushEvent, parseDeploymentStatusEvent, verifyGithubSignature } from "@/vibesafe/lib/github/webhook";
+import { findOpenPullRequestForBranch } from "@/vibesafe/lib/github/client";
+import { resolveAccessToken } from "@/vibesafe/lib/github/connection";
+import { validateServiceUrl } from "@/vibesafe/lib/url-safety";
 import { enqueueRun } from "@/vibesafe/lib/runs/queue";
 
 /**
@@ -32,7 +35,9 @@ export async function POST(request: Request) {
   if (!deliveryId) return NextResponse.json({ ok: false }, { status: 400 });
 
   // ping은 웹훅을 붙일 때 GitHub이 보내는 인사다. 서명만 맞으면 OK를 돌려준다.
-  if (eventType !== "push" && eventType !== "ping") {
+  // deployment_status — Vercel이 프리뷰 배포를 끝내면 여기로 온다.
+  // 이게 "머지 전에 잡는" 기능의 입구다.
+  if (eventType !== "push" && eventType !== "ping" && eventType !== "deployment_status") {
     return NextResponse.json({ ok: true, ignored: eventType });
   }
 
@@ -94,6 +99,43 @@ export async function POST(request: Request) {
   }
 
   if (eventType === "ping") return NextResponse.json({ ok: true, pong: true });
+
+  if (eventType === "deployment_status") {
+    const deployment = parseDeploymentStatusEvent(payload);
+    if (!deployment) return NextResponse.json({ ok: true, ignored: "not-a-preview" });
+
+    // 프리뷰 주소도 등록 주소와 같은 SSRF 검사를 통과해야 한다 — webhook으로
+    // 들어온 값이라고 해서 믿을 이유가 없다.
+    const urlCheck = validateServiceUrl(deployment.url);
+    if (!urlCheck.ok) return NextResponse.json({ ok: true, ignored: "unsafe-url" });
+
+    let queuedPreviews = 0;
+    for (const connection of verified) {
+      try {
+        const token = await resolveAccessToken(connection.project.userId);
+        const pr = await findOpenPullRequestForBranch(
+          token,
+          connection.owner,
+          connection.repo,
+          deployment.branch,
+        );
+        if (!pr) continue;
+
+        const result = await enqueueRun({
+          userId: connection.project.userId,
+          projectId: connection.projectId,
+          trigger: "pr",
+          commitSha: pr.headSha,
+          targetUrl: urlCheck.url,
+          prNumber: pr.number,
+        });
+        if (result.ok && result.created) queuedPreviews += 1;
+      } catch (error) {
+        console.error("[vibesafe] preview check failed:", (error as Error).message);
+      }
+    }
+    return NextResponse.json({ ok: true, queuedPreviews });
+  }
 
   const push = parsePushEvent(payload);
   if (!push) return NextResponse.json({ ok: true, ignored: "unparsable" });

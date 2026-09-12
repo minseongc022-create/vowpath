@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "./db";
+import { getProjectHistory } from "./history";
 
 /**
  * 화면이 필요로 하는 모양으로 데이터를 읽는다.
@@ -60,7 +61,7 @@ export type ProjectDashboard = {
     failedStepDescription: string | null;
     detectedAt: Date;
   }[];
-  stats: { runs30d: number; incidents30d: number };
+  stats: { runs30d: number; incidents30d: number; cleanDays: number };
   findings: {
     id: string;
     severity: string;
@@ -148,11 +149,13 @@ export async function getProjectDashboard(
   });
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const [runs30d, incidents30d] = await Promise.all([
+  const [runs30d, incidents30d, history] = await Promise.all([
     prisma.vibesafeTestRun.count({
       where: { projectId, queuedAt: { gte: thirtyDaysAgo }, status: { in: ["passed", "failed"] } },
     }),
     prisma.vibesafeIncident.count({ where: { projectId, detectedAt: { gte: thirtyDaysAgo } } }),
+    // 무사고 일수는 첫 화면에 바로 보여준다 — 매일 커지는 숫자라 계속 보게 된다.
+    getProjectHistory(projectId),
   ]);
 
   const activeFlowCount = flows.filter((f) => f.status === "active").length;
@@ -210,7 +213,7 @@ export async function getProjectDashboard(
     lastRun,
     activeRun,
     openIncidents,
-    stats: { runs30d, incidents30d },
+    stats: { runs30d, incidents30d, cleanDays: history.cleanDays },
     findings: project.findings.map((f) => ({
       id: f.id,
       severity: f.severity,

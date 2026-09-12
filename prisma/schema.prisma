@@ -632,6 +632,9 @@ model VibesafeIntegration {
   /// pat | app_installation — 아래 accessTokenCipher/installationId 중 어느 쪽이
   /// 채워졌는지를 가른다. GitHub App 쪽은 장기 토큰을 아예 저장하지 않는다.
   authKind          String    @default("pat")
+  /// read | write — 쓰기 연결은 기본 연결과 **별도의 GitHub App**이다.
+  /// 자동 수정을 안 쓰는 사람에게 쓰기 권한을 요구하지 않기 위해 나눠 뒀다.
+  accessLevel       String    @default("read")
   externalId        String
   externalLogin     String
   accessTokenCipher String?
@@ -643,7 +646,7 @@ model VibesafeIntegration {
 
   user VibesafeUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, provider])
+  @@unique([userId, provider, accessLevel])
   @@map("vibesafe_integrations")
 }
 
@@ -657,6 +660,10 @@ model VibesafeProject {
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
 
+  /// 공개 상태 페이지·README 배지용 slug. 켠 사람만 생긴다.
+  publicSlug   String? @unique
+  publicStatus Boolean @default(false)
+
   user              VibesafeUser                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   repository        VibesafeRepositoryConnection?
   deploymentTargets VibesafeDeploymentTarget[]
@@ -667,6 +674,11 @@ model VibesafeProject {
   incidents         VibesafeIncident[]
   findings          VibesafeSecurityFinding[]
   credential        VibesafeTestCredential?
+  permission        VibesafeProjectPermission?
+  actionLogs        VibesafeActionLog[]
+  diagnoses         VibesafeDiagnosis[]
+  fixProposals      VibesafeFixProposal[]
+  securityProbes    VibesafeSecurityProbe[]
 
   @@index([userId, createdAt])
   @@map("vibesafe_projects")
@@ -827,6 +839,9 @@ model VibesafeTestRun {
   error      String?
   /// 이 실행 결과를 baseline으로 승격했는지
   baselineAt DateTime?
+  /// PR 프리뷰 검사일 때 — 어느 PR의 어느 주소를 봤는지
+  prNumber   Int?
+  targetUrl  String?
 
   project VibesafeProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   results VibesafeTestResult[]
@@ -1039,4 +1054,245 @@ model VibesafeWebhookDelivery {
 
   @@index([receivedAt])
   @@map("vibesafe_webhook_deliveries")
+}
+
+// ─── VibeSafe 2 — 진단·수정·보안 ────────────────────────────────────────────
+//
+// 1단계 제품은 "보고 알려주는" 것까지였다. 여기서부터는 남의 운영 앱에
+// **손을 대는** 영역이라 규칙이 하나 더 붙는다:
+//
+//   사용자가 명시적으로 권한을 올리지 않으면 아무것도 하지 않는다.
+//
+// 권한은 화면에서 한 단계씩 올리고, 언제든 내릴 수 있고, 올린 기록과
+// 그 권한으로 한 모든 행동이 남는다. "설정 어딘가에 체크박스가 켜져 있어서
+// 나도 모르게 내 저장소에 PR이 생겼다"는 일이 일어나면 안 된다.
+
+/**
+ * 프로젝트별 권한 사다리.
+ * watch    — 감시(기본, 항상 켜짐). 저장소 읽기 + 브라우저 검사.
+ * diagnose — 실패 원인 분석. 커밋 목록과 변경 파일을 AI에 넘긴다.
+ * proposePr— 수정안을 PR로 올린다. 쓰기 권한이 붙은 별도 연결이 있어야 켜진다.
+ * rollback — 배포를 이전 버전으로 되돌린다. 되돌릴 수 있는 행동만 여기 해당.
+ * ★ 코드를 main에 직접 push하는 단계는 **의도적으로 없다**. 되돌릴 수 없는
+ * 행동을 자동화하지 않는다는 이 제품의 원칙이 여기서도 같다.
+ */
+model VibesafeProjectPermission {
+  id                 String   @id @default(cuid())
+  projectId          String   @unique
+  diagnose           Boolean  @default(false)
+  proposePr          Boolean  @default(false)
+  rollback           Boolean  @default(false)
+  /// 롤백은 사고가 나면 크므로 하루 한도를 둔다.
+  rollbackDailyLimit Int      @default(2)
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("vibesafe_project_permissions")
+}
+
+/**
+ * 권한으로 한 모든 행동의 기록.
+ * 이 표가 있어야 "VibeSafe가 내 저장소에 뭘 했지?"에 답할 수 있다. 답할 수
+ * 없으면 아무도 권한을 올려주지 않는다 — 4위 해자(신뢰로 권한을 얻는 것)는
+ * 이 기록 위에서만 성립한다.
+ */
+model VibesafeActionLog {
+  id         String   @id @default(cuid())
+  projectId  String
+  /// permission_granted | permission_revoked | diagnosis | pr_opened | rollback | probe
+  action     String
+  /// 사용자가 눌렀는가, 시스템이 자동으로 했는가
+  actor      String   @default("system")
+  summary    String
+  detail     Json?
+  incidentId String?
+  createdAt  DateTime @default(now())
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("vibesafe_action_logs")
+}
+
+/**
+ * 사용자가 "이건 오탐이었다"고 표시한 기록.
+ * 이게 신뢰 점수의 원천이다. 오탐률이 낮다는 걸 숫자로 보여줄 수 있어야
+ * 사용자가 다음 권한 단계를 열어준다. 동시에 우리 스스로 흐름 품질을
+ * 측정하는 유일한 객관적 지표이기도 하다.
+ */
+model VibesafeIncidentVerdict {
+  id         String   @id @default(cuid())
+  projectId  String
+  incidentId String   @unique
+  /// real | false_alarm
+  verdict    String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+  @@map("vibesafe_incident_verdicts")
+}
+
+/**
+ * 일별 흐름 통계 롤업.
+ * ★ 왜 롤업을 따로 두는가
+ * "지난 90일 안정성"을 매번 TestResult 원본에서 세면, 검사가 쌓일수록 화면이
+ * 느려진다. 이력이 이 제품의 1번 해자인데 이력 화면이 느리면 해자가 아니라
+ * 짐이 된다. 하루 한 줄로 접어둔다.
+ */
+model VibesafeFlowDailyStat {
+  id        String   @id @default(cuid())
+  projectId String
+  flowKey   String
+  /// UTC 기준 그 날 00:00
+  day       DateTime
+  passed    Int      @default(0)
+  failed    Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, flowKey, day])
+  @@index([projectId, day])
+  @@map("vibesafe_flow_daily_stats")
+}
+
+/**
+ * 실패 원인 진단 결과.
+ * 마지막 정상 시점 이후 들어온 커밋과 실패한 흐름을 함께 보고 원인 후보를
+ * 순위화한다. 자동 수정은 반드시 이 진단을 근거로만 만들어진다 — 근거 없는
+ * 수정안은 사용자가 믿을 이유가 없다.
+ */
+model VibesafeDiagnosis {
+  id         String   @id @default(cuid())
+  projectId  String
+  incidentId String
+  /// 마지막 정상 커밋 → 실패 시점 커밋
+  fromSha    String?
+  toSha      String?
+  summary    String
+  /// [{sha, message, files, confidence, reason}]
+  suspects   Json
+  /// AI가 제안한 수정 방향(설명). 실제 패치는 FixProposal에 있다.
+  suggestion String?
+  provider   String?
+  createdAt  DateTime @default(now())
+
+  project   VibesafeProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  proposals VibesafeFixProposal[]
+
+  @@index([projectId, createdAt])
+  @@index([incidentId])
+  @@map("vibesafe_diagnoses")
+}
+
+/**
+ * 수정 제안 1건.
+ * ★ status가 `applied`여도 그건 "PR을 열었다"는 뜻이지 "고쳤다"가 아니다.
+ * 머지는 사람이 한다. 이 구분이 흐려지는 순간 제품이 위험해진다.
+ */
+model VibesafeFixProposal {
+  id          String    @id @default(cuid())
+  projectId   String
+  diagnosisId String?
+  incidentId  String?
+  /// code_pr | rollback
+  kind        String
+  /// draft | proposed | opened | rejected | failed | superseded
+  status      String    @default("draft")
+  title       String
+  rationale   String
+  /// 변경할 파일들 [{path, before, after}] — 미리보기에 그대로 쓴다
+  changes     Json?
+  branchName  String?
+  prUrl       String?
+  prNumber    Int?
+  error       String?
+  createdAt   DateTime  @default(now())
+  openedAt    DateTime?
+
+  project   VibesafeProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  diagnosis VibesafeDiagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("vibesafe_fix_proposals")
+}
+
+/**
+ * 배포 롤백 기록.
+ * 롤백은 되돌릴 수 있는 행동이라 권한만 있으면 자동으로 한다. 대신 하루
+ * 한도와 쿨다운을 둬서, 잘못된 판정이 배포를 계속 앞뒤로 흔드는 일
+ * (flapping)을 막는다.
+ */
+model VibesafeRollback {
+  id           String   @id @default(cuid())
+  projectId    String
+  incidentId   String?
+  platform     String   @default("vercel")
+  fromDeployId String?
+  toDeployId   String?
+  /// requested | succeeded | failed
+  status       String   @default("requested")
+  reason       String
+  error        String?
+  triggeredBy  String   @default("system")
+  createdAt    DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@map("vibesafe_rollbacks")
+}
+
+/**
+ * 실제 배포 주소에 대고 한 외부 점검 결과.
+ * ★ 이건 침입 탐지도 방화벽도 아니다
+ * 우리는 남의 요청 경로에 끼어 있지 않으므로 실시간으로 공격을 막을 수 없다.
+ * 대신 **공격자가 제일 먼저 보는 것을 우리가 먼저 본다** — 인터넷에 그대로
+ * 열려 있는 .env, 브라우저에서 닿는 관리자 키, 인증 없이 열리는 관리자 경로.
+ * 바이브코딩 앱이 털리는 경로는 거의 다 이 목록 안에 있다.
+ */
+model VibesafeSecurityProbe {
+  id          String    @id @default(cuid())
+  projectId   String
+  probe       String
+  severity    String
+  title       String
+  /// open | fixed | accepted
+  status      String    @default("open")
+  target      String
+  evidence    String
+  advice      String
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, probe, target])
+  @@index([projectId, status])
+  @@map("vibesafe_security_probes")
+}
+
+/**
+ * 비식별 실패 지문 집계.
+ * ★ 여기에는 어느 프로젝트인지도, 어떤 주소인지도 남기지 않는다
+ * 남기는 건 "이런 모양의 실패가 이 시각에 몇 건 있었다"뿐이다. 그것만으로도
+ * "지금 Supabase가 문제다"를 말할 수 있고, 고객이 1명인 경쟁사는 이 신호를
+ * 영원히 만들 수 없다. 대신 이 표에 프로젝트 식별자가 들어가는 순간 이건
+ * 해자가 아니라 사고가 된다.
+ */
+model VibesafeFailureSignature {
+  id            String   @id @default(cuid())
+  /// 오류 모양을 정규화해 해시한 값
+  signature     String
+  /// UTC 시간 단위 버킷
+  hourBucket    DateTime
+  category      String
+  count         Int      @default(1)
+  /// 서로 다른 프로젝트 몇 개에서 났는지 (숫자만, 식별자 없음)
+  projectSpread Int      @default(1)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([signature, hourBucket])
+  @@index([hourBucket])
+  @@map("vibesafe_failure_signatures")
 }

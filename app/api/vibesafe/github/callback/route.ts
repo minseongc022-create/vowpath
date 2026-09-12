@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recordEvent } from "@/vibesafe/lib/analytics";
 import { safeCompare } from "@/vibesafe/lib/crypto";
 import { connectWithInstallation } from "@/vibesafe/lib/github/connection";
+import { connectWriteWithInstallation } from "@/vibesafe/lib/github/write-connection";
 import { getSession } from "@/vibesafe/lib/session";
 import { GITHUB_INSTALL_STATE_COOKIE } from "@/vibesafe/lib/github/install-state";
 
@@ -30,7 +31,21 @@ export async function GET(request: Request) {
   }
   if (!installationId || !/^\d+$/.test(installationId)) return back("installation");
 
+  // state에 "fix:" 접두사가 붙어 있으면 수정 권한용 두 번째 App이다.
+  // 콜백 URL을 하나로 유지하려고 접두사로 구분한다 — App을 두 개 등록하면서
+  // 콜백까지 두 개면 설정할 것만 늘어난다.
+  const isFixApp = state.startsWith("fix:");
+
   try {
+    if (isFixApp) {
+      await connectWriteWithInstallation(session.userId, installationId);
+      const target = new URL("/vibesafe/dashboard", url.origin);
+      target.searchParams.set("github_write", "connected");
+      const response = NextResponse.redirect(target);
+      response.cookies.set(GITHUB_INSTALL_STATE_COOKIE, "", { path: "/", maxAge: 0 });
+      return response;
+    }
+
     await connectWithInstallation(session.userId, installationId);
     await recordEvent({
       name: "github_connected",

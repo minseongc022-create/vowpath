@@ -4,6 +4,10 @@ import { recordEvent, recordFirstTimeEvent } from "../analytics";
 import { prisma } from "../db";
 import { markNotified, notify, recentlyNotified } from "../notify/dispatch";
 import { recordUsage } from "../usage";
+import { rollUpRun } from "../history";
+import { checkPlatformSignal, recordFailureSignature } from "../signals";
+import { maybeAutoRepair } from "../repair/auto";
+import { reportPrCheckResult } from "./pr-check";
 
 /**
  * 워커가 보낸 결과를 확정하고, 회귀 여부를 판정한다.
@@ -147,6 +151,35 @@ export async function completeRun(params: {
 
   await recordUsage(run.project.userId, "browser_ms", browserMs);
 
+  // PR 프리뷰 검사는 여기서 끝난다 — baseline도 장애도 만들지 않는다.
+  // 프리뷰에서 실패한 건 "운영이 깨졌다"가 아니라 "머지하면 깨진다"이므로,
+  // 운영 상태를 나타내는 baseline을 건드리면 대시보드가 거짓말을 하게 된다.
+  if (run.trigger === "pr") {
+    await prisma.vibesafeProject.update({
+      where: { id: run.projectId },
+      data: { status: "active" },
+    });
+    await reportPrCheckResult(run.id).catch((error) =>
+      console.error("[vibesafe] pr report failed:", (error as Error).message),
+    );
+    return { ok: true, status: runStatus, regressions: 0, recovered: 0 };
+  }
+
+  // 이력 롤업 — 1번 해자의 원천 데이터다. 검사가 끝날 때마다 하루 칸에 더한다.
+  await rollUpRun(run.id).catch((error) =>
+    console.error("[vibesafe] rollup failed:", (error as Error).message),
+  );
+
+  // 비식별 실패 지문 — "우리만 그런가, 다들 그런가"를 말하려면 여기에 쌓여야 한다.
+  for (const result of params.results) {
+    if (result.status !== "failed") continue;
+    await recordFailureSignature({
+      projectId: run.projectId,
+      errorMessage: result.errorMessage ?? null,
+      failedStepDescription: result.failedStepDescription ?? null,
+    });
+  }
+
   const { regressions, recovered } = await evaluateBaselines({
     projectId: run.projectId,
     userId: run.project.userId,
@@ -166,6 +199,14 @@ export async function completeRun(params: {
     userId: run.project.userId,
     projectId: run.projectId,
   });
+
+  // 권한이 켜져 있을 때만 진단·수정·롤백으로 넘어간다. 꺼져 있으면 아무 일도
+  // 일어나지 않는다 — 그게 기본값이다.
+  if (regressions > 0) {
+    await maybeAutoRepair({ userId: run.project.userId, projectId: run.projectId }).catch((error) =>
+      console.error("[vibesafe] auto repair failed:", (error as Error).message),
+    );
+  }
 
   return { ok: true, status: runStatus, regressions, recovered };
 }
@@ -282,6 +323,12 @@ async function evaluateBaselines(params: {
       props: { flowKey: result.flowKey, failedStep: result.failedStepDescription ?? "" },
     });
 
+    // "우리만 그런가요?" — 사용자가 제일 먼저 궁금해하는 것에 답한다.
+    const platform = await checkPlatformSignal({
+      errorMessage: result.errorMessage ?? null,
+      failedStepDescription: result.failedStepDescription ?? null,
+    });
+
     const quiet = await recentlyNotified(params.projectId, result.flowKey);
     await notify({
       userId: params.userId,
@@ -293,7 +340,9 @@ async function evaluateBaselines(params: {
         `최근 변경 이후 "${flowTitle}" 기능이 정상 작동하지 않습니다.\n\n` +
         (result.failedStepDescription ? `실패한 단계: ${result.failedStepDescription}\n` : "") +
         (result.url ? `확인한 주소: ${result.url}\n` : "") +
-        `발견 시각: ${new Date().toLocaleString("ko-KR")}\n\n` +
+        `발견 시각: ${new Date().toLocaleString("ko-KR")}\n` +
+        (platform.message ? `\n${platform.message}\n` : "") +
+        `\n` +
         `VibeSafe에서 자세히 보기: /vibesafe/projects/${params.projectId}`,
       dedupeKey: `incident:${incident.id}:detected`,
       email: !quiet,

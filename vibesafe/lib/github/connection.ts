@@ -5,6 +5,18 @@ import { prisma } from "../db";
 import { getInstallation, getInstallationToken, isGithubAppConfigured } from "./app";
 import { getViewer, listInstallationRepos, listUserRepos, type GithubRepo } from "./client";
 
+/**
+ * ★ 읽기 연결과 쓰기 연결은 따로다
+ *
+ * 자동 수정(PR 생성)에는 저장소 쓰기 권한이 필요한데, 그걸 기본 GitHub App에
+ * 넣으면 **자동 수정을 안 쓰는 사람에게도** 설치 화면에서 "이 앱이 코드를
+ * 수정할 수 있습니다"라고 뜬다. 그 한 줄 때문에 대부분은 설치를 그만둔다.
+ *
+ * 그래서 쓰기는 별도 App(`VIBESAFE_GITHUB_FIX_APP_*`)으로 빼고, 원하는 사람만
+ * 추가로 설치한다. 이 파일의 기본 함수들은 전부 읽기 연결(accessLevel="read")을
+ * 가리키고, 쓰기 연결은 github/write-connection.ts가 따로 다룬다.
+ */
+
 export type GithubConnection = {
   id: string;
   authKind: "pat" | "app_installation";
@@ -21,7 +33,7 @@ export type GithubConnection = {
  */
 export async function resolveAccessToken(userId: string): Promise<string> {
   const integration = await prisma.vibesafeIntegration.findUnique({
-    where: { userId_provider: { userId, provider: "github" } },
+    where: { userId_provider_accessLevel: { userId, provider: "github", accessLevel: "read" } },
   });
   if (!integration || integration.revokedAt) throw new Error("GITHUB_NOT_CONNECTED");
 
@@ -35,7 +47,7 @@ export async function resolveAccessToken(userId: string): Promise<string> {
 
 export async function getConnection(userId: string): Promise<GithubConnection | null> {
   const row = await prisma.vibesafeIntegration.findUnique({
-    where: { userId_provider: { userId, provider: "github" } },
+    where: { userId_provider_accessLevel: { userId, provider: "github", accessLevel: "read" } },
     select: { id: true, authKind: true, externalLogin: true, createdAt: true, revokedAt: true },
   });
   if (!row || row.revokedAt) return null;
@@ -50,7 +62,7 @@ export async function getConnection(userId: string): Promise<GithubConnection | 
 /** 연결한 계정이 접근할 수 있는 저장소 목록. */
 export async function listConnectedRepos(userId: string): Promise<GithubRepo[]> {
   const integration = await prisma.vibesafeIntegration.findUnique({
-    where: { userId_provider: { userId, provider: "github" } },
+    where: { userId_provider_accessLevel: { userId, provider: "github", accessLevel: "read" } },
     select: { authKind: true },
   });
   if (!integration) throw new Error("GITHUB_NOT_CONNECTED");
@@ -82,10 +94,11 @@ export async function connectWithPat(userId: string, token: string): Promise<Git
   const viewer = await getViewer(token);
   const cipher = encryptSecret(token);
   const row = await prisma.vibesafeIntegration.upsert({
-    where: { userId_provider: { userId, provider: "github" } },
+    where: { userId_provider_accessLevel: { userId, provider: "github", accessLevel: "read" } },
     create: {
       userId,
       provider: "github",
+      accessLevel: "read",
       authKind: "pat",
       externalId: String(viewer.id),
       externalLogin: viewer.login,
@@ -120,10 +133,11 @@ export async function connectWithInstallation(
 
   const login = installation.account?.login ?? "unknown";
   const row = await prisma.vibesafeIntegration.upsert({
-    where: { userId_provider: { userId, provider: "github" } },
+    where: { userId_provider_accessLevel: { userId, provider: "github", accessLevel: "read" } },
     create: {
       userId,
       provider: "github",
+      accessLevel: "read",
       authKind: "app_installation",
       externalId: String(installation.account?.id ?? installation.id),
       externalLogin: login,
@@ -148,7 +162,7 @@ export async function connectWithInstallation(
 
 export async function disconnect(userId: string): Promise<void> {
   await prisma.vibesafeIntegration.updateMany({
-    where: { userId, provider: "github" },
+    where: { userId, provider: "github", accessLevel: "read" },
     // 토큰을 지우는 게 핵심이다. 행만 남겨 "언제 연결했었는지"는 보존한다.
     data: { revokedAt: new Date(), accessTokenCipher: null, installationId: null },
   });

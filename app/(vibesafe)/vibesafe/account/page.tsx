@@ -1,5 +1,12 @@
 import { redirect } from "next/navigation";
-import { DisconnectGithubButton, LogoutButton } from "@/vibesafe/components/AccountPanel";
+import {
+  DisconnectGithubButton,
+  LogoutButton,
+  VercelConnectionPanel,
+  WriteConnectionPanel,
+} from "@/vibesafe/components/AccountPanel";
+import { getWriteConnection, isFixAppConfigured } from "@/vibesafe/lib/github/write-connection";
+import { getVercelConnection } from "@/vibesafe/lib/repair/rollback";
 import { getConnection } from "@/vibesafe/lib/github/connection";
 import { absoluteTime } from "@/vibesafe/lib/format";
 import { getSession } from "@/vibesafe/lib/session";
@@ -14,9 +21,14 @@ export default async function AccountPage() {
   if (!session) redirect("/vibesafe/login");
 
   const dbReady = isDatabaseConfigured();
-  const [connection, usage] = dbReady
-    ? await Promise.all([getConnection(session.userId), getUsage(session.userId)])
-    : [null, { test_runs: 0, ai_analyses: 0, browser_ms: 0 }];
+  const [connection, usage, writeConnection, vercelConnection] = dbReady
+    ? await Promise.all([
+        getConnection(session.userId),
+        getUsage(session.userId),
+        getWriteConnection(session.userId),
+        getVercelConnection(session.userId),
+      ])
+    : [null, { test_runs: 0, ai_analyses: 0, browser_ms: 0 }, null, null];
   const limits = planLimits();
 
   return (
@@ -44,6 +56,17 @@ export default async function AccountPage() {
             <p className="vs-hint">아직 연결되지 않았습니다.</p>
           )}
         </div>
+
+        <WriteConnectionPanel
+          connected={Boolean(writeConnection)}
+          login={writeConnection?.login ?? null}
+          appAvailable={isFixAppConfigured()}
+        />
+
+        <VercelConnectionPanel
+          connected={Boolean(vercelConnection)}
+          login={vercelConnection?.login ?? null}
+        />
 
         <div className="vs-card vs-stack">
           <div className="vs-row-between">

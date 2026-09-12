@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -11,7 +10,6 @@ type Mode = "signup" | "login";
  * 한쪽만 고치는 실수가 난다.
  */
 export function AuthForm({ mode }: { mode: Mode }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -37,9 +35,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setBusy(false);
         return;
       }
-      // replace — 뒤로가기로 가입 화면에 되돌아오지 않게.
-      router.replace(data.redirect ?? "/vibesafe/dashboard");
-      router.refresh();
+      // 로그인은 세션 쿠키가 생기는 순간이라 서버 렌더를 처음부터 다시 받아야
+      // 한다. router.replace() 뒤에 router.refresh()를 붙이는 방식도 되지만,
+      // 두 호출이 겹치면 이동이 취소될 수 있는 알려진 경합이 있어 전체 페이지
+      // 이동을 쓴다 — 인증 전환은 자주 일어나는 일이 아니라 이 비용이 아깝지 않다.
+      window.location.replace(data.redirect ?? "/vibesafe/dashboard");
     } catch {
       setError("연결에 실패했습니다. 네트워크를 확인해주세요.");
       setBusy(false);

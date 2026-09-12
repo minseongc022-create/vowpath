@@ -46,3 +46,33 @@ export function parsePushEvent(payload: unknown): GithubPushEvent | null {
     branch: typeof p.ref === "string" && p.ref.startsWith("refs/heads/") ? p.ref.slice(11) : null,
   };
 }
+
+export type DeploymentStatusEvent = { url: string; branch: string; environment: string };
+
+/**
+ * Vercel 프리뷰 배포 완료 이벤트.
+ *
+ * Vercel의 GitHub 연동이 배포를 마치면 `deployment_status`를 보낸다. 여기서
+ * 프리뷰 주소를 얻어 머지 전 검사를 돌린다 — 운영에 나가기 전에 잡는 유일한 기회다.
+ */
+export function parseDeploymentStatusEvent(payload: unknown): DeploymentStatusEvent | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const p = payload as {
+    deployment_status?: { state?: string; environment_url?: string; target_url?: string; environment?: string };
+    deployment?: { ref?: string; environment?: string };
+  };
+
+  const status = p.deployment_status;
+  if (!status || status.state !== "success") return null;
+
+  const environment = (status.environment ?? p.deployment?.environment ?? "").toLowerCase();
+  // 운영 배포는 여기서 다루지 않는다 — 그건 push 이벤트 쪽 일이다.
+  if (environment.includes("production")) return null;
+
+  const url = status.environment_url ?? status.target_url;
+  const branch = p.deployment?.ref;
+  if (!url || !branch) return null;
+  if (!/^https:\/\//.test(url)) return null;
+
+  return { url, branch, environment: environment || "preview" };
+}

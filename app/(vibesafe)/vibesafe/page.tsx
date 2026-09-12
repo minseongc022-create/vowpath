@@ -118,6 +118,14 @@ export default async function VibesafeLandingPage() {
                 title: "되던 게 안 되면 알려드립니다",
                 body: "정상이던 기능이 실패로 바뀐 순간을 잡아 이메일과 앱 알림으로 보냅니다.",
               },
+              {
+                title: "원하시면 원인까지 찾아드립니다",
+                body: "마지막으로 정상이었던 시점 이후 어떤 커밋이 들어왔는지 읽어 범인을 좁혀줍니다. <strong>권한을 켜야만</strong> 동작합니다.",
+              },
+              {
+                title: "고친 코드를 PR로 올려드립니다",
+                body: "권한을 켜면 수정안을 새 브랜치에 올리고 Pull Request를 엽니다. <strong>머지는 직접 하십니다</strong> — VibeSafe는 기본 브랜치에 직접 커밋하지 않습니다.",
+              },
             ].map((step, index) => (
               <div className="vs-card vs-row" key={step.title} style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
                 <span className="vs-step-num">{index + 1}</span>
@@ -194,15 +202,12 @@ export default async function VibesafeLandingPage() {
                 준비 중<span className="vs-soon">Coming soon</span>
               </h3>
               <ul className="vs-hint" style={{ marginTop: 10, paddingLeft: 18 }}>
-                <li>문제 원인 자동 분석</li>
-                <li>수정안 제안 및 자동 PR</li>
-                <li>배포 자동 되돌리기(rollback)</li>
-                <li>Render·Railway·Firebase 연동</li>
+                <li>Render·Railway·Firebase 배포 연동</li>
                 <li>Slack·카카오톡 알림</li>
+                <li>여러 명이 함께 쓰는 팀 계정</li>
               </ul>
               <p className="vs-hint" style={{ marginTop: 12 }}>
-                아직 제공하지 않는 기능입니다. 지금 VibeSafe가 하는 일은
-                <strong> 확인하고 알려주는 것</strong>까지입니다.
+                아직 제공하지 않는 기능입니다. 되돌리기는 지금 Vercel만 지원합니다.
               </p>
             </div>
           </div>
@@ -238,6 +243,24 @@ export default async function VibesafeLandingPage() {
               </p>
             </div>
             <div className="vs-card">
+              <h3 className="vs-section-title">할 수 있는 일은 직접 정하십니다</h3>
+              <p className="vs-hint" style={{ marginTop: 8 }}>
+                원인 분석·PR 제안·배포 되돌리기는 <strong>각각 따로 켜는 권한</strong>입니다.
+                기본값은 전부 꺼짐이고, 켠 권한으로 한 모든 행동이 기록으로 남습니다.
+                <strong> 코드를 기본 브랜치에 직접 push하는 기능은 아예 없습니다.</strong>
+              </p>
+            </div>
+
+            <div className="vs-card">
+              <h3 className="vs-section-title">머지 전에 잡아드립니다</h3>
+              <p className="vs-hint" style={{ marginTop: 8 }}>
+                Pull Request의 미리보기 배포에서 핵심 흐름을 먼저 돌려봅니다.
+                깨지는 변경이면 머지하기 전에 PR에 댓글로 알려드립니다 —
+                고객이 깨진 화면을 볼 일 자체가 없어집니다.
+              </p>
+            </div>
+
+            <div className="vs-card">
               <h3 className="vs-section-title">테스트 계정을 권합니다</h3>
               <p className="vs-hint" style={{ marginTop: 8 }}>
                 로그인 흐름을 확인하려면 계정이 필요합니다. 실제로 쓰는 계정 대신
@@ -261,7 +284,11 @@ export default async function VibesafeLandingPage() {
               },
               {
                 q: "제 코드를 고치나요?",
-                a: "아니요. VibeSafe는 저장소를 읽기만 합니다. 커밋, 푸시, 배포, 설정 변경을 하지 않습니다.",
+                a: "기본값은 읽기만 합니다. '수정안 PR' 권한을 직접 켜시면 고친 코드를 새 브랜치에 올리고 Pull Request를 엽니다 — 머지는 직접 하십니다. 기본 브랜치에 직접 커밋하는 기능은 만들지 않았습니다. 권한은 언제든 끌 수 있고, 켠 권한으로 한 모든 일이 기록에 남습니다.",
+              },
+              {
+                q: "해킹을 막아주나요?",
+                a: "방화벽처럼 실시간으로 공격을 막지는 못합니다(저희가 여러분 서비스의 요청 경로에 있지 않습니다). 대신 공격자가 제일 먼저 확인하는 것들을 먼저 확인합니다 — 인터넷에 열린 .env 파일, 브라우저 코드에 박힌 관리자 키, 로그인 없이 열리는 관리자 페이지 같은 것들입니다. 실제로 앱이 털리는 경로는 대부분 여기 있습니다.",
               },
               {
                 q: "실제 결제가 일어나지는 않나요?",

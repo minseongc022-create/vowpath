@@ -15,6 +15,10 @@ const PUBLIC_PREFIXES = [
   // 설정 점검 화면 — DB가 안 붙으면 로그인 자체가 안 되므로 로그인 뒤에 둘 수 없다.
   // 대신 그 화면은 비밀값을 한 글자도 내보내지 않는다(setup-status.ts).
   "/vibesafe/setup",
+  // 공개 상태 페이지와 README 배지 — 주인이 직접 켠 프로젝트만, 추측 불가능한
+  // slug로만 열린다. GitHub 이미지 프록시가 가져가므로 쿠키가 없다.
+  "/vibesafe/status",
+  "/vibesafe/badge",
 ];
 
 export function isProtectedVibesafePath(pathname: string): boolean {

@@ -169,16 +169,29 @@ export function ProjectWorkspace({ data }: { data: ProjectDashboard }) {
             </span>
           </div>
           {data.health === "down" && data.openIncidents.length > 0 && (
-            <p className="vs-status-note">
-              최근 변경 이후 <strong>{data.openIncidents[0].flowTitle}</strong> 기능이 정상
-              작동하지 않습니다.
-              {data.openIncidents[0].failedStepDescription && (
-                <>
-                  {" "}
-                  실패한 단계: {data.openIncidents[0].failedStepDescription}
-                </>
-              )}
-            </p>
+            <>
+              <p className="vs-status-note">
+                최근 변경 이후 <strong>{data.openIncidents[0].flowTitle}</strong> 기능이 정상
+                작동하지 않습니다.
+                {data.openIncidents[0].failedStepDescription && (
+                  <>
+                    {" "}
+                    실패한 단계: {data.openIncidents[0].failedStepDescription}
+                  </>
+                )}
+              </p>
+              <div className="vs-row" style={{ marginTop: 12 }}>
+                <Link
+                  href={`/vibesafe/projects/${data.project.id}/incidents/${data.openIncidents[0].id}`}
+                  className="vs-btn vs-btn-primary vs-btn-sm"
+                >
+                  원인 찾고 고치기
+                </Link>
+                {data.openIncidents.length > 1 && (
+                  <span className="vs-hint">외 {data.openIncidents.length - 1}건</span>
+                )}
+              </div>
+            </>
           )}
           <p className="vs-status-note">
             마지막 확인: {relativeTime(data.lastRun?.finishedAt ?? null)}
@@ -259,6 +272,13 @@ export function ProjectWorkspace({ data }: { data: ProjectDashboard }) {
         {/* 최근 30일 */}
         <div className="vs-grid-3">
           <div className="vs-stat">
+            <div className="vs-clean-days" data-state={data.stats.cleanDays > 0 ? "ok" : "unknown"}>
+              {data.stats.cleanDays}
+              <span style={{ fontSize: 15, fontWeight: 600, marginLeft: 3 }}>일</span>
+            </div>
+            <div className="vs-stat-label">연속 무사고</div>
+          </div>
+          <div className="vs-stat">
             <div className="vs-stat-value">{data.stats.runs30d}</div>
             <div className="vs-stat-label">최근 30일 검사</div>
           </div>
@@ -273,12 +293,24 @@ export function ProjectWorkspace({ data }: { data: ProjectDashboard }) {
         </div>
 
         <div className="vs-row">
+          <Link href={`/vibesafe/projects/${data.project.id}/history`} className="vs-btn vs-btn-sm">
+            안정성 이력
+          </Link>
           <Link href={`/vibesafe/projects/${data.project.id}/runs`} className="vs-btn vs-btn-sm">
-            검사 기록 보기
+            검사 기록
+          </Link>
+          <Link href={`/vibesafe/projects/${data.project.id}/security`} className="vs-btn vs-btn-sm">
+            보안 점검
+          </Link>
+          <Link href={`/vibesafe/projects/${data.project.id}/permissions`} className="vs-btn vs-btn-sm">
+            권한
+          </Link>
+          <Link href={`/vibesafe/projects/${data.project.id}/share`} className="vs-btn vs-btn-sm">
+            상태 배지
           </Link>
         </div>
 
-        {/* 보안 점검 */}
+        {/* 보안 점검 요약 — 자세한 건 전용 화면에서 */}
         {data.findings.length > 0 && (
           <div className="vs-card vs-card-flush">
             <div className="vs-card-head">

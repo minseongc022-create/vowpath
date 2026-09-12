@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { enqueueRun, recoverStaleRuns } from "@/vibesafe/lib/runs/queue";
+import { scanProjectSecurity } from "@/vibesafe/lib/security/scan-runner";
+import { pruneOldSignatures } from "@/vibesafe/lib/signals";
 
 /**
  * 주기 검사.
@@ -36,6 +38,9 @@ export async function GET(request: Request) {
 
   const recovered = await recoverStaleRuns();
 
+  // 비식별 실패 지문은 오래 들고 있을 이유가 없다 — 표만 커진다.
+  const pruned = await pruneOldSignatures(14);
+
   const intervalHours = Number(process.env.VIBESAFE_CHECK_INTERVAL_HOURS) || DEFAULT_INTERVAL_HOURS;
   const cutoff = new Date(Date.now() - intervalHours * 60 * 60 * 1000);
 
@@ -69,7 +74,46 @@ export async function GET(request: Request) {
     if (result.ok && result.created) queued += 1;
   }
 
-  return NextResponse.json({ ok: true, queued, skipped, recovered, checked: projects.length });
+  // 보안 점검은 하루 한 번이면 충분하다 — 남의 서버에 요청을 보내는 일이라
+  // 자주 돌 이유가 없고, .env가 열리는 사고는 배포 때 생기지 시간이 지나서
+  // 생기지 않는다.
+  let securityScanned = 0;
+  const securityCutoff = new Date(Date.now() - 20 * 60 * 60 * 1000);
+  const needScan = await prisma.vibesafeProject.findMany({
+    where: {
+      archivedAt: null,
+      deploymentTargets: { some: { kind: "production" } },
+      OR: [
+        { securityProbes: { none: {} } },
+        { securityProbes: { every: { lastSeenAt: { lt: securityCutoff } } } },
+      ],
+    },
+    select: {
+      id: true,
+      deploymentTargets: { where: { kind: "production" }, take: 1, select: { baseUrl: true } },
+    },
+    take: 20,
+  });
+  for (const project of needScan) {
+    const baseUrl = project.deploymentTargets[0]?.baseUrl;
+    if (!baseUrl) continue;
+    try {
+      await scanProjectSecurity({ projectId: project.id, baseUrl });
+      securityScanned += 1;
+    } catch (error) {
+      console.error("[vibesafe] security scan failed:", (error as Error).message);
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    queued,
+    skipped,
+    recovered,
+    pruned,
+    securityScanned,
+    checked: projects.length,
+  });
 }
 
 export const dynamic = "force-dynamic";

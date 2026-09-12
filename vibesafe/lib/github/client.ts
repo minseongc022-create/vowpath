@@ -159,3 +159,188 @@ export async function getFileContent(
   if (!data.content || data.encoding !== "base64") return null;
   return Buffer.from(data.content, "base64").toString("utf8");
 }
+
+export type CommitSummary = {
+  sha: string;
+  message: string;
+  author: string;
+  committedAt: string;
+  files: { path: string; status: string; additions: number; deletions: number }[];
+};
+
+/**
+ * 두 커밋 사이에 무슨 일이 있었는지.
+ *
+ * 이게 원인 진단의 전부다 — "지난주엔 됐고 지금 안 되면, 그 사이 들어온
+ * 커밋 중에 범인이 있다". 범위를 좁혀 주는 것만으로도 사람이 원인을 찾는
+ * 시간이 몇 시간에서 몇 분으로 줄어든다.
+ */
+export async function compareCommits(
+  token: string,
+  owner: string,
+  repo: string,
+  base: string,
+  head: string,
+): Promise<{ commits: CommitSummary[]; totalFiles: number; truncated: boolean }> {
+  const res = await githubFetch(
+    token,
+    `/repos/${owner}/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=100`,
+  );
+  if (!res.ok) throw new GithubError(res.status, humanError(res.status));
+
+  const data = (await res.json()) as {
+    commits?: {
+      sha: string;
+      commit: { message: string; author?: { name?: string; date?: string } };
+    }[];
+    files?: { filename: string; status: string; additions: number; deletions: number }[];
+    total_commits?: number;
+  };
+
+  const files = data.files ?? [];
+  // compare API는 파일을 커밋별로 안 나눠준다 — 전체 변경 파일을 한 번만 싣고,
+  // 커밋별 파일은 필요할 때 개별 조회한다(대부분은 전체 목록으로 충분하다).
+  const commits = (data.commits ?? []).slice(-30).map((c) => ({
+    sha: c.sha,
+    message: c.commit.message.split("\n")[0].slice(0, 200),
+    author: c.commit.author?.name ?? "unknown",
+    committedAt: c.commit.author?.date ?? "",
+    files: [] as CommitSummary["files"],
+  }));
+
+  // 커밋이 몇 개 안 되면 커밋별 파일까지 정확히 채운다 — 범인 지목이 훨씬 정확해진다.
+  if (commits.length > 0 && commits.length <= 10) {
+    for (const commit of commits) {
+      const detail = await githubFetch(token, `/repos/${owner}/${repo}/commits/${commit.sha}`);
+      if (!detail.ok) continue;
+      const body = (await detail.json()) as {
+        files?: { filename: string; status: string; additions: number; deletions: number }[];
+      };
+      commit.files = (body.files ?? []).slice(0, 30).map((f) => ({
+        path: f.filename,
+        status: f.status,
+        additions: f.additions ?? 0,
+        deletions: f.deletions ?? 0,
+      }));
+    }
+  } else {
+    // 커밋이 많으면 전체 변경 파일만 첫 커밋에 얹어 둔다(어느 파일이 건드려졌는지는 안다).
+    if (commits.length > 0) {
+      commits[0].files = files.slice(0, 50).map((f) => ({
+        path: f.filename,
+        status: f.status,
+        additions: f.additions ?? 0,
+        deletions: f.deletions ?? 0,
+      }));
+    }
+  }
+
+  return {
+    commits,
+    totalFiles: files.length,
+    truncated: (data.total_commits ?? commits.length) > commits.length,
+  };
+}
+
+/** 브랜치를 새로 만든다 (자동 수정 PR용 — 쓰기 권한 필요). */
+export async function createBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  branchName: string,
+  fromSha: string,
+): Promise<void> {
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/git/refs`, {
+    method: "POST",
+    body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: fromSha }),
+  });
+  // 이미 있는 브랜치면 그대로 쓴다 — 재시도가 실패하지 않게.
+  if (!res.ok && res.status !== 422) throw new GithubError(res.status, humanError(res.status));
+}
+
+/** 파일 하나를 브랜치에 올린다. */
+export async function putFile(
+  token: string,
+  owner: string,
+  repo: string,
+  params: { path: string; content: string; message: string; branch: string; sha?: string },
+): Promise<void> {
+  const res = await githubFetch(
+    token,
+    `/repos/${owner}/${repo}/contents/${params.path.split("/").map(encodeURIComponent).join("/")}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        message: params.message,
+        content: Buffer.from(params.content, "utf8").toString("base64"),
+        branch: params.branch,
+        ...(params.sha ? { sha: params.sha } : {}),
+      }),
+    },
+  );
+  if (!res.ok) throw new GithubError(res.status, humanError(res.status));
+}
+
+/** 파일의 현재 blob sha — 덮어쓰려면 필요하다. */
+export async function getFileSha(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+): Promise<string | null> {
+  const res = await githubFetch(
+    token,
+    `/repos/${owner}/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(ref)}`,
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as { sha?: string };
+  return data.sha ?? null;
+}
+
+export async function openPullRequest(
+  token: string,
+  owner: string,
+  repo: string,
+  params: { title: string; body: string; head: string; base: string },
+): Promise<{ url: string; number: number }> {
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/pulls`, {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new GithubError(res.status, humanError(res.status));
+  const data = (await res.json()) as { html_url: string; number: number };
+  return { url: data.html_url, number: data.number };
+}
+
+/** 브랜치에 열려 있는 PR을 찾는다 (프리뷰 검사에서 PR 번호를 알아내는 용도). */
+export async function findOpenPullRequestForBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<{ number: number; title: string; headSha: string } | null> {
+  const res = await githubFetch(
+    token,
+    `/repos/${owner}/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=5`,
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as { number: number; title: string; head: { sha: string } }[];
+  const pr = data[0];
+  return pr ? { number: pr.number, title: pr.title, headSha: pr.head.sha } : null;
+}
+
+/** PR에 댓글을 단다 (쓰기 권한 필요). */
+export async function commentOnPullRequest(
+  token: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  body: string,
+): Promise<void> {
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/issues/${prNumber}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) throw new GithubError(res.status, humanError(res.status));
+}

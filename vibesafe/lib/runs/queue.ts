@@ -28,13 +28,30 @@ import { consumeUsage } from "../usage";
 export const MAX_ATTEMPTS = 3;
 const STALE_RUN_MS = 10 * 60 * 1000;
 
-export type EnqueueTrigger = "manual" | "github" | "schedule";
+/**
+ * pr — 프리뷰 배포 검사. 머지 **전에** 돌린다.
+ *
+ * ★ 이게 제품의 성격을 바꾼다
+ *
+ * 나머지 트리거는 전부 "이미 운영에 나간 뒤"에 도는 것이라, 잘해야 빨리
+ * 알려주는 데서 끝난다. pr 검사는 머지되기 전에 잡으므로 **고객이 깨진 앱을
+ * 볼 일 자체가 없어진다**. 알려주는 도구에서 막아주는 도구가 되는 지점이고,
+ * PR 워크플로에 한번 들어가면 빼기 어려운 기능이기도 하다.
+ */
+export type EnqueueTrigger = "manual" | "github" | "schedule" | "pr";
 
 export type EnqueueResult =
   | { ok: true; runId: string; created: boolean }
   | { ok: false; error: string; code: "NO_FLOWS" | "NO_TARGET" | "LIMIT" };
 
-function dedupeKeyFor(projectId: string, trigger: EnqueueTrigger, commitSha: string | null): string {
+function dedupeKeyFor(
+  projectId: string,
+  trigger: EnqueueTrigger,
+  commitSha: string | null,
+  prNumber?: number | null,
+): string {
+  // 같은 PR의 같은 커밋은 한 번만. PR에 push가 연달아 오면 커밋별로 한 번씩.
+  if (trigger === "pr" && prNumber) return `pr:${projectId}:${prNumber}:${commitSha ?? "head"}`;
   if (trigger === "github" && commitSha) return `github:${projectId}:${commitSha}`;
   if (trigger === "schedule") {
     const now = new Date();
@@ -49,15 +66,23 @@ export async function enqueueRun(params: {
   projectId: string;
   trigger: EnqueueTrigger;
   commitSha?: string | null;
+  /** PR 프리뷰 검사일 때 — 운영 주소 대신 이 주소를 본다. */
+  targetUrl?: string | null;
+  prNumber?: number | null;
 }): Promise<EnqueueResult> {
   const { userId, projectId, trigger } = params;
   const commitSha = params.commitSha ?? null;
 
-  const target = await prisma.vibesafeDeploymentTarget.findUnique({
-    where: { projectId_kind: { projectId, kind: "production" } },
-    select: { baseUrl: true },
-  });
-  if (!target) return { ok: false, error: "서비스 주소가 등록되어 있지 않습니다.", code: "NO_TARGET" };
+  // 프리뷰 검사는 운영 주소가 아니라 넘겨받은 주소를 본다.
+  let baseUrl = params.targetUrl ?? null;
+  if (!baseUrl) {
+    const target = await prisma.vibesafeDeploymentTarget.findUnique({
+      where: { projectId_kind: { projectId, kind: "production" } },
+      select: { baseUrl: true },
+    });
+    baseUrl = target?.baseUrl ?? null;
+  }
+  if (!baseUrl) return { ok: false, error: "서비스 주소가 등록되어 있지 않습니다.", code: "NO_TARGET" };
 
   const activeFlows = await prisma.vibesafeCriticalFlow.count({
     where: { projectId, status: "active", riskLevel: { not: "blocked" } },
@@ -71,12 +96,15 @@ export async function enqueueRun(params: {
   }
 
   // 이미 대기/실행 중인 검사가 있으면 그것을 돌려준다.
-  const active = await prisma.vibesafeTestRun.findFirst({
-    where: { projectId, status: { in: ["queued", "running"] } },
-    orderBy: { queuedAt: "desc" },
-    select: { id: true },
-  });
-  if (active) return { ok: true, runId: active.id, created: false };
+  // 단 PR 검사는 예외 — PR 두 개가 동시에 열려 있으면 각각 따로 돌아야 한다.
+  if (trigger !== "pr") {
+    const active = await prisma.vibesafeTestRun.findFirst({
+      where: { projectId, status: { in: ["queued", "running"] }, trigger: { not: "pr" } },
+      orderBy: { queuedAt: "desc" },
+      select: { id: true },
+    });
+    if (active) return { ok: true, runId: active.id, created: false };
+  }
 
   try {
     await consumeUsage(userId, "test_runs", 1);
@@ -84,10 +112,18 @@ export async function enqueueRun(params: {
     return { ok: false, error: (error as Error).message, code: "LIMIT" };
   }
 
-  const dedupeKey = dedupeKeyFor(projectId, trigger, commitSha);
+  const dedupeKey = dedupeKeyFor(projectId, trigger, commitSha, params.prNumber);
   try {
     const run = await prisma.vibesafeTestRun.create({
-      data: { projectId, trigger, status: "queued", dedupeKey, commitSha },
+      data: {
+        projectId,
+        trigger,
+        status: "queued",
+        dedupeKey,
+        commitSha,
+        prNumber: params.prNumber ?? null,
+        targetUrl: params.targetUrl ?? null,
+      },
       select: { id: true },
     });
     return { ok: true, runId: run.id, created: true };
@@ -226,7 +262,8 @@ async function buildJob(runId: string, claimToken: string): Promise<RunnerJob | 
   });
   if (!run) return null;
 
-  const baseUrl = run.project.deploymentTargets[0]?.baseUrl;
+  // PR 검사면 프리뷰 주소를, 아니면 운영 주소를 본다.
+  const baseUrl = run.targetUrl ?? run.project.deploymentTargets[0]?.baseUrl;
   if (!baseUrl || run.project.flows.length === 0) return null;
 
   // ★ 자격증명은 여기서 딱 한 번 복호화해 워커에게 넘긴다. DB에도, 로그에도,
