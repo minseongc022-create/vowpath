@@ -290,9 +290,9 @@ model LearningMaterial {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks   MaterialChunk[]
-  analysis MaterialAnalysis?
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks      MaterialChunk[]
+  analysis    MaterialAnalysis?
   annotations MindmapAnnotation[]
 
   @@index([userId, updatedAt])
@@ -369,14 +369,14 @@ model DajeongPerson {
 }
 
 model DajeongCompanionInvite {
-  code       String    @id
+  code       String   @id
   fromId     String
   fromName   String
   relation   String
   note       String?
-  status     String    @default("pending") // pending | accepted | cancelled
+  status     String   @default("pending") // pending | accepted | cancelled
   acceptedBy String?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
   expiresAt  DateTime
 
   @@index([fromId, status])
@@ -384,7 +384,7 @@ model DajeongCompanionInvite {
 }
 
 model DajeongCompanionLink {
-  id         String   @id @default(cuid())
+  id          String   @id @default(cuid())
   // Stored with memberAId < memberBId lexicographically so the pair is always
   // reachable from either direction with one unique index, instead of two.
   memberAId   String
@@ -414,10 +414,10 @@ model DajeongSharedPlan {
   // Learn stores comparably deep nested content (see e.g. MaterialAnalysis
   // above). Ownership/participant/version fields that DO need to be queried,
   // constrained, or joined are real columns.
-  plan      Json
-  version   Int      @default(1)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  plan          Json
+  version       Int      @default(1)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
 
   @@index([ownerId])
   @@index([companionId])
@@ -425,20 +425,22 @@ model DajeongSharedPlan {
 }
 
 model DajeongPacePreference {
-  personId      String
-  companionKey  String
-  density       String?
-  placesPerDay  Int?
-  notes         Json     @default("[]")
-  updatedAt     DateTime @updatedAt
+  personId     String
+  companionKey String
+  density      String?
+  placesPerDay Int?
+  notes        Json     @default("[]")
+  updatedAt    DateTime @updatedAt
 
   @@id([personId, companionKey])
   @@map("dajeong_pace_preferences")
 }
 
-/** A solo (non-shared) plan the owner opted into proactive notifications for
+/**
+ * A solo (non-shared) plan the owner opted into proactive notifications for
  * — see dajeong/lib/notification-sweep.ts. Never readable by anyone but the
- * owner; there is no companion column here at all. */
+ * owner; there is no companion column here at all.
+ */
 model DajeongRegisteredPlan {
   planId    String   @id
   ownerId   String
@@ -457,9 +459,11 @@ model DajeongWeatherDigest {
   @@map("dajeong_weather_digests")
 }
 
-/** Heartbeat for the 60-second notification sweep. The sweep itself is driven by an external
+/**
+ * Heartbeat for the 60-second notification sweep. The sweep itself is driven by an external
  * cron this repo cannot see, so without a recorded timestamp there is no way to answer "is it
- * actually running in production?" — which is exactly the question that kept coming up. */
+ * actually running in production?" — which is exactly the question that kept coming up.
+ */
 model DajeongSweepHeartbeat {
   key       String   @id
   lastRunAt DateTime
@@ -468,9 +472,11 @@ model DajeongSweepHeartbeat {
   @@map("dajeong_sweep_heartbeats")
 }
 
-/** One outbound booking call 하루위드 placed on a user's behalf. Server-side because the call
+/**
+ * One outbound booking call 하루위드 placed on a user's behalf. Server-side because the call
  * result arrives from the voice provider's webhook long after the browser moved on — the plan
- * itself lives in the user's browser for solo plans, so there is nowhere else to land it. */
+ * itself lives in the user's browser for solo plans, so there is nowhere else to land it.
+ */
 model DajeongBookingCall {
   id                 String    @id
   planId             String
@@ -496,9 +502,11 @@ model DajeongBookingCall {
   @@map("dajeong_booking_calls")
 }
 
-/** Which discovery(발견) item ids a plan has already been notified about — without this, the
+/**
+ * Which discovery(발견) item ids a plan has already been notified about — without this, the
  * proactive-suggestion sweep would re-fire the same "○○ 떴어" push every 60s for as long as the
- * event stays within its notify window (worthNotifying stays true for up to 14 days). */
+ * event stays within its notify window (worthNotifying stays true for up to 14 days).
+ */
 model DajeongDiscoveryDigest {
   planId      String   @id
   notifiedIds Json
@@ -521,13 +529,13 @@ model DajeongPushSubscription {
 }
 
 model DajeongNotificationPreference {
-  personId          String   @id
-  masterEnabled     Boolean  @default(true)
-  categories        Json
-  secretPrivacyLevel String  @default("content_hidden")
-  quietHoursStart   String?
-  quietHoursEnd     String?
-  updatedAt         DateTime @updatedAt
+  personId           String   @id
+  masterEnabled      Boolean  @default(true)
+  categories         Json
+  secretPrivacyLevel String   @default("content_hidden")
+  quietHoursStart    String?
+  quietHoursEnd      String?
+  updatedAt          DateTime @updatedAt
 
   @@map("dajeong_notification_preferences")
 }
@@ -580,4 +588,455 @@ model DajeongAnonymousClaim {
 
   @@index([accountId])
   @@map("dajeong_anonymous_claims")
+}
+
+// ─── VibeSafe ────────────────────────────────────────────────────────────────
+//
+// AI로 만든 앱의 핵심 기능이 새 배포 때문에 망가졌는지, 실제 고객보다 먼저
+// 찾아내는 서비스. 남의 production 앱과 저장소를 다루기 때문에 다른 제품보다
+// 보안 제약이 세다 — 아래 모델에서 지켜야 하는 규칙 세 가지:
+//
+//  1. 사용자 토큰·비밀번호 같은 값은 평문 컬럼이 없다. 이름이 `*Cipher`로
+//     끝나는 컬럼만 존재하며 vibesafe/lib/crypto.ts의 AES-256-GCM을 거친다.
+//  2. 보안 점검 결과(VibesafeSecurityFinding)는 **발견한 값 자체를 저장하지
+//     않는다**. 저장하면 우리 DB가 남의 키 모음집이 된다.
+//  3. 모든 조회는 userId로 격리한다. projectId만으로 조회하는 쿼리를 만들지
+//     말 것 — 남의 프로젝트 id를 넣으면 그대로 뚫린다.
+
+model VibesafeUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  planKey      String    @default("beta")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  projects      VibesafeProject[]
+  integrations  VibesafeIntegration[]
+  notifications VibesafeNotification[]
+
+  @@map("vibesafe_users")
+}
+
+/**
+ * 외부 서비스 연결(현재는 GitHub OAuth 하나). 제품 사양의 `Integration`.
+ * provider를 열어둔 이유는 나중에 Vercel/Supabase 연결이 같은 자리에 붙기
+ * 때문이다 — 그때 새 테이블을 만들지 않는다.
+ */
+model VibesafeIntegration {
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String    @default("github")
+  /// pat | app_installation — 아래 accessTokenCipher/installationId 중 어느 쪽이
+  /// 채워졌는지를 가른다. GitHub App 쪽은 장기 토큰을 아예 저장하지 않는다.
+  authKind          String    @default("pat")
+  externalId        String
+  externalLogin     String
+  accessTokenCipher String?
+  installationId    String?
+  scopes            String    @default("")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  revokedAt         DateTime?
+
+  user VibesafeUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("vibesafe_integrations")
+}
+
+model VibesafeProject {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  /// setup → analyzing → review(흐름 확인 대기) → active → paused
+  status     String    @default("setup")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  user              VibesafeUser                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repository        VibesafeRepositoryConnection?
+  deploymentTargets VibesafeDeploymentTarget[]
+  appModels         VibesafeAppModel[]
+  flows             VibesafeCriticalFlow[]
+  testRuns          VibesafeTestRun[]
+  baselines         VibesafeFlowBaseline[]
+  incidents         VibesafeIncident[]
+  findings          VibesafeSecurityFinding[]
+  credential        VibesafeTestCredential?
+
+  @@index([userId, createdAt])
+  @@map("vibesafe_projects")
+}
+
+model VibesafeRepositoryConnection {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  provider            String   @default("github")
+  owner               String
+  repo                String
+  repoExternalId      String?
+  defaultBranch       String   @default("main")
+  isPrivate           Boolean  @default(false)
+  /// GitHub webhook 공유 비밀 — 서명 검증용이라 평문으로 두면 위조가 가능해진다.
+  webhookSecretCipher String?
+  webhookExternalId   String?
+  lastAnalyzedSha     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([owner, repo])
+  @@map("vibesafe_repository_connections")
+}
+
+/**
+ * 검사 대상이 되는 실제 배포처. MVP는 Vercel만 실제로 검증하지만 platform을
+ * 컬럼으로 둔 이유는 Render/Railway/Firebase가 붙을 때 **테이블이 아니라 값만**
+ * 늘어나게 하기 위해서다.
+ */
+model VibesafeDeploymentTarget {
+  id         String    @id @default(cuid())
+  projectId  String
+  kind       String    @default("production")
+  platform   String    @default("vercel")
+  baseUrl    String
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, kind])
+  @@map("vibesafe_deployment_targets")
+}
+
+/**
+ * AI가 저장소를 읽고 만든 "이 앱은 무엇인가" 모델.
+ * `fingerprint`는 분석에 실제로 넣은 입력(선별된 파일 경로+해시)의 요약이다.
+ * 매 검사마다 저장소 전체를 다시 AI에 넣지 않기 위한 캐시 키 — 같은 지문이면
+ * 분석을 건너뛴다. commitSha를 캐시 키로 쓰지 않는 이유: README 오타 하나만
+ * 고쳐도 sha가 바뀌지만 앱의 핵심 흐름은 그대로이기 때문이다.
+ */
+model VibesafeAppModel {
+  id          String   @id @default(cuid())
+  projectId   String
+  commitSha   String?
+  fingerprint String
+  appType     String
+  summary     String
+  stack       Json
+  routes      Json
+  createdAt   DateTime @default(now())
+
+  project  VibesafeProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  flows    VibesafeCriticalFlow[]
+  findings VibesafeSecurityFinding[]
+
+  @@unique([projectId, fingerprint])
+  @@index([projectId, createdAt])
+  @@map("vibesafe_app_models")
+}
+
+/**
+ * 핵심 사용자 흐름 하나.
+ * `key`는 baseline 비교의 축이다 — 재분석으로 행이 새로 생겨도 같은 흐름이면
+ * 같은 key를 유지해야 "지난주엔 됐는데 지금 깨졌다"를 말할 수 있다. 그래서
+ * (projectId, key)가 유니크다.
+ * `riskLevel`:
+ * safe    — 읽기/탐색/로그인처럼 되돌릴 수 있는 행동
+ * caution — 데이터를 만들지만 사용자가 확인하면 실행 가능
+ * blocked — 결제·발송·삭제처럼 금전/외부효과가 발생. MVP에서는 실행하지 않는다.
+ */
+model VibesafeCriticalFlow {
+  id          String   @id @default(cuid())
+  projectId   String
+  appModelId  String?
+  key         String
+  title       String
+  description String?
+  category    String   @default("other")
+  /// pending(사용자 확인 대기) | active | disabled
+  status      String   @default("pending")
+  riskLevel   String   @default("safe")
+  riskReason  String?
+  sortOrder   Int      @default(0)
+  /// ai | user — 사용자가 손댄 흐름을 재분석이 덮어쓰지 않게 하는 표시
+  source      String   @default("ai")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project  VibesafeProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  appModel VibesafeAppModel?  @relation(fields: [appModelId], references: [id], onDelete: SetNull)
+  steps    VibesafeFlowStep[]
+
+  @@unique([projectId, key])
+  @@index([projectId, status])
+  @@map("vibesafe_critical_flows")
+}
+
+/**
+ * 흐름의 한 단계. `value`에는 절대 비밀번호를 넣지 않는다 — 로그인 단계는
+ * value를 비우고 `secretRef`(= "username" | "password")로 프로젝트 테스트
+ * 계정을 가리키고, 실제 값은 실행 직전에 복호화해서 주입한다.
+ */
+model VibesafeFlowStep {
+  id          String  @id @default(cuid())
+  flowId      String
+  sortOrder   Int
+  action      String
+  selector    String?
+  value       String?
+  secretRef   String?
+  description String
+  optional    Boolean @default(false)
+
+  flow VibesafeCriticalFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId, sortOrder])
+  @@map("vibesafe_flow_steps")
+}
+
+/**
+ * 검사 1회.
+ * `dedupeKey`가 유니크인 것이 중복 실행 방지의 전부다. 같은 커밋에 대한
+ * webhook이 두 번 와도(GitHub는 실제로 재전송한다) 두 번째 insert가 DB에서
+ * 튕긴다 — 애플리케이션 레벨의 "이미 있나요?" 조회로는 동시 요청을 못 막는다.
+ * `claimToken`은 워커가 집어간 작업을 다른 워커가 또 집어가지 못하게 한다.
+ */
+model VibesafeTestRun {
+  id         String    @id @default(cuid())
+  projectId  String
+  /// manual | github | schedule
+  trigger    String    @default("manual")
+  /// queued | running | passed | failed | cancelled
+  status     String    @default("queued")
+  dedupeKey  String    @unique
+  commitSha  String?
+  claimToken String?
+  claimedAt  DateTime?
+  queuedAt   DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+  durationMs Int?
+  attempts   Int       @default(0)
+  error      String?
+  /// 이 실행 결과를 baseline으로 승격했는지
+  baselineAt DateTime?
+
+  project VibesafeProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  results VibesafeTestResult[]
+
+  @@index([projectId, queuedAt])
+  @@index([status, queuedAt])
+  @@map("vibesafe_test_runs")
+}
+
+model VibesafeTestResult {
+  id                    String   @id @default(cuid())
+  runId                 String
+  flowId                String?
+  flowKey               String
+  flowTitle             String
+  /// passed | failed | skipped
+  status                String
+  startedAt             DateTime
+  finishedAt            DateTime
+  durationMs            Int
+  failedStepOrder       Int?
+  failedStepDescription String?
+  errorMessage          String?
+  url                   String?
+  screenshotId          String?
+
+  run VibesafeTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([flowKey])
+  @@map("vibesafe_test_results")
+}
+
+/**
+ * 실패 순간 화면. 별도 테이블인 이유는 결과 조회(대시보드)가 base64 수백 KB를
+ * 매번 끌고 오지 않게 하기 위해서다. 용량 상한은 앱에서 강제한다.
+ */
+model VibesafeScreenshot {
+  id          String   @id @default(cuid())
+  projectId   String
+  contentType String   @default("image/jpeg")
+  data        String
+  bytes       Int
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@map("vibesafe_screenshots")
+}
+
+/**
+ * "이 흐름은 이 시점엔 분명히 됐다"는 기준점. 회귀 판정의 기준.
+ */
+model VibesafeFlowBaseline {
+  id            String   @id @default(cuid())
+  projectId     String
+  flowKey       String
+  runId         String
+  commitSha     String?
+  establishedAt DateTime @default(now())
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, flowKey])
+  @@map("vibesafe_flow_baselines")
+}
+
+/**
+ * 정상이던 흐름이 깨진 사건. 같은 장애가 이어지는 동안 행 하나를 유지한다.
+ */
+model VibesafeIncident {
+  id                    String    @id @default(cuid())
+  projectId             String
+  flowKey               String
+  flowTitle             String
+  /// open | resolved
+  status                String    @default("open")
+  severity              String    @default("high")
+  firstRunId            String
+  lastRunId             String
+  failedStepDescription String?
+  errorMessage          String?
+  detectedAt            DateTime  @default(now())
+  resolvedAt            DateTime?
+  lastNotifiedAt        DateTime?
+
+  project       VibesafeProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notifications VibesafeNotification[]
+
+  @@index([projectId, status])
+  @@map("vibesafe_incidents")
+}
+
+/**
+ * 알림. `dedupeKey`+`channel` 유니크가 알림 폭탄을 막는다 — 같은 장애가
+ * 30분 동안 6번 검사돼도 행은 하나다.
+ */
+model VibesafeNotification {
+  id         String    @id @default(cuid())
+  userId     String
+  projectId  String?
+  incidentId String?
+  /// regression | recovered | analysis_completed
+  kind       String
+  /// inapp | email
+  channel    String    @default("inapp")
+  title      String
+  body       String
+  dedupeKey  String
+  readAt     DateTime?
+  sentAt     DateTime?
+  failedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  user     VibesafeUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incident VibesafeIncident? @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+
+  @@unique([dedupeKey, channel])
+  @@index([userId, createdAt])
+  @@map("vibesafe_notifications")
+}
+
+/**
+ * 저장소 분석 중 눈에 띈 명백한 위험.
+ * ★ `evidence`에 발견한 값 자체를 넣지 않는다. 마스킹된 흔적("sk-...abcd")과
+ * 위치만 남긴다. 전문 스캐너를 만드는 게 목적이 아니고, 남의 키를 우리 DB에
+ * 모아두는 순간 이 서비스 자체가 제일 값진 표적이 된다.
+ */
+model VibesafeSecurityFinding {
+  id         String   @id @default(cuid())
+  projectId  String
+  appModelId String?
+  /// high | medium | low
+  severity   String
+  rule       String
+  title      String
+  filePath   String
+  line       Int?
+  evidence   String
+  advice     String
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+
+  project  VibesafeProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  appModel VibesafeAppModel? @relation(fields: [appModelId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, rule, filePath, line])
+  @@index([projectId, severity])
+  @@map("vibesafe_security_findings")
+}
+
+/**
+ * 로그인이 필요한 흐름을 돌리기 위한 테스트 전용 계정.
+ * 사용자에게 "실계정 말고 테스트 계정을 넣으라"고 화면에서 명시한다.
+ */
+model VibesafeTestCredential {
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  label          String   @default("테스트 계정")
+  usernameCipher String
+  passwordCipher String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project VibesafeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("vibesafe_test_credentials")
+}
+
+/**
+ * 제품 분석 이벤트. 유료화 판단 근거가 되므로 삭제하지 않고 쌓는다.
+ */
+model VibesafeAnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  projectId String?
+  name      String
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+  @@map("vibesafe_analytics_events")
+}
+
+/**
+ * 월별 사용량. 지금은 한도만 걸고, 나중에 요금제의 근거가 된다.
+ */
+model VibesafeUsageCounter {
+  id        String   @id @default(cuid())
+  userId    String
+  periodKey String
+  /// test_runs | ai_analyses | browser_ms
+  metric    String
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, periodKey, metric])
+  @@map("vibesafe_usage_counters")
+}
+
+/**
+ * GitHub webhook 재전송을 걸러내는 자리. deliveryId가 유니크인 게 전부다.
+ */
+model VibesafeWebhookDelivery {
+  id         String   @id @default(cuid())
+  deliveryId String   @unique
+  projectId  String?
+  eventType  String
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+  @@map("vibesafe_webhook_deliveries")
 }

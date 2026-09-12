@@ -10,6 +10,7 @@ Instructions for AI coding assistants working in this repo.
 | **Jarvis / Toss Shop — full handoff** | **[docs/JARVIS_CLAUDE_HANDOFF.md](./docs/JARVIS_CLAUDE_HANDOFF.md)** |
 | **Cron, polling, “how often does X run?”** | **[CRON.md](./CRON.md)** ← always read before answering |
 | **Toss Shop / Effiroad seller** | **[docs/TOSS_SHOP_SETUP.md](./docs/TOSS_SHOP_SETUP.md)** |
+| **VibeSafe — 앱 상태 확인 SaaS** | **[VIBESAFE.md](./VIBESAFE.md)** ← 브라우저 워커를 띄워야 검사가 돈다 |
 | Deploy & env | [DEPLOY.md](./DEPLOY.md) |
 | Twilio | [TWILIO_SETUP.md](./TWILIO_SETUP.md) |
 | Retell AI | [docs/RETELL_SETUP.md](./docs/RETELL_SETUP.md) |

@@ -10,6 +10,9 @@ import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
 import { isDajeongHost, dajeongInternalPath } from "@/dajeong/lib/dajeong-host";
+import { isVibesafeHost, vibesafeInternalPath } from "@/vibesafe/lib/vibesafe-host";
+import { isProtectedVibesafePath } from "@/vibesafe/lib/route-guard";
+import { VIBESAFE_SESSION_COOKIE, verifySessionToken as verifyVibesafeSession } from "@/vibesafe/lib/session";
 import {
   isEffiroadDispatchEnabled,
   isLegacyEffiroadUiPath,
@@ -100,6 +103,29 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
 function dajeongShellResponse(request: NextRequest, rewritePath?: string) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-app-shell", "dajeong");
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (rewritePath && rewritePath !== request.nextUrl.pathname) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewritePath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+async function vibesafeGate(request: NextRequest, pathname: string): Promise<NextResponse | null> {
+  if (!isProtectedVibesafePath(pathname)) return null;
+  const token = request.cookies.get(VIBESAFE_SESSION_COOKIE)?.value;
+  if (await verifyVibesafeSession(token)) return null;
+
+  const login = new URL("/vibesafe/login", request.url);
+  const next = safeNextPath(pathname);
+  if (next) login.searchParams.set("next", next);
+  return NextResponse.redirect(login);
+}
+
+function vibesafeShellResponse(request: NextRequest, rewritePath?: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "vibesafe");
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
   if (rewritePath && rewritePath !== request.nextUrl.pathname) {
     const url = request.nextUrl.clone();
@@ -210,6 +236,21 @@ export async function middleware(request: NextRequest) {
   // effiroad.com/dajeong itself no longer serves this app.
   if (isDajeongHost(hostname)) {
     return dajeongShellResponse(request, dajeongInternalPath(pathname));
+  }
+
+  // VibeSafe — 아직 전용 도메인이 없는 상태로 출시한다. 도메인을 붙이면
+  // NEXT_PUBLIC_VIBESAFE_HOSTS 환경변수만 채우면 되고(vibesafe/lib/vibesafe-host.ts),
+  // 그 전까지는 아래 경로 분기가 /vibesafe 를 그대로 서빙한다.
+  if (isVibesafeHost(hostname)) {
+    const internal = vibesafeInternalPath(pathname);
+    const gated = await vibesafeGate(request, internal);
+    if (gated) return gated;
+    return vibesafeShellResponse(request, internal);
+  }
+  if (pathname === "/vibesafe" || pathname.startsWith("/vibesafe/")) {
+    const gated = await vibesafeGate(request, pathname);
+    if (gated) return gated;
+    return vibesafeShellResponse(request);
   }
 
   // ★ giucuu.com → 자비스. 사장님 한 명만 쓰는 개인 자동화다.

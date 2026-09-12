@@ -8,6 +8,7 @@ import { JarvisPlatformShell } from "@/jarvis/ui/JarvisPlatformShell";
 import { ChaebiPlatformShell } from "@/chaebi/components/layout/ChaebiPlatformShell";
 import { CHAEBI_BRAND } from "@/chaebi/lib/brand";
 import { DajeongPlatformShell } from "@/dajeong/components/DajeongPlatformShell";
+import { VibesafePlatformShell } from "@/vibesafe/components/VibesafePlatformShell";
 import { EFFIROAD_BRAND } from "@/jarvis/brand";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
@@ -18,6 +19,7 @@ import { getAppShell } from "@/lib/shell-route";
 import { LEARN_BRAND } from "@/learn/lib/brand";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
 import { DAJEONG_BRAND } from "@/dajeong/lib/brand";
+import { VIBESAFE_BRAND } from "@/vibesafe/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +123,19 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
+  if (shell === "vibesafe") {
+    return {
+      title: { default: VIBESAFE_BRAND.fullName, template: `%s · ${VIBESAFE_BRAND.name}` },
+      description: VIBESAFE_BRAND.subline,
+      applicationName: VIBESAFE_BRAND.name,
+      robots: { index: true, follow: true },
+      openGraph: {
+        title: VIBESAFE_BRAND.fullName,
+        description: VIBESAFE_BRAND.tagline,
+        locale: "ko_KR",
+      },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -156,6 +171,9 @@ export default async function RootLayout({
   }
   if (shell === "dajeong") {
     return <DajeongPlatformShell>{children}</DajeongPlatformShell>;
+  }
+  if (shell === "vibesafe") {
+    return <VibesafePlatformShell>{children}</VibesafePlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }

@@ -43,6 +43,8 @@ npm run launch:check
 
 See `DEPLOY.md` for full production checklist and `docs/founder-launch-runbook.md` for step-by-step.
 
+**VibeSafe** (`/vibesafe`) — AI로 만든 앱의 핵심 기능이 새 배포로 깨졌는지 브라우저로 확인하고 알려주는 한국어 SaaS. 설치·운영은 **[VIBESAFE.md](./VIBESAFE.md)**. 브라우저 워커(`npm run vibesafe:runner`)가 떠 있어야 검사가 실제로 실행된다.
+
 **Cron & polling:** see **[CRON.md](./CRON.md)** — tech dispatch runs every **60s** via cron-job.org (not daily). AI assistants: read [AGENTS.md](./AGENTS.md).
 
 ## Product flows (tested in dev)

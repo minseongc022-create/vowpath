@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "summary": "자비스는 www.giucuu.com에서 10분마다 /api/jarvis/cron으로 돈다. effiroad.com은 옛 흔적(AI 전화 서비스·옛 toss-shop)과 얽히지 않게 텅 비워서 모든 경로가 404다 — 그래서 거기를 부르던 크론은 전부 은퇴시켰다. 하루위드(dajeong)는 2026-09-03에 haruwith.com 전용 도메인으로 완전히 옮겨서 effiroad.com과 브랜드·세션·크론을 하나도 안 섞는다 — 그래서 그 크론도 haruwith.com으로 옮겼다. vercel.json은 Hobby 요금제 한도 때문에 하루 1회만 둔다.",
+  "summary": "자비스는 www.giucuu.com에서 10분마다 /api/jarvis/cron으로 돈다. effiroad.com은 옛 흔적(AI 전화 서비스·옛 toss-shop)과 얽히지 않게 텅 비워서 모든 경로가 404다 — 그래서 거기를 부르던 크론은 전부 은퇴시켰다. 하루위드(dajeong)는 2026-09-03에 haruwith.com 전용 도메인으로 완전히 옮겨서 effiroad.com과 브랜드·세션·크론을 하나도 안 섞는다 — 그래서 그 크론도 haruwith.com으로 옮겼다. vercel.json은 Hobby 요금제 한도 때문에 하루 1회만 둔다. VibeSafe는 2026-09-12에 추가됐다 — 큐에 넣는 일만 크론이 하고, 실제 브라우저 검사는 별도 워커 프로세스(scripts/vibesafe-runner.mjs)가 가져간다.",
   "externalCrons": [
     {
       "provider": "cron-job.org",
@@ -27,6 +27,19 @@
       ],
       "note": "2026-09-03에 cron-job.org에 실제 등록되어 60초 주기로 돈다. 같은 날 나중에 하루위드가 effiroad.com/dajeong에서 haruwith.com 전용 도메인으로 완전히 옮겨가면서, 이 크론도 함께 haruwith.com으로 재등록했다 — 옛 effiroad.com 주소의 job은 retiredCrons에서 삭제한다.",
       "baseUrl": "https://haruwith.com"
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/vibesafe/cron",
+      "intervalSeconds": 3600,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": [
+        "VibeSafe: 워커가 죽어서 running으로 붙잡힌 검사를 되살린다(attempts 상한에 닿으면 failed로 종료)",
+        "VIBESAFE_CHECK_INTERVAL_HOURS(기본 6시간) 동안 검사하지 않은 프로젝트를 큐에 넣는다"
+      ],
+      "note": "아직 cron-job.org에 등록되지 않았다 — vercel.json의 하루 1회만 실제로 돈다. 1시간 주기는 '되살리기'를 위한 것이고, 실제 검사 주기는 VIBESAFE_CHECK_INTERVAL_HOURS가 정한다(크론이 자주 와도 그 시간 안에는 큐에 넣지 않는다). 브라우저 워커가 한 대도 안 돌고 있으면 큐만 쌓이므로, 워커를 띄우기 전에는 등록하지 말 것.",
+      "baseUrl": "https://effiroad.com"
     }
   ],
   "retiredCrons": [
@@ -74,6 +87,11 @@
       "schedule": "0 17 * * *",
       "utcHour": 17,
       "note": "Daily backup only; production real-time cadence is the external 60s cron-job.org job above (now targeting haruwith.com, not effiroad.com — this daily Vercel-invoked backup is unaffected either way)."
+    },
+    {
+      "path": "/api/vibesafe/cron",
+      "schedule": "0 18 * * *",
+      "note": "Hobby 요금제는 하루 1회가 한도다. 이 주기만으로도 제품은 동작한다 — 사용자가 직접 실행하거나 push webhook이 오면 그때 검사한다. 더 자주 돌리려면 위 externalCrons 항목을 cron-job.org에 등록한다."
     }
   ],
   "manualOrPostbuildCrons": [
