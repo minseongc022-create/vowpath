@@ -63,6 +63,27 @@ Playwright는 Chromium 바이너리(~150MB)와 수십 초의 실행 시간이 �
 
 ## 3. 설치
 
+### 3-0. 가장 빠른 길 (권장)
+
+```bash
+npm run vibesafe:infra      # 비밀값 생성 + (VERCEL_TOKEN 있으면) Vercel 반영
+```
+
+GitHub Actions에서 돌려도 된다 — **Actions → "VibeSafe 운영 준비" → Run workflow**
+(저장소에 이미 있는 `VERCEL_TOKEN` 시크릿을 쓴다).
+
+이 스크립트가 만들어 주는 것: `VIBESAFE_AUTH_SECRET`, `VIBESAFE_ENCRYPTION_KEY`,
+`VIBESAFE_RUNNER_TOKEN`.
+사람이 넣어야 하는 것: `VIBESAFE_DATABASE_URL`, AI 키(`ANTHROPIC_API_KEY` 또는
+`OPENAI_API_KEY`), 선택으로 `RESEND_API_KEY`. 무엇이 빠졌는지 스크립트가 알려준다.
+
+> ★ **이미 있는 값은 덮어쓰지 않는다.** 특히 `VIBESAFE_ENCRYPTION_KEY`를 바꾸면
+> 저장된 GitHub 연결과 테스트 계정을 **전부 복호화할 수 없게 된다**. 교체가
+> 필요하면 `--rotate=KEY_NAME`으로 이름을 정확히 대야 한다.
+
+설정이 끝났는지 확인: **`https://<도메인>/vibesafe/setup`**
+무엇이 됐고 무엇이 남았는지 한국어로 보여준다(비밀값은 표시하지 않는다).
+
 ### 3-1. 데이터베이스
 
 ```bash
@@ -105,7 +126,19 @@ ANTHROPIC_API_KEY=...          # 또는 OPENAI_API_KEY
 App 설정 없이도 제품은 완전히 동작한다 — push 자동 검사만 저장소별 webhook을
 직접 추가해야 한다(설정 화면에서 안내한다).
 
-### 3-4. 브라우저 워커 띄우기
+### 3-4. 브라우저 워커 띄우기 — 셋 중 하나
+
+**(A) GitHub Actions — 서버가 필요 없다. 권장.**
+
+저장소 Secrets에 `VIBESAFE_RUNNER_TOKEN`(3-0에서 출력된 값)을 넣으면 끝이다.
+`.github/workflows/vibesafe-runner.yml`이 15분마다 큐를 비운다.
+
+- Variables에 `VIBESAFE_API_URL`을 넣으면 배포 주소를 바꿀 수 있다(기본 effiroad.com).
+- 즉시 돌리려면 Actions → "VibeSafe 브라우저 워커" → Run workflow.
+- 시크릿이 없으면 워크플로는 **조용히 건너뛴다** — 설정 전에 실패 메일이
+  15분마다 오는 것만큼 알림을 빨리 끄게 만드는 것도 없다.
+
+**(B) 아무 서버에서나 프로세스로**
 
 ```bash
 npx playwright install chromium     # 최초 1회
@@ -115,6 +148,17 @@ VIBESAFE_RUNNER_TOKEN=위와_같은_값 \
 npm run vibesafe:runner
 ```
 
+**(C) 도커 — 항상 켜두고 싶을 때**
+
+```bash
+docker build -f Dockerfile.vibesafe-runner -t vibesafe-runner .
+docker run -d --restart=always \
+  -e VIBESAFE_API_URL=https://your-app.com \
+  -e VIBESAFE_RUNNER_TOKEN=... \
+  vibesafe-runner
+```
+
+공통 옵션:
 - `npm run vibesafe:runner:once` — 한 번만 처리하고 종료(cron/CI용).
 - `VIBESAFE_BROWSER_PATH=/path/to/chrome` — 이미 설치된 Chromium을 쓴다.
 
@@ -182,6 +226,7 @@ npm run vibesafe:runner
 | 브라우저 시간 | 단계 15초, 흐름 90초 상한. 사용자별 월 실행 시간 한도. |
 | 검사 중복 | 프로젝트당 동시 1건 + `dedupeKey` 유니크 제약. |
 | 모델 | `VIBESAFE_ANTHROPIC_MODEL` / `VIBESAFE_OPENAI_MODEL`로 교체 가능. |
+| 엔드포인트 | `VIBESAFE_OPENAI_BASE_URL`로 Azure OpenAI·LiteLLM·OpenRouter·사내 게이트웨이·로컬 모델(Ollama 호환)에 붙일 수 있다. |
 
 ---
 

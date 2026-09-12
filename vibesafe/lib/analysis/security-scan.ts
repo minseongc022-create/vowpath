@@ -114,17 +114,51 @@ function lineOf(content: string, index: number): number {
   return content.slice(0, index).split("\n").length;
 }
 
+/**
+ * 로그인이 없는 게 **정상인** 주소.
+ *
+ * ★ 실제 저장소에 돌려보고 추가한 목록이다
+ *
+ * 처음엔 이 예외 없이 내보냈더니, 실제 앱 하나를 분석했을 때 경고 10건 중
+ * 8건이 `/api/auth/login`, `/api/auth/signup`, `/api/auth/reset-password`
+ * 같은 것들이었다. 로그인 주소에 "로그인 검사가 없다"고 말하는 셈이다.
+ *
+ * 오탐이 8할이면 사용자는 이 목록 전체를 안 본다. 그러면 진짜 위험한 1건도
+ * 같이 묻힌다 — 경고를 늘리는 게 아니라 줄여야 쓸모가 생긴다.
+ */
+const PUBLIC_BY_DESIGN = [
+  /\/(login|logout|signin|sign-in|signup|sign-up|register|join)\b/,
+  /\/(forgot|reset|recover)[-_]?password\b/,
+  /\/(verify|confirm|activate|otp|magic-link)\b/,
+  /\/(webhook|webhooks|callback|oauth|auth)\//,
+  /\/api\/auth\b/,
+  /\/(cron|health|healthz|ping|status|revalidate)\b/,
+  /\/(contact|inquiry|subscribe|newsletter|feedback)\b/,
+  /\/(checkout|payment|pay)\/(webhook|callback|notify)/,
+];
+
+function isPublicByDesign(path: string): boolean {
+  const p = path.toLowerCase();
+  return PUBLIC_BY_DESIGN.some((re) => re.test(p));
+}
+
 /** 쓰기 API 라우트에 인증 흔적이 전혀 없는지 — 정규식 하나로 판단할 수 없어 따로 본다. */
 function scanUnauthenticatedWriteRoute(file: CollectedFile): SecurityFinding | null {
   const isApiRoute =
     /^(src\/)?app\/.*\/route\.(ts|js)$/.test(file.path) || /^(src\/)?pages\/api\//.test(file.path);
   if (!isApiRoute) return null;
+  if (isPublicByDesign(file.path)) return null;
 
   const hasWrite = /export\s+(async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b/.test(file.content);
   if (!hasWrite) return null;
 
+  // 세션 검사뿐 아니라 서명 검증·토큰 대조도 "보호되고 있다"로 친다 —
+  // webhook과 cron은 세션이 아니라 그쪽으로 자신을 지킨다.
   const hasAuthSignal =
-    /auth\(|getSession|getServerSession|currentUser|requireUser|requireAuth|verify(Token|Session|Jwt)|cookies\(\)|getUser\(|session\b/i.test(
+    /auth\(|getSession|getServerSession|currentUser|requireUser|requireAuth|verify(Token|Session|Jwt|Signature|Webhook)|cookies\(\)|getUser\(|session\b/i.test(
+      file.content,
+    ) ||
+    /createHmac|timingSafeEqual|CRON_SECRET|x-hub-signature|svix-signature|stripe-signature|Bearer\s/i.test(
       file.content,
     );
   if (hasAuthSignal) return null;

@@ -74,3 +74,53 @@ test("클라이언트 컴포넌트의 서버 전용 환경변수는 경고한다
   ]);
   assert.ok(findings.some((f) => f.rule === "private_env_in_client"));
 });
+
+/**
+ * 아래 세 개는 실제 저장소에 스캐너를 돌려보고 추가했다.
+ * 경고 10건 중 8건이 로그인·가입 주소였다 — 오탐이 8할이면 아무도 안 본다.
+ */
+test("로그인·가입 주소는 인증이 없는 게 정상이라 짚지 않는다", () => {
+  const paths = [
+    "app/api/auth/login/route.ts",
+    "app/api/auth/signup/route.ts",
+    "app/api/auth/reset-password/route.ts",
+    "app/api/auth/forgot-password/route.ts",
+    "pages/api/auth/callback.ts",
+  ];
+  for (const path of paths) {
+    const findings = scanForSecurityIssues([
+      file(path, `export async function POST(request) { return Response.json({}); }`),
+    ]);
+    assert.equal(
+      findings.filter((f) => f.rule === "dangerous_public_endpoint").length,
+      0,
+      `${path} 는 공개가 정상이다`,
+    );
+  }
+});
+
+test("webhook·cron 주소도 짚지 않는다", () => {
+  for (const path of ["app/api/webhooks/stripe/route.ts", "app/api/cron/sweep/route.ts"]) {
+    const findings = scanForSecurityIssues([
+      file(path, `export async function POST() { return Response.json({}); }`),
+    ]);
+    assert.equal(findings.filter((f) => f.rule === "dangerous_public_endpoint").length, 0, path);
+  }
+});
+
+test("세션이 아니라 서명으로 자신을 지키는 라우트도 보호된 것으로 본다", () => {
+  const findings = scanForSecurityIssues([
+    file(
+      "app/api/receive/route.ts",
+      `import { createHmac, timingSafeEqual } from "crypto";\nexport async function POST(req) {\n  const sig = req.headers.get("x-hub-signature-256");\n  return Response.json({});\n}`,
+    ),
+  ]);
+  assert.equal(findings.filter((f) => f.rule === "dangerous_public_endpoint").length, 0);
+});
+
+test("진짜 보호가 없는 쓰기 주소는 여전히 짚는다", () => {
+  const findings = scanForSecurityIssues([
+    file("app/api/posts/delete/route.ts", `export async function DELETE(req) { return Response.json({}); }`),
+  ]);
+  assert.ok(findings.some((f) => f.rule === "dangerous_public_endpoint"), "이건 놓치면 안 된다");
+});

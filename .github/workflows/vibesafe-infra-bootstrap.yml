@@ -1,0 +1,48 @@
+name: VibeSafe 운영 준비
+
+# 필요한 비밀값을 만들어 Vercel에 올린다. 한 번만 돌리면 된다.
+#
+# 이미 있는 값은 덮어쓰지 않는다 — 특히 VIBESAFE_ENCRYPTION_KEY를 바꾸면
+# 저장된 GitHub 연결을 전부 복호화할 수 없게 된다. 교체가 필요하면 아래
+# rotate 입력에 키 이름을 정확히 적어야 한다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      rotate:
+        description: "교체할 키 이름 (비워두면 없는 것만 생성)"
+        required: false
+        default: ""
+      dry_run:
+        description: "실제로 올리지 않고 무엇을 할지만 보기"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 비밀값 생성 + Vercel 반영
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.rotate }}" ]; then
+            ARGS="$ARGS --rotate=${{ github.event.inputs.rotate }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          node scripts/vibesafe-infra-bootstrap.mjs $ARGS

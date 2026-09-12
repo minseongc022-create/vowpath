@@ -9,6 +9,19 @@ import { AiRequestError, type AiJsonRequest, type AiProvider } from "./provider"
  * 쓴다(의존성을 하나 더 늘리지 않는다). 여기서 중요한 건 모양이 아니라,
  * 이 파일을 지워도 Anthropic 쪽이 그대로 돈다는 것이다.
  */
+/**
+ * 엔드포인트를 바꿀 수 있게 둔다.
+ *
+ * Azure OpenAI, LiteLLM·OpenRouter 같은 프록시, 사내망 게이트웨이, 로컬 모델
+ * (Ollama의 OpenAI 호환 엔드포인트) 전부 "OpenAI 모양"을 그대로 쓴다. 주소
+ * 하나만 열어두면 그 전부가 코드 수정 없이 붙는다 — 비용을 통제해야 하는
+ * 제품에서 이 선택지를 닫아둘 이유가 없다.
+ */
+function baseUrl(): string {
+  const raw = process.env.VIBESAFE_OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
+  return raw.replace(/\/+$/, "");
+}
+
 export function createOpenAiProvider(): AiProvider {
   const model = process.env.VIBESAFE_OPENAI_MODEL?.trim() || "gpt-4o-mini";
 
@@ -21,7 +34,7 @@ export function createOpenAiProvider(): AiProvider {
 
       let res: Response;
       try {
-        res = await fetch("https://api.openai.com/v1/chat/completions", {
+        res = await fetch(`${baseUrl()}/chat/completions`, {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({

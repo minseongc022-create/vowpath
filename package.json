@@ -59,7 +59,8 @@
     "test:vibesafe": "node --conditions=react-server --import tsx --test tests/unit/vibesafe/*.test.mjs",
     "vibesafe:runner": "node scripts/vibesafe-runner.mjs",
     "vibesafe:runner:once": "node scripts/vibesafe-runner.mjs --once",
-    "vibesafe:push": "prisma db push"
+    "vibesafe:push": "prisma db push",
+    "vibesafe:infra": "node scripts/vibesafe-infra-bootstrap.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

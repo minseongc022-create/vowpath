@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { VIBESAFE_BRAND } from "@/vibesafe/lib/brand";
 import { getSession } from "@/vibesafe/lib/session";
+import { getSetupStatus } from "@/vibesafe/lib/setup-status";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,30 @@ export const dynamic = "force-dynamic";
 export default async function VibesafeLandingPage() {
   if (await getSession()) redirect("/vibesafe/dashboard");
 
+  // 배포 직후 운영자가 처음 여는 화면이 여기다. 아직 설정이 덜 됐으면
+  // 가입 버튼을 누르고 나서 실패하는 대신, 무엇이 남았는지 먼저 알려준다.
+  const setup = await getSetupStatus();
+
   return (
     <>
+      {!setup.ready && (
+        <div
+          style={{
+            background: "var(--vs-warn-wash)",
+            borderBottom: "1px solid #efd9b2",
+            padding: "12px 20px",
+            textAlign: "center",
+            fontSize: 14,
+            color: "#8c5a08",
+          }}
+        >
+          이 배포는 아직 설정이 끝나지 않았습니다 — {setup.headline}.{" "}
+          <Link href="/vibesafe/setup" style={{ color: "#8c5a08", fontWeight: 600 }}>
+            무엇이 남았는지 보기
+          </Link>
+        </div>
+      )}
+
       <section className="vs-hero">
         <div className="vs-hero-inner">
           <span className="vs-eyebrow">무료 베타 · 카드 등록 없음</span>

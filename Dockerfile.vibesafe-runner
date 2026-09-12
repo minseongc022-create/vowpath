@@ -1,0 +1,29 @@
+# VibeSafe 브라우저 워커 — 항상 켜두고 싶을 때.
+#
+# GitHub Actions 워커(.github/workflows/vibesafe-runner.yml)로 충분한 경우가
+# 많다. 이 이미지는 검사를 15분이 아니라 몇 초 안에 집어가야 할 때 쓴다.
+#
+#   docker build -f Dockerfile.vibesafe-runner -t vibesafe-runner .
+#   docker run -d --restart=always \
+#     -e VIBESAFE_API_URL=https://your-app.com \
+#     -e VIBESAFE_RUNNER_TOKEN=... \
+#     vibesafe-runner
+#
+# 베이스 이미지에 Chromium과 필요한 시스템 라이브러리가 이미 들어있다 —
+# 직접 깔면 빠뜨린 .so 하나 때문에 "브라우저가 안 뜬다"로 한참 헤맨다.
+FROM mcr.microsoft.com/playwright:v1.49.1-jammy
+
+WORKDIR /app
+
+# 워커는 playwright 하나만 쓴다. 저장소 전체 의존성을 넣을 이유가 없다.
+RUN npm install --no-audit --no-fund playwright@1.49.1
+
+COPY scripts/vibesafe-runner.mjs ./scripts/vibesafe-runner.mjs
+
+ENV NODE_ENV=production
+ENV VIBESAFE_RUNNER_POLL_MS=15000
+
+# ★ root로 브라우저를 돌리지 않는다. 남의 사이트를 여는 프로세스다.
+USER pwuser
+
+CMD ["node", "scripts/vibesafe-runner.mjs"]
