@@ -121,6 +121,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
             {busy ? "처리 중…" : isSignup ? "가입하고 시작하기" : "로그인"}
           </button>
 
+          {isSignup && (
+            <p className="vs-hint" style={{ textAlign: "center" }}>
+              가입하면 <Link href="/vibesafe/terms">이용약관</Link>과{" "}
+              <Link href="/vibesafe/privacy">개인정보처리방침</Link>에 동의하는 것으로 간주됩니다.
+            </p>
+          )}
+
           <p className="vs-hint" style={{ textAlign: "center" }}>
             {isSignup ? (
               <>

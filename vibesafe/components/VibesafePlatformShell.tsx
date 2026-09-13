@@ -70,6 +70,15 @@ export async function VibesafePlatformShell({ children }: { children: React.Reac
               <span>
                 VibeSafe는 여러분의 저장소를 읽기만 하고, 코드를 고치거나 배포하지 않습니다.
               </span>
+              <Link href="/vibesafe/terms" className="vs-nav-link">
+                이용약관
+              </Link>
+              <Link href="/vibesafe/privacy" className="vs-nav-link">
+                개인정보처리방침
+              </Link>
+              <Link href="/vibesafe/refund" className="vs-nav-link">
+                환불정책
+              </Link>
             </div>
           </footer>
         </div>

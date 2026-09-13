@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 /**
@@ -76,6 +77,10 @@ export function BillingRegisterButton({
         {trialEligible
           ? "등록해도 지금 결제되는 금액은 없습니다 — 7일 뒤부터 자동으로 결제되고, 결제 하루 전에 미리 알려드립니다. 그 전에 언제든 해지하면 결제되지 않습니다."
           : "이미 무료체험을 사용하셨어서, 이번에는 등록 즉시 결제되고 이후 30일마다 자동으로 결제됩니다. 언제든 해지할 수 있습니다."}
+      </p>
+      <p className="vs-hint">
+        계속 진행하면 <Link href="/vibesafe/terms">이용약관</Link>과{" "}
+        <Link href="/vibesafe/refund">환불정책</Link>에 동의하는 것으로 간주됩니다.
       </p>
     </div>
   );

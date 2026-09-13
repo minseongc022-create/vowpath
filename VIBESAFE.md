@@ -598,6 +598,25 @@ NEXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY=
 가격·한도를 바꾸려면 `VIBESAFE_PRO_PRICE_KRW` 등 환경변수를 쓰거나
 `vibesafe/lib/billing/plans.ts`를 직접 고친다.
 
+### 3-7. 에러 모니터링(Sentry)과 속도 제한(Vercel KV) 켜기 (둘 다 선택)
+
+둘 다 코드는 이미 완성돼 있고, 값을 안 넣으면 조용히 꺼진 채로 서비스는
+그대로 동작한다.
+
+- **Sentry**: [sentry.io](https://sentry.io)에서 프로젝트를 만들어 DSN을
+  받은 뒤 `SENTRY_DSN`과 `NEXT_PUBLIC_SENTRY_DSN`에 같은 값을 넣는다
+  (`instrumentation.ts`/`instrumentation-client.ts`가 초기화한다). 로컬
+  개발 중에는 `NODE_ENV`가 production이 아니라서 DSN을 넣어도 전송하지
+  않는다. `next.config.ts`를 Sentry의 webpack 플러그인으로 감싸지
+  않았다 — 그러면 소스맵 업로드용 `SENTRY_AUTH_TOKEN`이 빌드 필수값이
+  되는데, 빌드 자체가 선택 기능 하나 때문에 깨지면 안 되기 때문이다.
+  그 대신 스택 트레이스가 Sentry 대시보드에서 압축된 코드로 보인다 —
+  필요해지면 그때 붙인다.
+- **Vercel KV**: `lib/security/rate-limit.ts`가 이미 `KV_REST_API_URL`/
+  `KV_REST_API_TOKEN`(모노레포 전체가 공유하는 값, `.env.example`의
+  "EFFIROAD TOSS SHOP" 섹션 참고)을 읽는다. 새로 만들 것 없이 그 값만
+  채우면 VibeSafe의 속도 제한도 같이 정확해진다.
+
 ---
 
 ## 4. 안전 설계 — 반드시 읽을 것

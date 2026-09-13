@@ -90,7 +90,45 @@ export default async function VibesafeLandingPage() {
         </div>
       </section>
 
-      <section className="vs-section" id="how">
+      <section className="vs-section">
+        <div className="vs-section-inner">
+          <div className="vs-section-head">
+            <span className="vs-eyebrow">VibeSafe가 다른 점</span>
+            <h2>찾기만 하지 않고, 고치기까지 합니다</h2>
+            <p>
+              장애가 났다고 알림만 주는 도구는 이미 많습니다. VibeSafe는 원인을 찾아 수정안을
+              만들고, 적용한 뒤 실제 서비스에서 다시 되는지까지 확인합니다.
+            </p>
+          </div>
+          <div className="vs-grid-2">
+            {[
+              {
+                title: "실제 브라우저로 감지합니다",
+                body: "주소가 열리는지만 보지 않습니다. 로그인·결제처럼 손님이 직접 쓰는 흐름을 실제로 누르고 입력해봅니다.",
+              },
+              {
+                title: "커밋 이력으로 원인까지 찾습니다",
+                body: "마지막으로 정상이었던 시점 이후 무엇이 바뀌었는지 읽어 범인을 좁힙니다. 이 결과는 요금제와 무관하게 항상 전부 보여드립니다.",
+              },
+              {
+                title: "수정안을 PR로 만들어드립니다",
+                body: "고친 코드를 새 브랜치·PR로 올립니다. 기본 브랜치에 직접 push하는 기능은 아예 만들지 않았습니다.",
+              },
+              {
+                title: "적용 후 실제 서비스에서 다시 확인합니다",
+                body: "머지했다고 곧바로 “고쳤습니다”라고 말하지 않습니다. 실제 주소에서 다시 되는 걸 확인해야 비로소 알려드립니다.",
+              },
+            ].map((item) => (
+              <div className="vs-card" key={item.title}>
+                <h3 className="vs-section-title">{item.title}</h3>
+                <p className="vs-hint" style={{ marginTop: 8 }}>{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="vs-section vs-section-alt" id="how">
         <div className="vs-section-inner">
           <div className="vs-section-head">
             <h2>작동 방식</h2>
@@ -139,7 +177,7 @@ export default async function VibesafeLandingPage() {
         </div>
       </section>
 
-      <section className="vs-section vs-section-alt">
+      <section className="vs-section">
         <div className="vs-section-inner">
           <div className="vs-section-head">
             <h2>이런 화면을 보게 됩니다</h2>
@@ -176,6 +214,34 @@ export default async function VibesafeLandingPage() {
                   ))}
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="vs-section vs-section-alt">
+        <div className="vs-section-inner">
+          <div className="vs-section-head">
+            <h2>README에 상태 배지를 답니다</h2>
+            <p>지금 정상인지 고객이 직접 확인할 수 있는 공개 페이지가 자동으로 생깁니다.</p>
+          </div>
+          <div className="vs-grid-2">
+            <div className="vs-card">
+              <h3 className="vs-section-title">신뢰를 말이 아니라 보여줍니다</h3>
+              <p className="vs-hint" style={{ marginTop: 8 }}>
+                &ldquo;저희 서비스 안전합니다&rdquo;라고 적는 대신, 핵심 기능이 지금 실제로 되는지
+                보여주는 배지 하나로 증명합니다. 무사고로 지난 일수도 함께 표시됩니다.
+              </p>
+            </div>
+            <div className="vs-card">
+              <h3 className="vs-section-title">README 한 줄이면 끝</h3>
+              <p className="vs-hint" style={{ marginTop: 8 }}>
+                마크다운 한 줄을 붙이면 GitHub 저장소든 랜딩페이지든 바로 노출됩니다. 공개 상태
+                페이지 주소도 함께 드립니다.
+              </p>
+              <pre className="vs-code" style={{ marginTop: 10, fontSize: 12.5 }}>
+                {"[![VibeSafe](https://vibesafe.app/vibesafe/badge/내-서비스.svg)](https://vibesafe.app/vibesafe/status/내-서비스)"}
+              </pre>
             </div>
           </div>
         </div>
@@ -280,7 +346,7 @@ export default async function VibesafeLandingPage() {
             {[
               {
                 q: "가격이 얼마인가요?",
-                a: "지금은 무료 베타입니다. 카드 등록이 없고, 프로젝트 3개·월 300회 검사까지 쓸 수 있습니다. 유료 요금제는 실제 사용 데이터를 보고 정할 예정이며, 그 전에 미리 알려드립니다.",
+                a: "무료 베타는 카드 등록 없이 프로젝트 1개·월 검사 100회까지 계속 무료입니다. 감시·원인 진단은 무료 베타에서도 무제한이고, 자동 수정(PR 생성)만 평생 1회 체험할 수 있습니다. 프로 플랜은 월 29,900원이며 7일 무료체험(결제 하루 전 미리 알려드립니다) 뒤 시작됩니다.",
               },
               {
                 q: "제 코드를 고치나요?",
