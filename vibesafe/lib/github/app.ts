@@ -47,6 +47,50 @@ export function isGithubAppConfigured(): boolean {
 }
 
 /**
+ * "GitHub로 계속하기"(비밀번호 없이 가입)에 필요한 값.
+ *
+ * ★ App 설정과 별개로 켜고 끌 수 있다
+ *
+ * client_id/secret은 GitHub App 설정 화면에 이미 있는 값이지만, 이걸
+ * 넣는다고 자동으로 켜지지 않는다 — App 쪽에서도 "Request user
+ * authorization (OAuth) during installation"을 켜야 콜백에 `code`가
+ * 실린다. 둘 다 안 됐으면 설치는 여전히 되지만 신원 확인만 못 하므로,
+ * 이 함수가 false를 주면 화면은 "GitHub로 계속하기" 버튼 자체를 숨기고
+ * 기존 이메일 가입만 보여준다.
+ */
+export function getGithubOAuthConfig(): { clientId: string; clientSecret: string } | null {
+  const clientId = process.env.VIBESAFE_GITHUB_APP_CLIENT_ID?.trim();
+  const clientSecret = process.env.VIBESAFE_GITHUB_APP_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) return null;
+  return { clientId, clientSecret };
+}
+
+export function isGithubOAuthConfigured(): boolean {
+  return isGithubAppConfigured() && getGithubOAuthConfig() !== null;
+}
+
+/**
+ * 설치 콜백에 실린 1회용 code를 이 사람 명의의 사용자 토큰으로 바꾼다.
+ * 이 토큰은 신원 확인(getViewer, getViewerEmail)에만 쓰고 버린다 —
+ * 저장소 접근은 여전히 installation 토큰만 쓴다.
+ */
+export async function exchangeOAuthCode(code: string): Promise<string> {
+  const config = getGithubOAuthConfig();
+  if (!config) throw new Error("GITHUB_OAUTH_NOT_CONFIGURED");
+
+  const res = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: config.clientId, client_secret: config.clientSecret, code }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`GITHUB_OAUTH_EXCHANGE_FAILED_${res.status}`);
+  const data = (await res.json()) as { access_token?: string; error?: string };
+  if (!data.access_token) throw new Error(`GITHUB_OAUTH_EXCHANGE_FAILED_${data.error ?? "unknown"}`);
+  return data.access_token;
+}
+
+/**
  * App 자신을 증명하는 10분짜리 JWT.
  *
  * GitHub이 내려주는 키는 보통 PKCS#1(`BEGIN RSA PRIVATE KEY`)인데 jose는

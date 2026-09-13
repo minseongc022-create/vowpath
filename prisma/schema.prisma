@@ -606,7 +606,17 @@ model DajeongAnonymousClaim {
 model VibesafeUser {
   id           String    @id @default(cuid())
   email        String    @unique
-  passwordHash String
+  /// null이면 비밀번호 없이 "GitHub로 계속하기"로만 가입한 계정이다 —
+  /// signIn()은 이 값이 null인 계정을 (계정이 없는 것과 구분되지 않게)
+  /// 항상 거절한다. 이메일/비밀번호 계정을 나중에 추가하고 싶다면 별도
+  /// 흐름이 필요하다(지금은 없다).
+  passwordHash String?
+  /// GitHub App 설치 중 OAuth로 확인된 사용자 id(문자열로 저장). "GitHub로
+  /// 계속하기"로 다시 방문했을 때 같은 계정으로 이어주는 축 — 이메일이
+  /// 아니라 이걸 쓰는 이유는, 이메일을 비공개로 둔 사용자는 재방문마다
+  /// 우리가 만들어내는 값이 이메일이라 이메일로는 "같은 사람"을 알 수
+  /// 없기 때문이다.
+  githubUserId String?   @unique
   name         String?
   /// 지금 이 사람에게 적용되는 한도가 어느 플랜인지. billing/plans.ts의
   /// PlanKey와 짝을 이룬다. usage.ts가 매 요청마다 구독 상태를 계산하지

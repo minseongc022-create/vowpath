@@ -60,6 +60,7 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
   const [projectName, setProjectName] = useState("");
   const [url, setUrl] = useState("");
   const [detected, setDetected] = useState<UrlCandidate | null>(null);
+  const [candidates, setCandidates] = useState<UrlCandidate[]>([]);
   const [detecting, setDetecting] = useState(false);
   const [reachability, setReachability] = useState<Reachability>(IDLE_REACHABILITY);
   const [token, setToken] = useState("");
@@ -160,6 +161,7 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
   async function pickRepo(repo: Repo) {
     setSelected(repo);
     setDetected(null);
+    setCandidates([]);
     setReachability(IDLE_REACHABILITY);
     if (!projectName) setProjectName(repo.name);
 
@@ -180,7 +182,11 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
         body: JSON.stringify({ owner: repo.owner, repo: repo.name }),
       });
       const data = (await res.json()) as { candidates?: UrlCandidate[] };
-      const best = data.candidates?.[0];
+      const found = data.candidates ?? [];
+      setCandidates(found);
+      // 가장 믿을 만한 걸(found[0]) 기본값으로 채워둔다 — 후보가 여럿이면
+      // 아래에서 다른 걸 고를 수 있고, 하나뿐이거나 없으면 지금처럼 동작한다.
+      const best = found[0];
       if (best) {
         finalUrl = best.url;
         setUrl(best.url);
@@ -193,6 +199,13 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
     }
 
     if (finalUrl) void checkReachability(finalUrl);
+  }
+
+  /** 자동으로 찾은 후보 중 다른 걸 고른다. */
+  function selectCandidate(candidate: UrlCandidate) {
+    setUrl(candidate.url);
+    setDetected(candidate);
+    void checkReachability(candidate.url);
   }
 
   function mark(key: string, state: Stage["state"], note?: string) {
@@ -491,6 +504,29 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
                 <p className="vs-hint">
                   실제 고객이 접속하는 주소를 넣어주세요. 이 주소를 브라우저가 직접 방문합니다.
                 </p>
+              )}
+              {!detecting && candidates.length > 1 && (
+                <div className="vs-stack-sm" style={{ marginTop: 4 }}>
+                  <p className="vs-hint" style={{ margin: 0 }}>
+                    이 저장소에서 주소 후보를 {candidates.length}개 찾았습니다 — 다른 걸 쓰려면 눌러주세요.
+                  </p>
+                  <div className="vs-row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    {candidates.map((candidate) => (
+                      <button
+                        key={candidate.url}
+                        type="button"
+                        className={
+                          detected?.url === candidate.url
+                            ? "vs-btn vs-btn-sm vs-btn-primary"
+                            : "vs-btn vs-btn-sm"
+                        }
+                        onClick={() => selectCandidate(candidate)}
+                      >
+                        {candidate.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               {!detecting && reachability.checking && (
                 <p className="vs-hint">이 주소가 실제로 열리는지 확인하는 중…</p>

@@ -77,8 +77,11 @@ export async function signIn(params: { email: string; password: string }): Promi
   // ★ 없는 계정과 틀린 비밀번호를 구분해서 알려주지 않는다. 구분되면 "이
   //   이메일이 가입돼 있는지" 확인하는 용도로 쓸 수 있다.
   const GENERIC = "이메일 또는 비밀번호가 올바르지 않습니다.";
-  if (!user) {
-    // 계정이 없어도 같은 시간을 쓴다 — 응답 속도로 존재 여부를 알아채지 못하게.
+  // passwordHash가 없으면 "GitHub로 계속하기"로만 가입한 계정이다 — 대조할
+  // 비밀번호 자체가 없으니 항상 거절한다. 이때도 계정이 없을 때와 똑같이
+  // 가짜 해시를 대조해 시간을 맞춘다 — 아니면 응답 속도 차이로 "이 이메일은
+  // GitHub 전용 계정이다"를 알아챌 수 있다.
+  if (!user || !user.passwordHash) {
     await verifyPassword(params.password, "$2b$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidin");
     return { ok: false, error: GENERIC };
   }
@@ -87,4 +90,57 @@ export async function signIn(params: { email: string; password: string }): Promi
 
   await prisma.vibesafeUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   return { ok: true, user: { id: user.id, email: user.email, name: user.name } };
+}
+
+export type GithubAuthResult =
+  | { status: "ok"; user: { id: string; email: string; name: string | null } }
+  | { status: "email_taken" };
+
+/**
+ * "GitHub로 계속하기" — 신원이 확인된 뒤 로그인시키거나 새 계정을 만든다.
+ *
+ * ★ 검증된 이메일이 겹쳐도 자동으로 합치지 않는다
+ *
+ * 이미 이메일/비밀번호로 가입한 사람이 나중에 "GitHub로 계속하기"를 누르면,
+ * 그 GitHub 계정의 검증된 이메일이 기존 계정과 같을 수 있다. 그렇다고
+ * 자동으로 그 계정에 로그인시키면 "비밀번호를 몰라도 로그인되는 길"이
+ * 생긴다 — 비밀번호 확인을 완전히 건너뛰기 때문이다. 그래서 이 경우는
+ * 계정을 만들거나 로그인시키지 않고 email_taken을 돌려주며, 화면은
+ * "로그인 후 계정 설정에서 GitHub를 연결해주세요"로 안내한다.
+ */
+export async function findOrCreateFromGithub(params: {
+  githubUserId: string;
+  login: string;
+  verifiedEmail: string | null;
+}): Promise<GithubAuthResult> {
+  const existingByGithub = await prisma.vibesafeUser.findUnique({
+    where: { githubUserId: params.githubUserId },
+    select: { id: true, email: true, name: true },
+  });
+  if (existingByGithub) {
+    await prisma.vibesafeUser.update({ where: { id: existingByGithub.id }, data: { lastLoginAt: new Date() } });
+    return { status: "ok", user: existingByGithub };
+  }
+
+  if (params.verifiedEmail) {
+    const existingByEmail = await prisma.vibesafeUser.findUnique({
+      where: { email: normalizeEmail(params.verifiedEmail) },
+      select: { id: true },
+    });
+    if (existingByEmail) return { status: "email_taken" };
+  }
+
+  // 검증된 이메일이 없으면(비공개 설정 등) 알림을 받을 수 없는 계정이 된다.
+  // 그래도 가입 자체를 막지는 않는다 — 계정 설정에서 나중에 진짜 이메일을
+  // 등록하게 하고, 그 전까지는 GitHub 로그인 자체가 실제 이메일 확인을
+  // 대신한다.
+  const email = params.verifiedEmail
+    ? normalizeEmail(params.verifiedEmail)
+    : `${params.githubUserId}+${params.login}@users.noreply.github.com`;
+
+  const user = await prisma.vibesafeUser.create({
+    data: { email, passwordHash: null, githubUserId: params.githubUserId, name: params.login },
+    select: { id: true, email: true, name: true },
+  });
+  return { status: "ok", user };
 }

@@ -98,6 +98,27 @@ export async function getViewer(token: string): Promise<{ login: string; id: num
   return { login: data.login, id: data.id };
 }
 
+/**
+ * "GitHub로 계속하기" 가입에만 쓰는, GitHub가 검증한 주 이메일.
+ *
+ * ★ verified가 아니면 null을 준다
+ *
+ * 이 값은 나중에 기존 이메일 계정과 자동으로 합칠지 판단하는 근거가 된다.
+ * GitHub는 소유자가 확인하지 않은 이메일도 계정에 달아둘 수 있게 해준다 —
+ * 검증 안 된 값을 믿고 합치면, 남의 이메일을 자기 GitHub 계정에 적어넣는
+ * 것만으로 그 이메일의 기존 VibeSafe 계정을 가로챌 길이 생긴다. 이 API는
+ * 이 이메일 권한(Account permissions → Email addresses)을 App에 따로
+ * 허용해야 값이 나온다 — 안 켜져 있으면 빈 배열이 오고 null을 반환한다.
+ */
+export async function getViewerEmail(token: string): Promise<string | null> {
+  const res = await githubFetch(token, "/user/emails");
+  if (!res.ok) return null;
+  const emails = (await res.json().catch(() => [])) as
+    { email: string; primary: boolean; verified: boolean }[];
+  const primary = emails.find((e) => e.primary && e.verified);
+  return primary?.email ?? null;
+}
+
 /** PAT로 접근 가능한 저장소. 최근에 푸시된 순으로 100개까지만 — 고르기용이다. */
 export async function listUserRepos(token: string): Promise<GithubRepo[]> {
   const data = await json<RawRepo[]>(

@@ -525,6 +525,29 @@ ANTHROPIC_API_KEY=...          # 또는 OPENAI_API_KEY
    VIBESAFE_GITHUB_WEBHOOK_SECRET=위에서 만든 값
    ```
 
+**(A-1) "GitHub로 계속하기"까지 켜기 (선택, (A) 위에 얹는 것).** 비밀번호
+가입 없이 GitHub 인증 한 번으로 가입+연결이 끝난다.
+
+1. 위에서 만든 App 설정 화면에서 **"Request user authorization (OAuth)
+   during installation"**을 켠다. 이게 꺼져 있으면 설치 콜백에 `code`가
+   안 실려서 누가 설치했는지 알 수 없다 — App 설치는 되지만 계정을
+   만들 수 없다.
+2. **Account permissions → Email addresses: Read-only**를 추가한다.
+   없어도 동작은 하지만, 이메일을 못 받아와 계정마다
+   `{githubId}+{login}@users.noreply.github.com` 형태의 받을 수 없는
+   이메일이 붙는다(실제 알림을 받으려면 나중에 계정 설정에서 이메일을
+   바꿔야 한다).
+3. App 설정 페이지에 이미 있는 Client ID·Client secret을 환경변수로:
+   ```
+   VIBESAFE_GITHUB_APP_CLIENT_ID=Iv1.xxxxxxxxxxxxxxxx
+   VIBESAFE_GITHUB_APP_CLIENT_SECRET=위에서 발급받은 값
+   ```
+4. 이미 이메일로 가입한 계정과 같은 이메일로 "GitHub로 계속하기"를
+   누르면 자동으로 합쳐지지 않는다 — 비밀번호 확인 없이 로그인시키는
+   길이 생기기 때문이다(`vibesafe/lib/auth.ts`의 `findOrCreateFromGithub`
+   문서 참고). 그 경우 로그인 화면에 "이메일로 로그인 후 계정 설정에서
+   GitHub를 연결해주세요"가 뜬다.
+
 **(B) 아무것도 설정하지 않기.** 그러면 사용자는 fine-grained PAT를 직접 만들어
 붙여넣는다(`Contents: Read-only` + `Metadata: Read-only`). 토큰은 암호화해 저장한다.
 App 설정 없이도 제품은 완전히 동작한다 — push 자동 검사만 저장소별 webhook을
@@ -789,6 +812,11 @@ GitHub App(또는 저장소 webhook)이 `deployment_status` 이벤트를 보내�
 - `VibesafeUser.freeRepairUsedAt` / `freeRepairIncidentId` — 무료 베타의
   평생 1회 자동 수정 크레딧을 언제, 어느 사고에서 썼는지. 원인 진단에는
   전혀 관여하지 않는다 — 진단은 이 값과 무관하게 항상 무제한이다.
+- `VibesafeUser.passwordHash`(nullable) / `githubUserId`(unique) —
+  "GitHub로 계속하기"로만 가입한 계정은 비밀번호가 없다.
+  `githubUserId`가 재방문 시 같은 계정으로 이어주는 축이고, `signIn()`은
+  `passwordHash`가 없는 계정을 (계정이 없을 때와 구분되지 않게) 항상
+  거절한다.
 
 ### ★ 판단 로직은 DB 접근과 분리한다
 
