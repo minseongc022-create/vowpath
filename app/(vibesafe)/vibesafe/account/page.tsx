@@ -11,6 +11,7 @@ import { getConnection } from "@/vibesafe/lib/github/connection";
 import { absoluteTime } from "@/vibesafe/lib/format";
 import { getSession } from "@/vibesafe/lib/session";
 import { getUsage, planLimits } from "@/vibesafe/lib/usage";
+import { PLANS } from "@/vibesafe/lib/billing/plans";
 import { isDatabaseConfigured } from "@/vibesafe/lib/db";
 import { UiModeToggle } from "@/vibesafe/components/UiModePicker";
 import { getUiModePreference } from "@/vibesafe/lib/user-prefs";
@@ -34,7 +35,7 @@ export default async function AccountPage() {
         getVercelConnection(session.userId),
       ])
     : [null, { test_runs: 0, ai_analyses: 0, browser_ms: 0 }, null, null];
-  const limits = planLimits();
+  const limits = dbReady ? await planLimits(session.userId) : PLANS.beta.limits;
 
   return (
     <div className="vs-container">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { enqueueRun, recoverStaleRuns } from "@/vibesafe/lib/runs/queue";
 import { reconcileStalledRepairs } from "@/vibesafe/lib/repair/reconcile";
+import { processDueSubscriptions } from "@/vibesafe/lib/billing/subscription";
 import { scanProjectSecurity } from "@/vibesafe/lib/security/scan-runner";
 import { pruneOldSignatures } from "@/vibesafe/lib/signals";
 
@@ -13,8 +14,10 @@ import { pruneOldSignatures } from "@/vibesafe/lib/signals";
  * 사용자가 거의 없는 단계에서 상시 인프라는 순수한 고정비다. 대신 cron이
  * 주기적으로 들러 (1) 워커가 죽어서 붙잡힌 검사를 되살리고 (2) 오랫동안
  * 검사하지 않은 프로젝트를 큐에 넣고 (3) REPAIR 파이프라인이 외부 신호를
- * 못 받아 멈춘 곳을 재조정한다(repair/reconcile.ts) — Vercel 웹훅이 안 오거나
- * 워커가 죽어도 검증·적용 후 확인이 영원히 "진행 중"에 갇히지 않게 한다.
+ * 못 받아 멈춘 곳을 재조정하고(repair/reconcile.ts) (4) 이번 결제 주기가
+ * 끝난 구독을 갱신하거나 해지한다(billing/subscription.ts) — 이 넷 다
+ * "누군가 알아서 눌러줘야" 도는 게 아니라 사용자가 아무것도 안 해도
+ * 저절로 굴러가야 하는 것들이다.
  *
  * 주기를 정할 때 기준은 "얼마나 자주 확인하고 싶은가"가 아니라 "한 달 비용이
  * 얼마인가"다. 기본 6시간은 무료 베타에서 감당 가능한 선이다.
@@ -46,6 +49,13 @@ export async function GET(request: Request) {
   // 않기 위해서다.
   const reconciled = await reconcileStalledRepairs(abandoned).catch((error) => {
     console.error("[vibesafe] repair reconcile failed:", (error as Error).message);
+    return null;
+  });
+
+  // 구독 갱신·해지. 매일 도는 이 cron 한 번이 정기결제의 전부다 —
+  // 사용자가 매달 [결제하기]를 다시 누를 일은 없다.
+  const billing = await processDueSubscriptions().catch((error) => {
+    console.error("[vibesafe] billing cron failed:", (error as Error).message);
     return null;
   });
 
@@ -122,6 +132,7 @@ export async function GET(request: Request) {
     skipped,
     recovered,
     reconciled,
+    billing,
     pruned,
     securityScanned,
     checked: projects.length,

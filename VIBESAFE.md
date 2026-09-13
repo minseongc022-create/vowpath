@@ -44,9 +44,9 @@ Cursor·Claude Code·Codex·Lovable로 앱을 만든 비개발자·1인 개발�
 | 수정 이력 + 프로젝트별 성공률 화면 | ✅ |
 | 신뢰도 엔진 (다음 권한 단계 제안, 절대 자동 전환 아님) | ✅ |
 | 원클릭 연결 — 배포 주소 자동 감지 + 분석·켜기·첫 검사 자동 | ✅ |
+| 구독 결제 (토스페이먼츠 자동결제) | ✅ |
 | **코드를 기본 브랜치에 직접 push** | ❌ **의도적으로 만들지 않음** |
 | **MEDIUM/HIGH 위험 수정의 자동 적용** | ❌ **의도적으로 만들지 않음** |
-| 결제 시스템 | ❌ 무료 베타 |
 
 > 랜딩 페이지에도 같은 기준으로 적혀 있다. 아직 없는 기능을 있는 것처럼 쓰지 않는다.
 
@@ -286,6 +286,63 @@ Primary CTA(`#3478f6`) 위의 흰 글자는 **4.07:1**로, AA 기준(4.5:1)에 �
 
 ---
 
+## 1-6. 구독 결제 (`billing/`)
+
+토스페이먼츠 **자동결제(빌링)** — 1회성 결제와는 다른 API다. 카드 등록은
+토스 도메인에서 끝나고, 우리 서버는 카드 번호를 한 번도 보지 않는다.
+
+```
+카드 등록(토스 위젯) → authKey 발급 → billingKey로 교환 → 즉시 첫 결제
+                                                              │
+                                        cron이 매일 확인 ──── ┘
+                                              │
+                              기간 만료 + 해지 예약 안 됨 → 갱신 결제
+                              기간 만료 + 해지 예약됨     → 베타로 전환
+```
+
+### 플랜 (`billing/plans.ts`)
+
+| | 무료 베타 | 프로 |
+|---|---|---|
+| 가격 | 0원 | 19,900원/월 (환경변수로 조정) |
+| 프로젝트 | 3개 | 10개 |
+| 월 검사 | 300회 | 3,000회 |
+| 월 앱 분석 | 30회 | 300회 |
+
+`User.planKey`가 "지금 쓸 수 있는 한도"의 유일한 출처다. 구독 상태가
+바뀌는 모든 트랜잭션(첫 결제 성공·갱신 성공·해지 완료·다우닝 강등)이
+이 컬럼을 같은 트랜잭션 안에서 함께 바꾼다 — 결제는 됐는데 한도는
+그대로인 순간이 생기지 않게 하기 위해서다.
+
+### 결제 실패해도 바로 안 끊는다 (`billing/subscription.ts`)
+
+카드 한도 초과 같은 건 하루 지나면 풀리는 경우가 많다. 그래서 결제
+실패는 `past_due`로 표시하고 cron이 하루 주기로 최대 3번까지 다시
+시도한다. 그래도 안 되면 그때 무료 베타로 내리고 사용자에게 알린다.
+
+**해지는 즉시 끊지 않는다.** 이미 낸 이번 달은 끝까지 쓰게 하고,
+`cancelAtPeriodEnd`가 켜진 채로 기간이 끝나야 cron이 베타로 전환한다.
+
+### orderId — 실기동 검증에서 실제로 잡은 버그
+
+처음엔 orderId를 "구독ID + 결제월(YYYYMM)"로 만들었다. 1일에 가입하면
+30일 뒤 갱신일도 여전히 같은 달이라, 두 번째 정상 결제가 **첫 결제와
+같은 orderId**를 갖게 되고 DB 유니크 제약이 이걸 "중복 시도"로 착각해
+막았다 — 토스에는 이미 돈이 나갔는데 우리 쪽만 실패로 기록하는 최악의
+상황이었다. `periodStart.getTime()`(밀리초)으로 바꿔 고쳤다: 같은 결제
+주기의 재시도는 여전히 같은 orderId(이중 청구 방지 유지)이고, 다음
+주기는 정확히 30일이 밀리므로 항상 다른 orderId가 된다.
+
+같은 검증에서 두 번째 버그도 잡았다: 결제 한 번 실패해서 `past_due`가
+되면, 재시도 함수가 `status === "active"`만 받아줘서 그 뒤로 **영원히
+재시도가 안 걸렸다**. `active`와 `past_due`를 모두 받아주도록 고쳤다.
+
+가짜 토스 서버(`VIBESAFE_TOSS_API_BASE_URL`로 가리킴)로 카드 등록→첫
+결제→갱신→3회 연속 실패→다우닝→해지→cron 전환까지 전체 생애주기를
+실제 코드 경로로 검증했다.
+
+---
+
 ## 2. 아키텍처 한 장
 
 ```
@@ -458,7 +515,30 @@ docker run -d --restart=always \
 
 `vercel.json`에 하루 1회 등록되어 있다(Hobby 요금제 한도). 더 자주 돌리려면
 `config/cron.schedule.json`의 `externalCrons` 항목대로 cron-job.org에 등록한다.
-자세한 내용은 `CRON.md`.
+자세한 내용은 `CRON.md`. 이 cron이 구독 갱신·해지도 같이 처리한다(1-6절).
+
+### 3-6. 구독 결제 켜기 (선택)
+
+[토스페이먼츠 개발자센터](https://developers.tosspayments.com)에서 시크릿
+키·클라이언트 키를 발급받아 넣는다.
+
+```bash
+TOSS_PAYMENTS_SECRET_KEY=
+NEXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY=
+```
+
+**이 둘이 없어도 서비스는 그대로 된다** — `/vibesafe/billing`이 "아직
+설정되지 않았습니다"를 보여주고 모든 사용자는 무료 베타로 남는다.
+
+> ⚠️ 여기서부터는 실제 카드가 결제되는 구간이다. 반드시 [토스 개발자센터의
+> 테스트 키](https://docs.tosspayments.com/resources/glossary/test-key)로
+> 먼저 카드 등록→첫 결제→해지까지 한 번 직접 돌려본 뒤에 실제(라이브) 키로
+> 바꿀 것. 이 저장소의 자동 테스트는 실제 토스망을 두드리지 않는다 —
+> `VIBESAFE_TOSS_API_BASE_URL`로 가리킨 로컬 가짜 서버로 생애주기 전체
+> (등록·첫결제·갱신·3회 연속 실패·다우닝·해지·cron 전환)를 검증했을 뿐이다.
+
+가격·한도를 바꾸려면 `VIBESAFE_PRO_PRICE_KRW` 등 환경변수를 쓰거나
+`vibesafe/lib/billing/plans.ts`를 직접 고친다.
 
 ---
 
@@ -609,7 +689,7 @@ GitHub App(또는 저장소 webhook)이 `deployment_status` 이벤트를 보내�
 
 ## 6. 데이터 모델
 
-`prisma/schema.prisma`의 VibeSafe 구역. 30개 테이블 전부 `vibesafe_` 접두사.
+`prisma/schema.prisma`의 VibeSafe 구역. 32개 테이블 전부 `vibesafe_` 접두사.
 
 핵심만:
 - `VibesafeCriticalFlow.key` — baseline 비교의 축. 재분석해도 같은 흐름이면 같은 key.
@@ -622,6 +702,10 @@ GitHub App(또는 저장소 webhook)이 `deployment_status` 이벤트를 보내�
 - `VibesafeFixProposal.status` — 수정 하나의 현재 위치. `applied ≠ 고쳐짐`.
 - `VibesafeRepairOutcome` — 수정 한 건의 결말. 실패도 반드시 남긴다. 신뢰도
   엔진(`trust.ts`)과 수정 이력 화면이 둘 다 이 표를 원천으로 쓴다.
+- `VibesafeSubscription.billingKeyCipher` — 카드가 아니라 "이 카드로 결제할
+  권한" 토큰. GitHub 토큰과 같은 방식(AES-256-GCM)으로 암호화한다.
+- `VibesafeBillingCharge.orderId` — 유니크. `구독ID + periodStart(ms)`로
+  결정론적이라, 같은 결제 주기의 재시도는 이중 청구되지 않는다.
 
 ### ★ 판단 로직은 DB 접근과 분리한다
 

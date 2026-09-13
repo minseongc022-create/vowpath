@@ -1,44 +1,31 @@
 import "server-only";
 
 import { prisma } from "./db";
+import { getPlan, type PlanLimits } from "./billing/plans";
+
+export type { PlanLimits };
 
 /**
  * 사용량 측정과 한도.
  *
- * ★ 지금 한도를 거는 이유는 돈을 받기 위해서가 아니다
+ * ★ 지금 한도를 거는 이유는 돈을 받기 위해서만이 아니다
  *
  * AI 호출과 브라우저 실행은 사용자당 원가가 그대로 나가는 항목이다. 무료
  * 베타에 한도가 없으면 한 명이 실수로(또는 일부러) 검사를 반복 실행하는 것만으로
  * 이번 달 비용이 통제 불능이 된다. 실제로 이 제품이 죽는 가장 흔한 방식이다.
  *
- * 동시에 이 숫자들은 나중에 요금제를 정하는 근거가 된다 — 어떤 값을 어떻게
- * 세는지는 지금 정해둬야 데이터가 쌓인다.
+ * ★ 한도는 이제 사용자마다 다르다
+ *
+ * `User.planKey`(무료 베타 vs 프로)를 읽어 그 플랜의 한도를 돌려준다.
+ * 실제 값은 `billing/plans.ts`에 있다 — 가격·한도를 바꿀 일이 있으면
+ * 거기만 고친다.
  */
 
 export type UsageMetric = "test_runs" | "ai_analyses" | "browser_ms";
 
-export type PlanLimits = {
-  projects: number;
-  testRunsPerMonth: number;
-  aiAnalysesPerMonth: number;
-  browserMsPerMonth: number;
-};
-
-/**
- * 무료 베타 한도. 환경변수로 올릴 수 있게 둔 이유는, 초기에 열심히 쓰는
- * 사용자를 막는 것보다 우리가 수동으로 풀어주는 편이 낫기 때문이다.
- */
-export function planLimits(): PlanLimits {
-  const num = (key: string, fallback: number) => {
-    const raw = Number(process.env[key]);
-    return Number.isFinite(raw) && raw > 0 ? raw : fallback;
-  };
-  return {
-    projects: num("VIBESAFE_LIMIT_PROJECTS", 3),
-    testRunsPerMonth: num("VIBESAFE_LIMIT_TEST_RUNS", 300),
-    aiAnalysesPerMonth: num("VIBESAFE_LIMIT_AI_ANALYSES", 30),
-    browserMsPerMonth: num("VIBESAFE_LIMIT_BROWSER_MS", 2 * 60 * 60 * 1000),
-  };
+export async function planLimits(userId: string): Promise<PlanLimits> {
+  const user = await prisma.vibesafeUser.findUnique({ where: { id: userId }, select: { planKey: true } });
+  return getPlan(user?.planKey ?? "beta").limits;
 }
 
 export function currentPeriodKey(now = new Date()): string {
@@ -52,8 +39,8 @@ export class UsageLimitError extends Error {
   }
 }
 
-function limitFor(metric: UsageMetric): number {
-  const limits = planLimits();
+async function limitFor(userId: string, metric: UsageMetric): Promise<number> {
+  const limits = await planLimits(userId);
   if (metric === "test_runs") return limits.testRunsPerMonth;
   if (metric === "ai_analyses") return limits.aiAnalysesPerMonth;
   return limits.browserMsPerMonth;
@@ -89,7 +76,7 @@ export async function consumeUsage(userId: string, metric: UsageMetric, amount: 
     update: { value: { increment: amount } },
     select: { value: true },
   });
-  if (row.value > limitFor(metric)) {
+  if (row.value > (await limitFor(userId, metric))) {
     // 넘었으면 되돌려놓는다 — 한도 초과 시도가 다음 달까지 남아있을 이유가 없다.
     await prisma.vibesafeUsageCounter.update({
       where: { userId_periodKey_metric: { userId, periodKey, metric } },
@@ -112,6 +99,9 @@ export async function recordUsage(userId: string, metric: UsageMetric, amount: n
 }
 
 export async function canCreateProject(userId: string): Promise<boolean> {
-  const count = await prisma.vibesafeProject.count({ where: { userId, archivedAt: null } });
-  return count < planLimits().projects;
+  const [count, limits] = await Promise.all([
+    prisma.vibesafeProject.count({ where: { userId, archivedAt: null } }),
+    planLimits(userId),
+  ]);
+  return count < limits.projects;
 }

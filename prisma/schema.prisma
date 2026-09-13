@@ -608,6 +608,11 @@ model VibesafeUser {
   email        String    @unique
   passwordHash String
   name         String?
+  /// 지금 이 사람에게 적용되는 한도가 어느 플랜인지. billing/plans.ts의
+  /// PlanKey와 짝을 이룬다. usage.ts가 매 요청마다 구독 상태를 계산하지
+  /// 않고 이 한 컬럼만 읽도록 하기 위한 비정규화다 — 구독 상태가 바뀔 때
+  /// (활성화·해지·결제 실패로 인한 강등) 같은 트랜잭션에서 이 값도 같이
+  /// 바꾼다. "진실"은 VibesafeSubscription에 있고, 이 컬럼은 그 결과의 캐시다.
   planKey      String    @default("beta")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -625,8 +630,85 @@ model VibesafeUser {
   projects      VibesafeProject[]
   integrations  VibesafeIntegration[]
   notifications VibesafeNotification[]
+  subscription  VibesafeSubscription?
 
   @@map("vibesafe_users")
+}
+
+/**
+ * 구독 — 매월 자동결제(토스페이먼츠 빌링) 1건.
+ * ★ 카드 번호를 저장하지 않는다
+ * `billingKeyCipher`는 카드 자체가 아니라 "이 카드로 결제할 권한"을 가리키는
+ * 토큰이다. 그래도 도난당하면 이 사람 카드로 결제를 계속 시도할 수 있는
+ * 값이라, GitHub 토큰과 같은 방식(AES-256-GCM)으로 암호화해 저장한다.
+ * 카드번호·CVC는 토스 쪽에만 있고 우리 서버를 거치지 않는다(SDK가 위젯
+ * 안에서 직접 토스로 전송한다).
+ * ★ status와 User.planKey의 관계
+ * status는 "결제가 어떤 상태인가"(청구서 관점)이고, User.planKey는
+ * "지금 무슨 한도를 쓸 수 있는가"(제품 관점)이다. 결제가 며칠 밀렸다고
+ * (past_due) 바로 기능을 끊지 않는다 — dunning.ts가 재시도 유예 기간을
+ * 다 쓴 뒤에야 User.planKey를 beta로 되돌린다.
+ */
+model VibesafeSubscription {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  planKey          String  @default("pro")
+  /// incomplete(카드 등록 전) | active | past_due | canceled
+  status           String  @default("incomplete")
+  /// 토스 쪽에서 이 결제 수단을 가리키는 키. 가입 전엔 없다.
+  customerKey      String  @unique
+  billingKeyCipher String?
+  cardCompany      String?
+  /// 마스킹된 끝 네 자리만. 화면에 "삼성카드 (1234)"라고 보여주는 용도.
+  cardNumberMasked String?
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  /// 사용자가 해지를 눌렀지만 이미 낸 달은 끝까지 쓰게 한다 — 그래서 즉시
+  /// beta로 떨어뜨리지 않고 currentPeriodEnd까지 기다린다.
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+
+  /// 이번 결제 시도에서 연달아 실패한 횟수. dunning.ts의 재시도·강등 판단 축.
+  failedAttempts    Int     @default(0)
+  lastFailureReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    VibesafeUser            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  charges VibesafeBillingCharge[]
+
+  @@index([status, currentPeriodEnd])
+  @@map("vibesafe_subscriptions")
+}
+
+/**
+ * 결제 시도 1건 = 행 1개. 성공이든 실패든 전부 남긴다.
+ * ★ orderId가 유니크인 이유
+ * cron이 갱신 결제를 걸다가 응답을 못 받고 재시도하면, 토스에는 결제가
+ * 됐는데 우리 쪽 기록만 없는 상황이 생길 수 있다. orderId를 미리 정해두고
+ * (구독ID + 결제 예정월로 결정론적으로 만든다) 유니크 제약을 걸면, 같은
+ * 달에 두 번 청구서를 만드는 실수를 DB가 막아준다.
+ */
+model VibesafeBillingCharge {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  userId         String
+  /// succeeded | failed
+  status         String
+  amount         Int
+  orderId        String   @unique
+  tossPaymentKey String?
+  failReason     String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  createdAt      DateTime @default(now())
+
+  subscription VibesafeSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("vibesafe_billing_charges")
 }
 
 /**
@@ -871,30 +953,30 @@ model VibesafeFlowStep {
  * `claimToken`은 워커가 집어간 작업을 다른 워커가 또 집어가지 못하게 한다.
  */
 model VibesafeTestRun {
-  id         String    @id @default(cuid())
-  projectId  String
+  id            String    @id @default(cuid())
+  projectId     String
   /// manual | github | schedule | pr | repair_verify | repair_confirm
   /// repair_verify — 수정안 preview 배포 검사. baseline·장애를 건드리지 않는다.
   /// repair_confirm — 수정 적용 후 **실서비스** 재확인. 이건 진짜 운영이므로
   ///                  baseline도 장애 해제도 평소와 똑같이 동작한다.
-  trigger    String    @default("manual")
+  trigger       String    @default("manual")
   /// queued | running | passed | failed | cancelled
-  status     String    @default("queued")
-  dedupeKey  String    @unique
-  commitSha  String?
-  claimToken String?
-  claimedAt  DateTime?
-  queuedAt   DateTime  @default(now())
-  startedAt  DateTime?
-  finishedAt DateTime?
-  durationMs Int?
-  attempts   Int       @default(0)
-  error      String?
+  status        String    @default("queued")
+  dedupeKey     String    @unique
+  commitSha     String?
+  claimToken    String?
+  claimedAt     DateTime?
+  queuedAt      DateTime  @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  durationMs    Int?
+  attempts      Int       @default(0)
+  error         String?
   /// 이 실행 결과를 baseline으로 승격했는지
-  baselineAt DateTime?
+  baselineAt    DateTime?
   /// PR 프리뷰 검사일 때 — 어느 PR의 어느 주소를 봤는지
-  prNumber   Int?
-  targetUrl  String?
+  prNumber      Int?
+  targetUrl     String?
   /// 수정 검증 실행일 때 어느 제안의 것인지. 결과가 돌아왔을 때 역방향으로
   /// 찾아야 하므로 제안 쪽이 아니라 실행 쪽에도 둔다.
   fixProposalId String?

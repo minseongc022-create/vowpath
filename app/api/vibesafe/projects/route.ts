@@ -25,7 +25,11 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response;
 
   if (!(await canCreateProject(auth.session.userId))) {
-    return fail(`무료 베타에서는 프로젝트를 ${planLimits().projects}개까지 만들 수 있습니다.`, 429);
+    const limits = await planLimits(auth.session.userId);
+    return fail(
+      `현재 플랜에서는 프로젝트를 ${limits.projects}개까지 만들 수 있습니다. 더 필요하면 /vibesafe/billing에서 업그레이드해주세요.`,
+      429,
+    );
   }
 
   const parsed = schema.safeParse(await readJson(request));

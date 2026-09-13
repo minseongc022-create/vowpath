@@ -39,6 +39,9 @@ export async function VibesafePlatformShell({ children }: { children: React.Reac
                     <Link href="/vibesafe/notifications" className="vs-nav-link">
                       알림
                     </Link>
+                    <Link href="/vibesafe/billing" className="vs-nav-link">
+                      결제
+                    </Link>
                     <Link href="/vibesafe/account" className="vs-nav-link">
                       계정
                     </Link>

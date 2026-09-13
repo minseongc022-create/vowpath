@@ -26,6 +26,10 @@ export const VIBESAFE_EVENTS = [
   /** 규칙이 safe로 판정한 흐름을 연결 직후 자동으로 켠 경우. 사람이 켠
    *  flow_approved와 구분해야 "자동으로 켠 게 실제로 잘 돌았나"를 볼 수 있다. */
   "flow_auto_enabled",
+  "subscription_activated",
+  "subscription_cancel_requested",
+  "subscription_canceled",
+  "subscription_downgraded",
   "first_test_started",
   "first_test_passed",
   "first_test_failed",
