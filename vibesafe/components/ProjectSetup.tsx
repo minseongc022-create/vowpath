@@ -22,6 +22,9 @@ type ConnectionState = {
 
 type UrlCandidate = { url: string; source: "deployment" | "homepage"; label: string };
 
+type Reachability = { checking: boolean; reachable: boolean | null; reason: string | null };
+const IDLE_REACHABILITY: Reachability = { checking: false, reachable: null, reason: null };
+
 /** 한 번의 클릭이 끝날 때까지 화면이 보여주는 단계들. */
 type Stage = { key: string; label: string; state: "wait" | "doing" | "done" | "fail"; note?: string };
 
@@ -58,6 +61,7 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
   const [url, setUrl] = useState("");
   const [detected, setDetected] = useState<UrlCandidate | null>(null);
   const [detecting, setDetecting] = useState(false);
+  const [reachability, setReachability] = useState<Reachability>(IDLE_REACHABILITY);
   const [token, setToken] = useState("");
   const [showTokenForm, setShowTokenForm] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
@@ -110,6 +114,43 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
   }
 
   /**
+   * 주소가 실제로 응답하는지 미리 찔러본다.
+   *
+   * ★ 왜 여기서 확인하는가
+   *
+   * 이게 없으면 사용자는 [연결하고 바로 시작]을 누르고 분석이 끝나는
+   * 1~2분을 기다린 뒤에야 주소가 틀렸다는 걸 안다. 자동 감지 직후와
+   * 사용자가 직접 고친 뒤(blur) 둘 다에서 불러 최대한 일찍 알려준다.
+   *
+   * ★ 실패해도 진행을 막지 않는다
+   *
+   * HEAD·GET을 막아둔 서버, 봇 차단처럼 실제로는 멀쩡한데 이 가벼운 확인만
+   * 실패하는 경우가 흔하다. 경고만 보여주고 결정은 사용자에게 맡긴다.
+   */
+  const checkReachability = useCallback(async (targetUrl: string) => {
+    if (!targetUrl.trim()) {
+      setReachability(IDLE_REACHABILITY);
+      return;
+    }
+    setReachability({ checking: true, reachable: null, reason: null });
+    try {
+      const res = await fetch("/api/vibesafe/github/check-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl }),
+      });
+      const data = (await res.json()) as { ok?: boolean; reachable?: boolean; reason?: string };
+      if (!res.ok || !data.ok) {
+        setReachability(IDLE_REACHABILITY);
+        return;
+      }
+      setReachability({ checking: false, reachable: Boolean(data.reachable), reason: data.reason ?? null });
+    } catch {
+      setReachability(IDLE_REACHABILITY);
+    }
+  }, []);
+
+  /**
    * 저장소를 고르는 순간 배포 주소를 찾으러 간다.
    *
    * 저장소의 homepage 칸은 목록에 이미 실려 오므로 먼저 그것으로 칸을 채워
@@ -119,9 +160,12 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
   async function pickRepo(repo: Repo) {
     setSelected(repo);
     setDetected(null);
+    setReachability(IDLE_REACHABILITY);
     if (!projectName) setProjectName(repo.name);
 
+    let finalUrl = "";
     if (repo.homepage) {
+      finalUrl = repo.homepage;
       setUrl(repo.homepage);
       setDetected({ url: repo.homepage, source: "homepage", label: "저장소에 적힌 주소입니다" });
     } else {
@@ -138,6 +182,7 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
       const data = (await res.json()) as { candidates?: UrlCandidate[] };
       const best = data.candidates?.[0];
       if (best) {
+        finalUrl = best.url;
         setUrl(best.url);
         setDetected(best);
       }
@@ -146,6 +191,8 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
     } finally {
       setDetecting(false);
     }
+
+    if (finalUrl) void checkReachability(finalUrl);
   }
 
   function mark(key: string, state: Stage["state"], note?: string) {
@@ -190,14 +237,21 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
 
     // 2) 분석 — 여기가 제일 오래 걸린다(보통 30초~2분)
     mark("analyze", "doing");
-    const analyzeRes = await fetch(`/api/vibesafe/projects/${projectId}/analyze`, { method: "POST" });
-    const analyzed = (await analyzeRes.json()) as {
-      ok?: boolean;
-      error?: string;
-      outcome?: { flowCount?: number };
-    };
+    type AnalyzeResult = { ok?: boolean; error?: string; outcome?: { flowCount?: number } };
+    async function runAnalyze(): Promise<{ res: Response; data: AnalyzeResult }> {
+      const res = await fetch(`/api/vibesafe/projects/${projectId}/analyze`, { method: "POST" });
+      const data = (await res.json()) as AnalyzeResult;
+      return { res, data };
+    }
+    let { res: analyzeRes, data: analyzed } = await runAnalyze();
     if (!analyzeRes.ok || !analyzed.ok) {
-      // 분석에 실패해도 프로젝트는 이미 있다. 앱 화면에서 다시 시도할 수 있다.
+      // 첫 실패가 일시적인 것일 수 있다 — 사용자에게 보여주기 전에 조용히
+      // 한 번 더 시도한다. AI 호출·GitHub API 모두 가끔 타임아웃이 난다.
+      mark("analyze", "doing", "한 번 더 시도하는 중…");
+      ({ res: analyzeRes, data: analyzed } = await runAnalyze());
+    }
+    if (!analyzeRes.ok || !analyzed.ok) {
+      // 그래도 안 되면 프로젝트는 이미 있으니 앱 화면에서 다시 시도할 수 있다.
       mark("analyze", "fail", analyzed.error ?? "분석에 실패했습니다.");
       setError(
         `${analyzed.error ?? "분석에 실패했습니다."} 앱은 등록됐으니 앱 화면에서 다시 시도할 수 있습니다.`,
@@ -417,7 +471,9 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
                 onChange={(e) => {
                   setUrl(e.target.value);
                   setDetected(null);
+                  setReachability(IDLE_REACHABILITY);
                 }}
+                onBlur={(e) => void checkReachability(e.target.value)}
                 placeholder={detecting ? "주소를 찾는 중…" : "https://my-app.vercel.app"}
                 inputMode="url"
                 required
@@ -435,6 +491,23 @@ export function ProjectSetup({ initialError }: { initialError?: string | null })
                 <p className="vs-hint">
                   실제 고객이 접속하는 주소를 넣어주세요. 이 주소를 브라우저가 직접 방문합니다.
                 </p>
+              )}
+              {!detecting && reachability.checking && (
+                <p className="vs-hint">이 주소가 실제로 열리는지 확인하는 중…</p>
+              )}
+              {!detecting && !reachability.checking && reachability.reachable === true && (
+                <p className="vs-hint">
+                  <span className="vs-badge" data-tone="ok" style={{ marginRight: 6 }}>
+                    접속 확인됨
+                  </span>
+                  지금 이 주소가 응답합니다.
+                </p>
+              )}
+              {!detecting && !reachability.checking && reachability.reachable === false && (
+                <div className="vs-alert" data-tone="warn">
+                  {reachability.reason ?? "이 주소에 접속하지 못했습니다."} 주소가 맞는지 한 번 더
+                  확인해주세요 — 그래도 이대로 진행할 수는 있습니다.
+                </div>
               )}
             </div>
 
