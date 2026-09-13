@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TECHNICAL_DETAIL_TOGGLE_LABEL, type UiMode } from "../lib/ui-mode";
 import { REPAIR_STEP_TITLES } from "../lib/repair/pipeline";
@@ -157,8 +158,18 @@ export function RepairPanel({
         return;
       }
 
+      // 원인은 여기서 이미 확정됐다 — 이 아래에서 무슨 일이 있어도 새로고침
+      // 없이 바로 보이게 지금 반영한다.
+      await refresh();
+
+      if (view.repairGate.blocked) {
+        // 서버(repair/view.ts)가 이미 판단했다: 무료 체험을 다른 사고에서
+        // 썼다는 뜻. 원인은 방금 보여줬으니 여기서 멈춘다 — PR을 만들려는
+        // 시도조차 하지 않는다.
+        return;
+      }
+
       if (!view.permissions.proposePr) {
-        await refresh();
         setNotice(
           "원인은 찾았습니다. 고친 코드까지 만들려면 '수정안 PR로 올리기' 권한을 켜주세요.",
         );
@@ -237,12 +248,33 @@ export function RepairPanel({
         </div>
       )}
 
+      {/* 원인 분석 — 요금제·크레딧과 무관하게 항상 그대로 보여준다.
+          view 상태에서 그리므로 [고쳐주세요]를 눌러 새 진단이 생겨도
+          새로고침 없이 바로 반영된다. */}
+      {view.diagnosis && (
+        <div className="vs-card vs-stack">
+          <h3 className="vs-section-title">
+            {mode === "simple" ? "무엇 때문인지" : "원인 분석"}
+          </h3>
+          <p style={{ fontSize: 14.5, margin: 0 }}>{view.diagnosis.summary}</p>
+          {view.diagnosis.suggestion && <p className="vs-hint">{view.diagnosis.suggestion}</p>}
+        </div>
+      )}
+
       {/* ── 아직 아무 시도도 없을 때: [고쳐주세요] ── */}
       {!proposal && (
         <div className="vs-card vs-stack">
           <h3 className="vs-section-title">
             {mode === "simple" ? "고쳐드릴까요?" : "원인 분석하고 수정안 만들기"}
           </h3>
+          {view.repairGate.blocked && (
+            <div className="vs-alert" data-tone="info">
+              <p style={{ margin: "0 0 10px" }}>{view.repairGate.message}</p>
+              <Link href="/vibesafe/billing" className="vs-btn vs-btn-sm">
+                Pro 살펴보기
+              </Link>
+            </div>
+          )}
           {view.permissions.diagnose ? (
             <>
               <p className="vs-hint">
@@ -256,7 +288,11 @@ export function RepairPanel({
                   onClick={() => void requestFix()}
                   disabled={busy !== null}
                 >
-                  {busy === "fix" ? "찾아보는 중…" : "고쳐주세요"}
+                  {busy === "fix"
+                    ? "찾아보는 중…"
+                    : view.repairGate.blocked
+                      ? "원인만 확인하기"
+                      : "고쳐주세요"}
                 </button>
               </div>
             </>

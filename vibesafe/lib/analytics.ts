@@ -27,6 +27,7 @@ export const VIBESAFE_EVENTS = [
    *  flow_approved와 구분해야 "자동으로 켠 게 실제로 잘 돌았나"를 볼 수 있다. */
   "flow_auto_enabled",
   "subscription_activated",
+  "subscription_trial_started",
   "subscription_cancel_requested",
   "subscription_canceled",
   "subscription_downgraded",

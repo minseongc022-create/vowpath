@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getRoleForFlow } from "../app-map";
+import { canStartFreeRepair, FREE_REPAIR_USED_MESSAGE } from "../billing/repair-credit";
 import { prisma } from "../db";
 import { getPermissions, type ProjectPermissions } from "../permissions";
 import { getUiMode } from "../user-prefs";
@@ -67,6 +68,14 @@ export type RepairView = {
     errorMessage: string | null;
   };
   diagnosis: { id: string; summary: string; suggestion: string | null } | null;
+  /**
+   * 새 자동 수정을 시작해도 되는가 — 무료 베타의 평생 1회 크레딧을 다른
+   * 사고에서 이미 썼으면 blocked=true. **원인 분석에는 영향을 주지 않는다**
+   * — 화면(RepairPanel)은 이 값과 무관하게 diagnosis는 항상 그대로 보여준다.
+   * 이 판단을 화면이 아니라 여기서 미리 내리는 이유는 이 파일 맨 위 설명과
+   * 같다: 같은 판단을 화면마다 다시 하게 하지 않는다.
+   */
+  repairGate: { blocked: boolean; message: string | null };
   /** 지금 사람이 봐야 할 제안 하나 */
   current: RepairProposalView | null;
   /** 지나간 시도들 — 숨기지 않는다. 실패한 시도도 이력이다. */
@@ -83,7 +92,7 @@ export async function getRepairView(params: {
   });
   if (!incident) return null;
 
-  const [mode, permissions, diagnosis, proposals, role] = await Promise.all([
+  const [mode, permissions, diagnosis, proposals, role, user] = await Promise.all([
     getUiMode(params.userId),
     getPermissions(params.projectId),
     prisma.vibesafeDiagnosis.findFirst({
@@ -97,7 +106,14 @@ export async function getRepairView(params: {
       take: 10,
     }),
     getRoleForFlow(params.projectId, incident.flowKey),
+    prisma.vibesafeUser.findUnique({
+      where: { id: params.userId },
+      select: { planKey: true, freeRepairUsedAt: true, freeRepairIncidentId: true },
+    }),
   ]);
+
+  const creditGate = canStartFreeRepair(user, incident.id);
+  const repairGate = { blocked: creditGate.blocked, message: creditGate.blocked ? FREE_REPAIR_USED_MESSAGE : null };
 
   // 지금 사람이 봐야 할 제안 = **가장 최근 제안**.
   //
@@ -126,6 +142,7 @@ export async function getRepairView(params: {
       errorMessage: incident.errorMessage,
     },
     diagnosis: diagnosis ?? null,
+    repairGate,
     current: current
       ? toProposalView(current, {
           mode,

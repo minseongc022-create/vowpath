@@ -35,6 +35,9 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     return ok({ proposal: result });
   } catch (error) {
     if (isPermissionDenied(error)) return fail(error.message, 403);
+    if (error instanceof FixError && error.code === "FREE_REPAIR_USED") {
+      return fail(error.message, 402, { code: error.code });
+    }
     if (error instanceof FixError) return fail(error.message, 400);
     if (error instanceof UsageLimitError) return fail(error.message, 429);
     if (error instanceof AiNotConfiguredError) return fail(error.message, 503);

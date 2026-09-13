@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAiProvider } from "../ai";
+import { canStartFreeRepair, FREE_REPAIR_USED_MESSAGE } from "../billing/repair-credit";
 import { prisma } from "../db";
 import {
   createBranch,
@@ -31,6 +32,14 @@ import { assessRepairRisk } from "./risk";
  *    일이 실제로 일어난다.
  * 3. 건드릴 수 있는 파일을 제한한다. 설정·워크플로·의존성·비밀 파일은
  *    자동 수정 대상이 아니다.
+ *
+ * ★ 무료 베타는 여기서만 막는다 — 원인 분석(diagnose.ts)은 절대 막지 않는다
+ *
+ * "왜 고장났는지"는 요금제와 무관하게 항상 무제한이다. 무료 베타에 걸리는
+ * 유일한 제한은 "고쳐주는 PR을 평생 몇 번 만들어주는가"뿐이고, 그 판단은
+ * diagnose가 아니라 여기(proposeFix 진입)에서 한다. 크레딧은 실제로 PR이
+ * 열렸을 때만(가치가 발생했을 때만) 소진 처리한다 — AI가 "고칠 수 없다"고
+ * 판단해 PR을 못 연 시도까지 소진시키면 사용자만 손해다.
  */
 
 const MAX_FILES_PER_FIX = 3;
@@ -156,6 +165,17 @@ export async function proposeFix(params: {
     where: { id: diagnosisId, projectId },
   });
   if (!diagnosis) throw new FixError("진단 결과를 찾을 수 없습니다.", "NOT_FOUND");
+
+  const user = await prisma.vibesafeUser.findUnique({
+    where: { id: userId },
+    select: { planKey: true, freeRepairUsedAt: true, freeRepairIncidentId: true },
+  });
+  const isPro = user?.planKey === "pro";
+  // repair/view.ts가 화면에 보여줄 판단과 정확히 같은 함수를 쓴다 — 화면이
+  // "가능하다"고 보여줬는데 서버가 막는(또는 그 반대) 어긋남을 막는다.
+  if (canStartFreeRepair(user, diagnosis.incidentId).blocked) {
+    throw new FixError(FREE_REPAIR_USED_MESSAGE, "FREE_REPAIR_USED");
+  }
 
   const incident = diagnosis.incidentId
     ? await prisma.vibesafeIncident.findUnique({ where: { id: diagnosis.incidentId } })
@@ -416,6 +436,14 @@ export async function proposeFix(params: {
       detail: { proposalId: proposal.id, prUrl: pr.url, files: accepted.map((c) => c.path) },
       incidentId: diagnosis.incidentId,
     });
+
+    // ★ 크레딧은 여기서만 소진한다 — 실제로 PR이 열려 가치가 발생한 순간.
+    if (!isPro) {
+      await prisma.vibesafeUser.update({
+        where: { id: userId },
+        data: { freeRepairUsedAt: new Date(), freeRepairIncidentId: diagnosis.incidentId },
+      });
+    }
 
     return {
       proposalId: proposal.id,

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { isDatabaseConfigured, prisma } from "@/vibesafe/lib/db";
 import { enqueueRun, recoverStaleRuns } from "@/vibesafe/lib/runs/queue";
 import { reconcileStalledRepairs } from "@/vibesafe/lib/repair/reconcile";
-import { processDueSubscriptions } from "@/vibesafe/lib/billing/subscription";
+import {
+  processDueSubscriptions,
+  processTrialsEnding,
+  sendTrialEndingReminders,
+} from "@/vibesafe/lib/billing/subscription";
 import { scanProjectSecurity } from "@/vibesafe/lib/security/scan-runner";
 import { pruneOldSignatures } from "@/vibesafe/lib/signals";
 
@@ -15,9 +19,9 @@ import { pruneOldSignatures } from "@/vibesafe/lib/signals";
  * 주기적으로 들러 (1) 워커가 죽어서 붙잡힌 검사를 되살리고 (2) 오랫동안
  * 검사하지 않은 프로젝트를 큐에 넣고 (3) REPAIR 파이프라인이 외부 신호를
  * 못 받아 멈춘 곳을 재조정하고(repair/reconcile.ts) (4) 이번 결제 주기가
- * 끝난 구독을 갱신하거나 해지한다(billing/subscription.ts) — 이 넷 다
- * "누군가 알아서 눌러줘야" 도는 게 아니라 사용자가 아무것도 안 해도
- * 저절로 굴러가야 하는 것들이다.
+ * 끝난 구독을 갱신하거나 해지하고, 체험 종료를 예고·전환한다
+ * (billing/subscription.ts) — 이 전부 "누군가 알아서 눌러줘야" 도는 게
+ * 아니라 사용자가 아무것도 안 해도 저절로 굴러가야 하는 것들이다.
  *
  * 주기를 정할 때 기준은 "얼마나 자주 확인하고 싶은가"가 아니라 "한 달 비용이
  * 얼마인가"다. 기본 6시간은 무료 베타에서 감당 가능한 선이다.
@@ -56,6 +60,18 @@ export async function GET(request: Request) {
   // 사용자가 매달 [결제하기]를 다시 누를 일은 없다.
   const billing = await processDueSubscriptions().catch((error) => {
     console.error("[vibesafe] billing cron failed:", (error as Error).message);
+    return null;
+  });
+
+  // 체험 종료 예고(하루 전 1회) → 체험 종료 후 첫 결제. 순서가 중요하다 —
+  // 예고를 먼저 보내야 "결제 하루 전"이라는 말이 사실이 된다. 종료 처리를
+  // 먼저 하면 이미 청구된 다음에 예고 메일이 나가는 모순이 생긴다.
+  const trialReminders = await sendTrialEndingReminders().catch((error) => {
+    console.error("[vibesafe] trial reminder cron failed:", (error as Error).message);
+    return null;
+  });
+  const trials = await processTrialsEnding().catch((error) => {
+    console.error("[vibesafe] trial conversion cron failed:", (error as Error).message);
     return null;
   });
 
@@ -133,6 +149,8 @@ export async function GET(request: Request) {
     recovered,
     reconciled,
     billing,
+    trialReminders,
+    trials,
     pruned,
     securityScanned,
     checked: projects.length,

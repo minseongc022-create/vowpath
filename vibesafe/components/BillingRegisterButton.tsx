@@ -13,7 +13,15 @@ import { useState } from "react";
  * 카드 번호가 우리 페이지의 iframe이 아니라 토스 도메인에서 직접 입력되므로,
  * 우리 서버는 카드 정보를 한 번도 보지 않는다.
  */
-export function BillingRegisterButton({ customerEmail }: { customerEmail?: string | null }) {
+export function BillingRegisterButton({
+  customerEmail,
+  trialEligible,
+}: {
+  customerEmail?: string | null;
+  /** 이 계정이 7일 체험을 아직 안 써봤는가. false면 등록 즉시 결제된다 —
+   *  버튼 문구가 실제로 일어날 일과 달라지면 안 되므로 반드시 넘겨받는다. */
+  trialEligible: boolean;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,11 +69,13 @@ export function BillingRegisterButton({ customerEmail }: { customerEmail?: strin
         </div>
       )}
       <button className="vs-btn vs-btn-primary vs-btn-lg" onClick={() => void start()} disabled={busy}>
-        {busy ? "이동하는 중…" : "카드 등록하고 시작하기"}
+        {busy ? "이동하는 중…" : trialEligible ? "카드 등록하고 7일 무료체험 시작하기" : "카드 등록하고 시작하기"}
       </button>
       <p className="vs-hint">
-        카드 번호는 토스 결제창에만 입력되고 저희 서버를 거치지 않습니다. 등록일 기준
-        30일마다 자동으로 결제되고, 언제든 해지할 수 있습니다.
+        카드 번호는 토스 결제창에만 입력되고 저희 서버를 거치지 않습니다.{" "}
+        {trialEligible
+          ? "등록해도 지금 결제되는 금액은 없습니다 — 7일 뒤부터 자동으로 결제되고, 결제 하루 전에 미리 알려드립니다. 그 전에 언제든 해지하면 결제되지 않습니다."
+          : "이미 무료체험을 사용하셨어서, 이번에는 등록 즉시 결제되고 이후 30일마다 자동으로 결제됩니다. 언제든 해지할 수 있습니다."}
       </p>
     </div>
   );

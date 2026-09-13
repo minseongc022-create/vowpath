@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       customerKey: parsed.data.customerKey,
       customerEmail: auth.session.email,
     });
-    return ok({ subscriptionId: result.subscriptionId });
+    return ok({ subscriptionId: result.subscriptionId, trialStarted: result.trialStarted });
   } catch (error) {
     if (error instanceof SubscriptionError) return fail(error.message, error.code === "NOT_FOUND" ? 404 : 402);
     if (error instanceof TossBillingError) return fail(error.message, 402);

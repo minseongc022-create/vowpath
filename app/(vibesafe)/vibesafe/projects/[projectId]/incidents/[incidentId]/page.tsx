@@ -32,7 +32,7 @@ export default async function IncidentPage({
   const view = await getRepairView({ userId: session.userId, projectId, incidentId });
   if (!view) notFound();
 
-  const { incident, mode, diagnosis } = view;
+  const { incident, mode } = view;
   const who = incident.roleTitle ? `${withParticle(incident.roleTitle, "이/가")} ` : "";
   const whatObject = `"${incident.flowTitle}"${particle(`"${incident.flowTitle}"`, "을/를")}`;
   const open = incident.status === "open";
@@ -68,16 +68,10 @@ export default async function IncidentPage({
           )}
         </div>
 
-        {diagnosis && (
-          <div className="vs-card vs-stack">
-            <h3 className="vs-section-title">
-              {mode === "simple" ? "무엇 때문인지" : "원인 분석"}
-            </h3>
-            <p style={{ fontSize: 14.5, margin: 0 }}>{diagnosis.summary}</p>
-            {diagnosis.suggestion && <p className="vs-hint">{diagnosis.suggestion}</p>}
-          </div>
-        )}
-
+        {/* 원인 분석은 RepairPanel이 그린다 — [고쳐주세요]를 눌러 새로
+            진단이 생겨도(요금제와 무관하게 항상) 새로고침 없이 바로 보이게
+            하려면 여기(서버 렌더, 최초 1회)가 아니라 그 컴포넌트의 반응형
+            상태에서 렌더돼야 한다. */}
         <RepairPanel projectId={projectId} incidentId={incidentId} initialView={view} />
 
         {/* 원본 오류는 간편 모드에서도 지우지 않는다 — 접어둘 뿐이다 */}

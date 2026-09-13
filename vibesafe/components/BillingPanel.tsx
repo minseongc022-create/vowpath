@@ -19,6 +19,8 @@ type Subscription = {
   cardNumberMasked: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  trialEndsAt: string | null;
+  hasUsedTrial: boolean;
   charges: { status: string; amount: number; failReason: string | null; createdAt: string }[];
 };
 
@@ -35,6 +37,7 @@ const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 const STATUS_LABEL: Record<string, { text: string; tone: "ok" | "warn" | "down" | "neutral" }> = {
   active: { text: "이용 중", tone: "ok" },
+  trialing: { text: "무료체험 중", tone: "ok" },
   past_due: { text: "결제 실패 · 재시도 중", tone: "warn" },
   canceled: { text: "해지됨", tone: "neutral" },
   incomplete: { text: "카드 등록 필요", tone: "warn" },
@@ -108,6 +111,8 @@ export function BillingPanel() {
   const proPlan = state.plans.find((p) => p.key === "pro");
   const isPro = state.currentPlan.key === "pro";
   const isActive = subscription?.status === "active";
+  const isTrialing = subscription?.status === "trialing";
+  const trialEligible = !subscription?.hasUsedTrial;
 
   return (
     <div className="vs-stack">
@@ -143,6 +148,20 @@ export function BillingPanel() {
             {state.currentPlan.priceKrw > 0 ? `${won(state.currentPlan.priceKrw)} / 월` : "무료"}
           </span>
         </div>
+
+        {isTrialing && subscription && (
+          <>
+            <p className="vs-hint">
+              {subscription.cardCompany ?? "카드"} ({subscription.cardNumberMasked ?? "····"}) ·{" "}
+              체험 종료일: {formatDate(subscription.trialEndsAt)} (이날부터 자동 결제 시작)
+            </p>
+            <div className="vs-row">
+              <button className="vs-btn vs-btn-danger" onClick={() => void cancel()} disabled={busy}>
+                {busy ? "처리 중…" : "체험 중 해지하기 (결제되지 않습니다)"}
+              </button>
+            </div>
+          </>
+        )}
 
         {isActive && subscription && (
           <>
@@ -205,7 +224,7 @@ export function BillingPanel() {
             ))}
           </ul>
           <p style={{ fontSize: 20, fontWeight: 700 }}>{won(proPlan.priceKrw)} / 월</p>
-          <BillingRegisterButton customerEmail={state.customerEmail} />
+          <BillingRegisterButton customerEmail={state.customerEmail} trialEligible={trialEligible} />
         </div>
       )}
 

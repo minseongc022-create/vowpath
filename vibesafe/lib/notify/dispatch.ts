@@ -21,7 +21,7 @@ import { prisma } from "../db";
 
 const FLAP_COOLDOWN_MS = 30 * 60 * 1000;
 
-export type NotifyKind = "regression" | "recovered" | "analysis_completed";
+export type NotifyKind = "regression" | "recovered" | "analysis_completed" | "trial_ending";
 
 type NotifyInput = {
   userId: string;
