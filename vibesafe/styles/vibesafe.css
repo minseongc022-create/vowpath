@@ -302,8 +302,11 @@
 }
 .vs-btn:hover:not(:disabled) { background: var(--vs-surface-sunken); }
 .vs-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.vs-btn-primary { background: var(--vs-primary); border-color: var(--vs-primary); color: var(--vs-surface); }
-.vs-btn-primary:hover:not(:disabled) { background: var(--vs-primary-hover); border-color: var(--vs-primary-hover); }
+/* 기본 배경을 --vs-primary가 아니라 --vs-primary-hover로 쓴다. 브랜드
+   Primary(#3478f6) 위 흰 글자는 4.07:1로 AA(4.5:1)에 살짝 못 미치기
+   때문이다 — 이 한 줄로 버튼 글자가 기준을 통과한다(5.17:1). */
+.vs-btn-primary { background: var(--vs-primary-hover); border-color: var(--vs-primary-hover); color: var(--vs-surface); }
+.vs-btn-primary:hover:not(:disabled) { background: var(--vs-primary-pressed); border-color: var(--vs-primary-pressed); }
 .vs-btn-primary:active:not(:disabled) { background: var(--vs-primary-pressed); border-color: var(--vs-primary-pressed); }
 .vs-btn-danger { color: var(--vs-danger-text); border-color: var(--vs-danger-border); background: var(--vs-surface); }
 .vs-btn-danger:hover:not(:disabled) { background: var(--vs-danger-wash); }
