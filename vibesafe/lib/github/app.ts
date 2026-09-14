@@ -19,7 +19,10 @@ import { SignJWT, importPKCS8 } from "jose";
  * 저장소에 접근할 수 있는 값이 들어있지 않다.
  */
 
-const GITHUB_API = "https://api.github.com";
+// 테스트에서 가짜 GitHub 서버를 가리키는 용도(AI 제공자·토스와 같은 패턴).
+// 운영에서는 절대 설정하지 않는다.
+const GITHUB_API = process.env.VIBESAFE_GITHUB_API_BASE_URL?.trim() || "https://api.github.com";
+const GITHUB_OAUTH_HOST = process.env.VIBESAFE_GITHUB_OAUTH_BASE_URL?.trim() || "https://github.com";
 
 export type GithubAppConfig = {
   appId: string;
@@ -78,7 +81,7 @@ export async function exchangeOAuthCode(code: string): Promise<string> {
   const config = getGithubOAuthConfig();
   if (!config) throw new Error("GITHUB_OAUTH_NOT_CONFIGURED");
 
-  const res = await fetch("https://github.com/login/oauth/access_token", {
+  const res = await fetch(`${GITHUB_OAUTH_HOST}/login/oauth/access_token`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ client_id: config.clientId, client_secret: config.clientSecret, code }),
@@ -179,5 +182,5 @@ export async function getInstallation(installationId: string): Promise<{
 export function installUrl(state: string): string | null {
   const config = getGithubAppConfig();
   if (!config) return null;
-  return `https://github.com/apps/${config.slug}/installations/new?state=${encodeURIComponent(state)}`;
+  return `${GITHUB_OAUTH_HOST}/apps/${config.slug}/installations/new?state=${encodeURIComponent(state)}`;
 }

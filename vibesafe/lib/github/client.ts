@@ -1,6 +1,8 @@
 import "server-only";
 
-const GITHUB_API = "https://api.github.com";
+// 테스트에서 가짜 GitHub 서버를 가리키는 용도(AI 제공자·토스와 같은 패턴).
+// 운영에서는 절대 설정하지 않는다.
+const GITHUB_API = process.env.VIBESAFE_GITHUB_API_BASE_URL?.trim() || "https://api.github.com";
 
 export type GithubRepo = {
   id: number;
